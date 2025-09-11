@@ -1,0 +1,73 @@
+﻿@page "/login"
+@inject UserSession UserSession
+@inject NavigationManager Navigation
+@inject AuthService AuthService
+@layout NoNavLayout
+
+<div class="login-container d-flex justify-content-center align-items-center min-vh-100">
+    <div class="card shadow-lg p-4 login-card">
+        <h3 class="card-title text-center mb-4">Login</h3>
+
+        @if (UserSession.IsLoggedIn)
+        {
+            <div class="text-center">
+                <p class="mb-3">Logged in as: <strong>@UserSession.Username</strong></p>
+                <button class="btn btn-danger btn-lg" @onclick="Logout">
+                    <i class="bi bi-box-arrow-right me-2"></i> Logout
+                </button>
+            </div>
+        }
+        else
+        {
+            <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label class="form-label">Nazwa użytkownika</label>
+                    <InputText class="form-control form-control-lg" @bind-Value="loginModel.Username" placeholder="Wprowadź nazwę użytkownika" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Hasło</label>
+                    <InputText type="password" class="form-control form-control-lg" @bind-Value="loginModel.Password" placeholder="Wprowadź hasło" />
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-box-arrow-in-right me-2"></i> Zaloguj
+                    </button>
+                </div>
+            </EditForm>
+        }
+    </div>
+</div>
+
+<Toast @ref="ToastError" Title="Error" Color="danger" />
+
+@code {
+    private LoginDto loginModel = new();
+    private Toast ToastError;
+
+    private async void HandleLogin()
+    {
+        bool validCredentials = await AuthService.Login(loginModel);
+        if (validCredentials)
+        {
+            UserSession.Login(loginModel.Username);
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            ToastError.Message = "Nieprawidłowa nazwa użytkownika lub hasło.";
+            await ToastError.Show();
+            await Task.Delay(4000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+        }
+    }
+
+    private void Logout()
+    {
+        UserSession.Logout();
+        Navigation.NavigateTo("/login");
+    }
+}

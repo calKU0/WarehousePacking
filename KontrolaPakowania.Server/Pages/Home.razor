@@ -1,0 +1,18 @@
+﻿@page "/"
+@using KontrolaPakowania.Server.Data
+@inject UserSession UserSession
+@inject NavigationManager Navigation
+
+<h3>Main Page</h3>
+
+<p>Welcome, @UserSession.Username!</p>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (!UserSession.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+}

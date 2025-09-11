@@ -1,0 +1,16 @@
+﻿/* Container for settings page */
+.settings-container {
+    max-width: 600px; /* center card and limit width */
+    margin: 0 auto;
+}
+
+/* Optional: subtle card shadow and spacing handled by Bootstrap */
+.card {
+    border-radius: 0.5rem;
+}
+
+/* Enhance input spacing */
+.form-control {
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+}

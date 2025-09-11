@@ -1,0 +1,87 @@
+﻿.modal-backdrop {
+    z-index: 1040;
+}
+
+.modal-header .btn-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+}
+
+.modal {
+    z-index: 1050;
+}
+
+.modal-dialog {
+    max-width: 550px;
+}
+
+.modal-header-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.product-image {
+    height: 175px;
+    width: auto;
+    margin-right: 0.5rem;
+}
+
+.product-info h5 {
+    margin: 0;
+}
+
+.top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* left input, right image */
+    width: 100%;
+}
+
+.bottom-row {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+}
+
+.image-placeholder {
+    width: auto;
+    height: 3.5rem;
+    background-color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed #aaa;
+}
+
+.input-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quantity-input {
+    max-width: 100px;
+    text-align: center;
+}
+
+.numeric-keyboard {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(4, 1fr); /* 4 rows for 12 keys */
+    gap: 1.6rem;
+    flex-grow: 1;
+}
+
+.key-btn {
+    width: 100%;
+    height: 100%;
+    font-size: 2.8rem;
+}
+
+.ok-btn {
+    margin-left: 1rem;
+    width: 150px;
+    flex-shrink: 0;
+}

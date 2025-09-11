@@ -1,0 +1,45 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1055; min-width: 250px;">
+    <div class="toast border-0 fade" style="display:@(Visible ? "flex" : "none"); flex-direction: column;">
+        <!-- Title block -->
+        <div class="toast-header bg-light border-bottom">
+            <strong class="me-auto">@Title</strong>
+            <button type="button" class="btn-close" aria-label="Close" @onclick="Close"></button>
+        </div>
+
+        <!-- Message block -->
+        <div class="toast-body text-white bg-@Color border-0">
+            @Message
+        </div>
+    </div>
+</div>
+
+
+
+@code {
+    [Parameter] public string Title { get; set; } = "Info";
+    [Parameter] public string Message { get; set; } = "";
+    [Parameter] public string Color { get; set; } = "success"; // success, warning, danger, info
+    [Parameter] public bool Visible { get; set; } = false;
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    public async Task Show()
+    {
+        Visible = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task Hide()
+    {
+        Visible = false;
+        await InvokeAsync(StateHasChanged);
+        if (OnClose.HasDelegate)
+            await OnClose.InvokeAsync();
+    }
+
+    private async Task Close()
+    {
+        await Hide();
+    }
+}

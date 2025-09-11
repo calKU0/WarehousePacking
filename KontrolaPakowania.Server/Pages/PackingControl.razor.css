@@ -1,0 +1,61 @@
+﻿table.custom-striped > tbody > tr:not(.table-warning):not(.table-danger):not(.table-active):nth-child(odd) > td,
+table.custom-striped > tbody > tr:not(.table-warning):not(.table-danger):not(.table-active):nth-child(odd) > th {
+    background-color: #bcbcbc;
+}
+
+table.custom-striped > tbody > tr:not(.table-warning):not(.table-danger):not(.table-active):nth-child(even) > td,
+table.custom-striped > tbody > tr:not(.table-warning):not(.table-danger):not(.table-active):nth-child(even) > th {
+    background-color: #ffffff;
+}
+
+/* Keep hover visible and slightly stronger than striping */
+table.custom-striped > tbody > tr:hover > td,
+table.custom-striped > tbody > tr:hover > th {
+    background-color: #f1f1f1;
+}
+
+
+.header-row {
+    height: auto;
+    align-items: center; 
+}
+
+.header-image-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 1em;
+}
+
+    .header-image-placeholder img {
+        height: calc(1em * 2.5);
+        width: auto;
+        object-fit: contain;
+    }
+
+.scan-blink {
+    color: red;
+    font-weight: bold;
+    animation: blink 1s step-start infinite;
+}
+
+.jl-item-img {
+    height: 50px;
+    width: auto;
+    object-fit: contain;
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+.pack-control .table {
+    font-size: 0.9rem;
+}
+
+.pack-control .btn {
+    min-height: 60px;
+    font-size: 1rem;
+}

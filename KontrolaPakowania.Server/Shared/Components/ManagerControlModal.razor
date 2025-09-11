@@ -1,0 +1,89 @@
+﻿@using Microsoft.AspNetCore.Components
+
+<div>
+    <!-- Lock button (always visible) -->
+    <button class="btn btn-secondary" @onclick="OnLockClick">
+        <i class="bi bi-lock"></i>
+    </button>
+
+    <!-- Manager Modal -->
+    @if (IsOpen)
+    {
+        <div class="modal fade show d-block" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Przyciski Kierownika</h5>
+                        <button type="button" class="btn-close" aria-label="Close" @onclick="CloseModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="container">
+                            <div class="row g-3">
+                                @if (ShowPackingButtons)
+                                {
+                                    <div class="col-4">
+                                        <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(1)">Etykiety</button>
+                                    </div>
+
+                                    <div class="col-4">
+                                        <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(2)">Spakuj</button>
+                                    </div>
+ 
+                                    <div class="col-4">
+                                        <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(3)">Zawartość</button>
+                                    </div>
+
+                                    <div class="col-4">
+                                        <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(4)">Kurier</button>
+                                    </div>
+                                }
+                                <div class="col-4">
+                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(5)">Zalogowani</button>
+                                </div>
+                                <div class="col-4">
+                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(6)">Kuwety podjęte</button>
+                                </div>
+                                <div class="col-4">
+                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(7)">Zwolnij</button>
+                                </div>
+                                <div class="col-4">
+                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(8)">Zm. magazyn</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="CloseModal" id="zamknijBtn">Zamknij</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-backdrop fade show"></div>
+    }
+</div>
+
+@code {
+    private bool IsOpen = false;
+
+    [Parameter] public EventCallback<int> OnButtonClick { get; set; }
+    [Parameter] public EventCallback OnRequestPassword { get; set; }
+    [Parameter] public bool ShowPackingButtons { get; set; } = false;
+
+    private async Task OnLockClick()
+    {
+        if (OnRequestPassword.HasDelegate)
+        {
+            await OnRequestPassword.InvokeAsync();
+        }
+    }
+
+    public void OpenModal() => IsOpen = true;
+    private void CloseModal() => IsOpen = false;
+
+    private async Task HandleClick(int value)
+    {
+        await OnButtonClick.InvokeAsync(value);
+        IsOpen = false;
+    }
+}

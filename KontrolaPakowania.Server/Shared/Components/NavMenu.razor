@@ -1,0 +1,44 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">
+            <span class="brand-icon bi bi-box-seam"></span>
+            <span class="brand-text">Kontrola Pakowania</span>
+        </a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="nav-icon bi bi-house"></span>
+                <span class="nav-text">Strona główna</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="kontrola-pakowania">
+                <span class="nav-icon bi bi-box-seam"></span>
+                <span class="nav-text">Kontrola Pakowania</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="wysylka-paczek">
+                <span class="nav-icon bi bi-truck"></span>
+                <span class="nav-text">Wysyłka Paczek</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="settings">
+                <span class="nav-icon bi bi-gear"></span>
+                <span class="nav-text">Ustawienia</span>
+            </NavLink>
+        </div>
+    </nav>
+
+</div>
+

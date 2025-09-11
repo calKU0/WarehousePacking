@@ -1,0 +1,32 @@
+﻿@if (Show)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Title</h5>
+                </div>
+                <div class="modal-body">
+                    <p>@Message</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="OnCancel">Anuluj</button>
+                    <button class="btn btn-danger" @onclick="OnConfirm">Potwierdź</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = "Potwierdzenie";
+    [Parameter] public string Message { get; set; } = "Czy jesteś pewny?";
+    [Parameter] public EventCallback OnCancelClicked { get; set; }
+    [Parameter] public EventCallback OnConfirmClicked { get; set; }
+
+    public bool Show { get; set; }
+
+    private async Task OnCancel() => await OnCancelClicked.InvokeAsync();
+    private async Task OnConfirm() => await OnConfirmClicked.InvokeAsync();
+}

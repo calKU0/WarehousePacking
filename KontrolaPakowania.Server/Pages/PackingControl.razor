@@ -1,0 +1,396 @@
+﻿@using KontrolaPakowania.Shared.DTOs.Requests
+@using KontrolaPakowania.Shared.Helpers
+
+@page "/kontrola-pakowania/{jl}"
+@layout NoNavLayout
+
+@inject IJSRuntime JSRuntime
+@inject PackingService PackingService
+@inject WorkstationService WorkstationService
+@inject NavigationManager Navigation
+@inject UserSession UserSession
+@inject AuthService AuthService
+
+<div class="container-fluid d-flex flex-column vh-100 p-3 pack-control">
+    <div class="d-flex align-items-center mb-3 header-row">
+        @if (JlItems != null && JlItems.Any() && JlItems.FirstOrDefault().Country != "PL")
+        {
+            <!-- First image placeholder (Export) -->
+            <div class="header-image-placeholder me-2">
+                <img src="images/exp.jpg" alt="Export" />
+            </div>
+        }
+
+        @if (CurrentJl != null && !string.IsNullOrEmpty(CurrentJl.Courier))
+        {
+            <!-- Second image placeholder (Courier) -->
+            <div class="header-image-placeholder me-3">
+                <img src="@Utils.GetCourierSrc(CurrentJl.Courier)" alt="@CurrentJl.Courier" />
+        </div>
+        }
+
+        <!-- Header text -->
+        <div class="flex-grow-1 text-center">
+            <h2 class="scan-blink">Zeskanuj Towar</h2>
+        </div>
+    </div>
+
+
+    <!-- Full-width input -->
+    <div class="mb-3 flex-shrink-0">
+        <input type="text" @ref="itemInputRef" @onkeydown="HandleCodeInput" class="form-control form-control-lg" placeholder="Skanuj kod..." />
+    </div>
+
+    <!-- Tables row -->
+    <div class="row g-3 flex-grow-1">
+
+        <!-- Left table -->
+        <div class="col-12 col-lg-8 d-flex flex-column">
+            <div class="card shadow-sm flex-grow-1 d-flex flex-column">
+                <div class="card-header d-flex justify-content-between">
+                    <span>Do spakowania</span>
+                    <span>
+                        Waga: @(JlItems != null && JlItems.Any()
+                                                ? JlItems.Sum(w => w.Weight * w.JlQuantity).ToString("F2")
+                                                : "0") kg
+                    </span>
+                </div>
+                <div class="table-responsive flex-grow-1 overflow-auto">
+                    <table class="table custom-striped table-hover align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Kod</th>
+                                <th>Ilość</th>
+                                <th>Nazwa</th>
+                                <th>Obraz</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (JlItems == null)
+                            {
+                                <tr><td colspan="4" class="text-center">Ładowanie...</td></tr>
+                            }
+                            else if (!JlItems.Any())
+                            {
+                                <tr><td colspan="4" class="text-center text-muted">Brak danych</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var item in JlItems)
+                                {
+                                    var rowClass = HighlightedRows.Contains(item.Code) ? "table-warning" : "";
+
+                                    <tr class="@rowClass clickable-row" @ondblclick="() => OpenProductModal(item)">
+                                        <td>@item.Code</td>
+                                        <td>@item.JlQuantity</td>
+                                        <td>@item.Name</td>
+                                        <td>
+                                            <img src="@Utils.GetImageSrc(item.Image)" class="jl-item-img rounded" />
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right table -->
+        <div class="col-12 col-lg-4 d-flex flex-column">
+            <div class="card shadow-sm flex-grow-1 d-flex flex-column">
+                <div class="card-header d-flex justify-content-between">
+                    <span>Spakowane</span>
+                    <span>
+                        Waga: @(PackedItems != null && PackedItems.Any()
+                                                ? PackedItems.Sum(w => w.Weight * w.JlQuantity).ToString("F2")
+                                                : "0") kg
+                    </span>
+                </div>
+                <div class="table-responsive flex-grow-1 overflow-auto">
+                    <table class="table custom-striped table-hover align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Kod</th>
+                                <th>Ilość</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!PackedItems.Any())
+                            {
+                                <tr><td colspan="2" class="text-center text-muted">Jeszcze nic nie spakowano</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var packed in PackedItems)
+                                {
+                                    var isSelected = packed == SelectedPackedItem ? "table-danger" : "";
+                                    <tr class="@isSelected" @onclick="() => SelectPackedItem(packed)">
+                                        <td>@packed.Code</td>
+                                        <td>@packed.JlQuantity</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Buttons at the bottom -->
+    <div class="row g-2 mt-3 flex-shrink-0">
+        <div class="col-6 col-md">
+            <button class="btn btn-warning w-100 h-100 py-3">Następny karton/paczka</button>
+        </div>
+        <div class="col-6 col-md">
+            <button class="btn btn-warning w-100 h-100 py-3">Bufor</button>
+        </div>
+        <div class="col-6 col-md">
+            <button class="btn btn-danger w-100 h-100 py-3" @onclick="MoveBackToLeft">Usuń pozycję</button>
+        </div>
+        <div class="col-6 col-md">
+            <button class="btn btn-danger w-100 h-100 py-3" @onclick="Close" disabled="@(PackedItems.Any())">Zamknij</button>
+        </div>
+        <div class="col-6 col-md">
+            <button class="btn btn-success w-100 h-100 py-3">Zakończ</button>
+        </div>
+    </div>
+
+</div>
+
+@if (ShowProductModal && SelectedItem != null)
+{
+    <ProductSelectModal Product="SelectedItem"
+                        OnConfirm="MoveToRight"
+                        OnClose="() => ShowProductModal = false" />
+}
+
+<ConfirmDialog @ref="confirmDialog"
+               Title="Zamknij"
+               Message="Czy na pewno chcesz zamknąć?"
+               OnCancelClicked="HideConfirm"
+               OnConfirmClicked="ConfirmClose" />
+
+<Toast @ref="ToastError" Title="Error" Color="danger" />
+
+@code {
+    [Parameter] public string Jl { get; set; }
+    private JlDto CurrentJl = new();
+    private List<JlItemDto> JlItems;
+    private List<JlItemDto> PackedItems = new();
+    private HashSet<string> HighlightedRows = new();
+    private ElementReference itemInputRef;
+
+    private Toast ToastError;
+    private ConfirmDialog confirmDialog;
+    private bool ShowProductModal = false;
+
+    private JlItemDto? SelectedItem;
+    private JlItemDto? SelectedPackedItem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!UserSession.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login", true);
+        }
+        await LoadData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", itemInputRef);
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var settings = await WorkstationService.GetSettingsAsync();
+            JlItems = await PackingService.GetJlItems(Jl, settings.PackingLocation);
+            CurrentJl = await PackingService.GetJlInfoByCode(Jl, settings.PackingLocation);
+        }
+        catch (Exception ex)
+        {
+            JlItems = new List<JlItemDto>();
+
+            ToastError.Message = $"Błąd przy próbie pobrania zawartości kuwety: {ex.Message}";
+            await ToastError.Show();           
+        }
+        StateHasChanged();
+    }
+
+    private void OpenProductModal(JlItemDto item)
+    {
+        SelectedItem = item;
+        ShowProductModal = true;
+    }
+
+    private void MoveToRight(decimal qty)
+    {
+        try
+        {
+            if (SelectedItem == null || JlItems == null) return;
+
+            if (qty == SelectedItem.DocumentQuantity)
+            {
+                // Full quantity selected -> move whole product
+                PackedItems.Add(SelectedItem);
+                JlItems.Remove(SelectedItem);
+            }
+            else
+            {
+                // Partial quantity selected -> highlight row and move only part
+                var existingPacked = PackedItems.FirstOrDefault(p => p.Code == SelectedItem.Code);
+                HighlightedRows.Add(SelectedItem.Code);
+
+                if (existingPacked != null)
+                {
+                    existingPacked.JlQuantity += qty;
+                }
+                else
+                {
+                    PackedItems.Add(new JlItemDto
+                        {
+                            Id = SelectedItem.Id,
+                            Code = SelectedItem.Code,
+                            Name = SelectedItem.Name,
+                            SupplierCode = SelectedItem.SupplierCode,
+                            DocumentQuantity = SelectedItem.DocumentQuantity,
+                            JlQuantity = qty,
+                            Weight = SelectedItem.Weight,
+                            Image = SelectedItem.Image,
+                            ProductType = SelectedItem.ProductType,
+                            Country = SelectedItem.Country,
+                            Unit = SelectedItem.Unit,
+                            DocumentId = SelectedItem.DocumentId,
+                            JlCode = SelectedItem.JlCode
+                        });
+                }
+
+                // Reduce quantity left in left table
+                SelectedItem.JlQuantity -= qty;
+
+                if (SelectedItem.JlQuantity <= 0)
+                {
+                    JlItems.Remove(SelectedItem);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastError.Message = $"Błąd przy próbie spakowania towaru: {ex.Message}";
+            _ = ToastError.Show();
+        }
+        finally
+        {
+
+            ShowProductModal = false;
+            SelectedItem = null;
+            _ = JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", itemInputRef);
+            StateHasChanged();
+        }
+    }
+
+
+    private async Task HandleCodeInput(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            try
+            {
+                var code = await JSRuntime.InvokeAsync<string>("blazorFocus.getValue", itemInputRef);
+                if (!string.IsNullOrEmpty(code) && JlItems != null)
+                {
+                    // Search by code, barcode, or supplier code
+                    var item = JlItems.FirstOrDefault(x =>
+                        string.Equals(x.Code, code, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(x.SupplierCode, code, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(x.Name, code, StringComparison.OrdinalIgnoreCase));
+
+                    if (item != null)
+                    {
+                        OpenProductModal(item);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ToastError.Message = $"Błąd przy próbie zaczytania towaru: {ex.Message}";
+                _ = ToastError.Show();
+            }
+            finally
+            {
+                await JSRuntime.InvokeVoidAsync("blazorFocus.clearValue", itemInputRef);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void SelectPackedItem(JlItemDto packed)
+    {
+        SelectedPackedItem = packed;
+    }
+
+    private void MoveBackToLeft()
+    {
+        try
+        {
+            if (SelectedPackedItem == null) return;
+
+            // Find if the item already exists in left list
+            var existingLeft = JlItems.FirstOrDefault(j => j.Code == SelectedPackedItem.Code);
+
+            if (existingLeft != null)
+            {
+                // Add quantity back to existing item
+                existingLeft.JlQuantity += SelectedPackedItem.JlQuantity;
+            }
+            else
+            {
+                // Recreate the item in left list
+                JlItems.Add(SelectedPackedItem);
+            }
+
+            // Remove from right
+            PackedItems.Remove(SelectedPackedItem);
+
+            // Remove highlight if no longer partially packed
+            HighlightedRows.Remove(SelectedPackedItem.Code);
+
+            SelectedPackedItem = null;
+        }
+        catch (Exception ex)
+        {
+            ToastError.Message = $"Błąd przy próbie usunięcia towaru: {ex.Message}";
+            _ = ToastError.Show();
+        }
+        finally
+        {
+            _ = JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", itemInputRef);
+            StateHasChanged();
+        }
+    }
+
+    private void Close()
+    {
+        confirmDialog.Show = true;
+        StateHasChanged();
+    }
+
+    private void HideConfirm()
+    {
+        confirmDialog.Show = false;
+    }
+
+    private void ConfirmClose()
+    {
+        confirmDialog.Show = false;
+        Navigation.NavigateTo("/kontrola-pakowania");
+    }
+}

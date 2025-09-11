@@ -1,0 +1,15 @@
+﻿@page "/wysylka-paczek"
+@inject UserSession UserSession
+@inject NavigationManager Navigation
+
+<h3>PackageSend</h3>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (!UserSession.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+}

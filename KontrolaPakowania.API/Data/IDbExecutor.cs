@@ -1,0 +1,11 @@
+﻿using KontrolaPakowania.API.Data.Enums;
+using System.Data;
+
+namespace KontrolaPakowania.API.Data
+{
+    public interface IDbExecutor
+    {
+        Task<IEnumerable<T>> QueryAsync<T>(string sql, object? param = null, CommandType? commandType = null, Connection connection = Connection.WMSConnection);
+        Task<T> QuerySingleOrDefaultAsync<T>(string sql, object? param = null, CommandType? commandType = null, Connection connection = Connection.WMSConnection);
+    }
+}

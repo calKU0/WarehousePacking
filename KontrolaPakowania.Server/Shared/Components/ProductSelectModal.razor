@@ -1,0 +1,146 @@
+﻿@using KontrolaPakowania.Shared.Helpers
+@inject IJSRuntime JSRuntime
+
+<div class="modal-backdrop fade show" @onclick="Close"></div>
+<div class="modal d-block" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-header-content">
+                    <img src="@Utils.GetImageSrc(Product.Image)" class="product-image" />
+                    <div class="product-info">
+                        <h5 class="mb-3">@Product.Name</h5>
+                        <p class="mb-0"><strong>Kod:</strong> @Product.Code</p>
+                        <p class="mb-0"><strong>Kod dostawcy:</strong> @Product.SupplierCode</p>
+                        <p class="mb-3"><strong>Waga:</strong> @Product.Weight kg</p>
+                        <p class="mb-0"><strong>Ilość na dokumencie:</strong> @Product.DocumentQuantity @Product.Unit</p>
+                        <p class="mb-0"><strong>Ilość w kuwecie:</strong> @Product.JlQuantity @Product.Unit</p>
+                    </div>
+                    <button type="button" class="btn-close ms-auto" @onclick="Close"></button>
+                </div>
+            </div>
+
+            <div class="modal-body d-flex flex-column align-items-center">
+
+                <!-- Top row: Input left, Image right -->
+                <div class="top-row d-flex align-items-center justify-content-between w-100 mb-3">
+                    <div class="d-flex align-items-center input-wrapper">
+                        <label class="me-2 mb-0 fw-bold fs-5">Podaj ilość:</label>
+                        <input type="text" class="form-control form-control-lg text-center quantity-input" @ref="quantityInputRef" @bind="InputQuantity" />
+                    </div>
+                    @if (!string.IsNullOrEmpty(GetProductTypeImage()))
+                    {
+                        <img class="image-placeholder" src="@GetProductTypeImage()" />
+                    }
+                </div>
+
+                <!-- Bottom row: Numeric keyboard + Enter button -->
+                <div class="bottom-row d-flex gap-2 w-100">
+                    <div class="numeric-keyboard d-grid flex-grow-1">
+                        @foreach (var key in new string[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", ",", "⌫" })
+                        {
+                            <button class="btn btn-secondary key-btn" @onclick="() => HandleKey(key)">
+                                @key
+                            </button>
+                        }
+                    </div>
+
+                    <button class="btn btn-success ok-btn d-flex align-items-center justify-content-center" @onclick="Confirm">
+                        Enter
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<Toast @ref="ToastError" Title="Error" Color="danger" />
+
+@code {
+    [Parameter] public JlItemDto Product { get; set; } = default!;
+    [Parameter] public EventCallback<decimal> OnConfirm { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private ElementReference quantityInputRef;
+    private string InputQuantity = string.Empty;
+    private Toast ToastError;
+
+    protected override void OnParametersSet()
+    {
+        InputQuantity = Product.JlQuantity == 1 ? Product.JlQuantity.ToString() : string.Empty;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", quantityInputRef);
+        }
+    }
+
+    private void AppendNumber(int num) => InputQuantity += num.ToString();
+
+    private void Backspace()
+    {
+        if (!string.IsNullOrEmpty(InputQuantity))
+            InputQuantity = InputQuantity[..^1];
+    }
+
+    private async Task Confirm()
+    {
+        if (decimal.TryParse(InputQuantity.Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal qty))
+        {
+            if (qty > Product.JlQuantity)
+            {
+                ToastError.Message = $"Nie możesz spakować ilości większej niż jest w kuwecie! Zmień ilość i spróbuj ponownie.";
+                await ToastError.Show();
+                await Task.Delay(4000);
+                await ToastError.Hide();
+            }
+            else
+            {
+                await OnConfirm.InvokeAsync(qty);
+            }
+        }
+        else
+        {
+            ToastError.Message = $"Podano błędną wartość w polu ilość. Spróbuj wprowadzić ilość ponownie.";
+            await ToastError.Show();
+            await Task.Delay(4000);
+            await ToastError.Hide();
+        }
+    }
+
+    private async Task Close()
+    {
+        if (OnClose.HasDelegate)
+            await OnClose.InvokeAsync();
+    }
+
+    private void AppendKey(string key)
+    {
+        InputQuantity += key;
+    }
+
+    private void HandleKey(string key)
+    {
+        if (key == "⌫")
+            Backspace();
+        else if (key == "," && InputQuantity.Contains(","))
+            return;
+        else
+            AppendKey(key);
+    }
+
+    private string GetProductTypeImage()
+    {
+        return Product.ProductType switch
+        {
+            "Ciężki" => "images/product_types/heavy.jpg",
+            "Delikatny" => "images/product_types/glass.jpg",
+            _ => string.Empty,
+        };
+    }
+}

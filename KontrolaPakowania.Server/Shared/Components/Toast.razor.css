@@ -1,0 +1,8 @@
+﻿.toast.fade {
+    transition: opacity 0.3s ease;
+    opacity: 0;
+}
+
+    .toast.fade[style*="display:flex"] {
+        opacity: 1;
+    }

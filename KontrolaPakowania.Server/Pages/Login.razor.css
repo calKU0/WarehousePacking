@@ -1,0 +1,22 @@
+﻿.login-container {
+    background: #f8f9fa;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    border-radius: 1rem;
+}
+
+    .login-card .card-title {
+        font-weight: 600;
+        color: #343a40;
+    }
+
+    .login-card .form-control {
+        border-radius: 0.5rem;
+    }
+
+    .login-card .btn {
+        border-radius: 0.5rem;
+    }
