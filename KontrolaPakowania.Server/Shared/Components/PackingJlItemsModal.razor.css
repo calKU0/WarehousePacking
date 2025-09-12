@@ -1,0 +1,5 @@
+﻿.jl-item-img {
+    height: 50px;
+    width: auto;
+    object-fit: contain;
+}

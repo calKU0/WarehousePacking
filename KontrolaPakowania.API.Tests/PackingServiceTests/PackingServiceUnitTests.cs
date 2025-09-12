@@ -25,6 +25,8 @@ public class PackingServiceUnitTests
         _service = new PackingService(_dbExecutorMock.Object, _erpXlClientMock.Object);
     }
 
+    #region Jl Tests
+
     [Fact, Trait("Category", "Unit")]
     public async Task GetJlListAsync_ReturnsMockedData()
     {
@@ -167,6 +169,120 @@ public class PackingServiceUnitTests
     }
 
     [Fact, Trait("Category", "Unit")]
+    public async Task GetPackingJlItemsAsync_ReturnsMockedData()
+    {
+        // Arrange
+        var fakeData = new List<JlItemDto>
+            {
+                new JlItemDto
+                {
+                    Code = "618186.00",
+                    Name = "Panewka",
+                    JlQuantity = 3,
+                }
+            };
+
+        _dbExecutorMock.Setup(db => db.QueryAsync<JlItemDto>(
+                It.IsAny<string>(),
+                It.IsAny<object?>(),
+                It.IsAny<CommandType>(),
+                It.IsAny<Connection>()))
+              .ReturnsAsync(fakeData);
+
+        // Act
+        var result = await _service.GetPackingJlItemsAsync("JL001");
+
+        // Assert
+        Assert.Single(result);
+        var item = result.First();
+
+        Assert.Equal("Panewka", item.Name);
+        Assert.Equal("618186.00", item.Code);
+        Assert.Equal(3, item.JlQuantity);
+    }
+
+    [Fact, Trait("Category", "Unit")]
+    public async Task GetJlListInProgress_ReturnsList()
+    {
+        // Arrange
+        var jlList = new List<JlInProgressDto>
+        {
+            new() { Name = "JL1" },
+            new() { Name = "JL2" }
+        };
+
+        _dbExecutorMock
+            .Setup(db => db.QueryAsync<JlInProgressDto>(
+                It.IsAny<string>(),
+                It.IsAny<object?>(),
+                It.IsAny<CommandType>(),
+                It.IsAny<Connection>()))
+            .ReturnsAsync(jlList);
+
+        // Act
+        var result = await _service.GetJlListInProgress();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count());
+        Assert.Contains(result, x => x.Name == "JL1");
+    }
+
+    [Fact, Trait("Category", "Unit")]
+    public async Task AddJlRealization_ReturnsTrue_WhenDbReturnsRows()
+    {
+        // Arrange
+        var jl = new JlInProgressDto
+        {
+            Name = "JL123",
+            Courier = "DPD",
+            ClientName = "TestClient",
+            Date = DateTime.Now,
+            StationNumber = "ST01",
+            User = "TestUser"
+        };
+
+        _dbExecutorMock
+            .Setup(db => db.QuerySingleOrDefaultAsync<int>(
+                It.IsAny<string>(),
+                It.IsAny<object?>(),
+                It.IsAny<CommandType>(),
+                It.IsAny<Connection>()))
+            .ReturnsAsync(1);
+
+        // Act
+        var result = await _service.AddJlRealization(jl);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact, Trait("Category", "Unit")]
+    public async Task RemoveJlRealization_ReturnsTrue_WhenDbReturnsRows()
+    {
+        // Arrange
+        var jlCode = "JL123";
+
+        _dbExecutorMock
+            .Setup(db => db.QuerySingleOrDefaultAsync<int>(
+                It.IsAny<string>(),
+                It.IsAny<object?>(),
+                It.IsAny<CommandType>(),
+                It.IsAny<Connection>()))
+            .ReturnsAsync(1);
+
+        // Act
+        var result = await _service.RemoveJlRealization(jlCode);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    #endregion Jl Tests
+
+    #region Packing Tests
+
+    [Fact, Trait("Category", "Unit")]
     public void OpenPackage_ReturnsPackageId()
     {
         // Arrange
@@ -226,4 +342,6 @@ public class PackingServiceUnitTests
 
         Assert.Throws<XlApiException>(() => _service.OpenPackage(request));
     }
+
+    #endregion Packing Tests
 }

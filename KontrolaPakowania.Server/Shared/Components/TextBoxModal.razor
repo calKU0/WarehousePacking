@@ -1,0 +1,68 @@
+﻿@using Microsoft.AspNetCore.Components
+
+@if (IsVisible)
+{
+    <div class="modal-backdrop fade show" @onclick="Close"></div>
+    <div class="modal d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Title</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>@Message</p>
+                    <input class="form-control" @bind="InputValue" placeholder="@InputPlaceholder" />
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" @onclick="Confirm">Potwierdź</button>
+                    <button class="btn btn-secondary" @onclick="Close">Anuluj</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = "Tytuł";
+    [Parameter] public string Message { get; set; } = "Wiadomość";
+    [Parameter] public string InputPlaceholder { get; set; } = "Wprowadź tekst...";
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    public bool IsVisible { get; set; } = false;
+    public string InputValue { get; set; } = string.Empty;
+    private TaskCompletionSource<string> _tcs;
+
+    public Task<string> Show(string title = null, string message = null, string placeholder = null)
+    {
+        if (!string.IsNullOrEmpty(title)) Title = title;
+        if (!string.IsNullOrEmpty(message)) Message = message;
+        if (!string.IsNullOrEmpty(placeholder)) InputPlaceholder = placeholder;
+
+        InputValue = string.Empty;
+        IsVisible = true;
+        StateHasChanged();
+
+        _tcs = new TaskCompletionSource<string>();
+        return _tcs.Task;
+    }
+
+    private void Cancel()
+    {
+        _tcs?.SetResult(null);
+        Close();
+    }
+
+    private void Confirm()
+    {
+        _tcs?.SetResult(InputValue);
+        Close();
+    }
+
+    private void Close()
+    {
+        InputValue = string.Empty;
+        IsVisible = false;
+        StateHasChanged();
+    }
+}

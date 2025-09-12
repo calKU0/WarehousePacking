@@ -14,11 +14,21 @@ namespace KontrolaPakowania.Shared.DTOs
         public int Status { get; set; }
         public decimal Weight { get; set; }
         public string Courier { get; set; } = "";
+        public string LogoCourier { get; set; } = "";
+        public CourierServices CourierServices { get; set; } = new();
         public int RouteId { get; set; }
         public int Priority { get; set; }
         public int Sorting { get; set; }
         public bool OutsideEU { get; set; } = false;
         public string ClientName { get; set; } = "";
         public int ClientAddressId { get; set; }
+    }
+
+    public class CourierServices
+    {
+        public bool Return { get; set; }
+        public bool _12 { get; set; }
+        public bool Saturday { get; set; }
+        public bool Dropshipping { get; set; }
     }
 }

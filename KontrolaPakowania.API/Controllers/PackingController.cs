@@ -1,5 +1,6 @@
 ﻿using KontrolaPakowania.API.Services.Exceptions;
 using KontrolaPakowania.API.Services.Interfaces;
+using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
 using Microsoft.AspNetCore.Http;
@@ -72,8 +73,98 @@ namespace KontrolaPakowania.API.Controllers
             }
         }
 
+        [HttpGet("packing-jl-items")]
+        public async Task<IActionResult> GetPackingJlItems([FromQuery] string barcode)
+        {
+            try
+            {
+                var items = await _packingService.GetPackingJlItemsAsync(barcode);
+                return Ok(items);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("add-jl-realization")]
+        public async Task<IActionResult> AddJlRealization([FromBody] JlInProgressDto jl)
+        {
+            try
+            {
+                bool success = await _packingService.AddJlRealization(jl);
+                return Ok(success);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("jl-in-progress")]
+        public async Task<IActionResult> GetJlListInProgress()
+        {
+            try
+            {
+                var list = await _packingService.GetJlListInProgress();
+                return Ok(list);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpDelete("remove-jl-realization")]
+        public async Task<IActionResult> RemoveJlRealization([FromQuery] string jl)
+        {
+            try
+            {
+                bool success = await _packingService.RemoveJlRealization(jl);
+                return Ok(success);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpDelete("release-jl")]
+        public async Task<IActionResult> ReleaseJl([FromQuery] string jl)
+        {
+            try
+            {
+                bool success = await _packingService.ReleaseJl(jl);
+                return Ok(success);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpPost("open-package")]
-        public async Task<IActionResult> OpenPackage([FromBody] OpenPackageRequest request)
+        public IActionResult OpenPackage([FromBody] OpenPackageRequest request)
         {
             try
             {
@@ -95,7 +186,7 @@ namespace KontrolaPakowania.API.Controllers
         }
 
         [HttpPost("add-packed-position")]
-        public async Task<IActionResult> AddPackedPosition([FromBody] AddPackedPositionRequest request)
+        public IActionResult AddPackedPosition([FromBody] AddPackedPositionRequest request)
         {
             try
             {
@@ -117,7 +208,7 @@ namespace KontrolaPakowania.API.Controllers
         }
 
         [HttpPost("remove-packed-position")]
-        public async Task<IActionResult> RemovePackedPosition([FromBody] RemovePackedPositionRequest request)
+        public IActionResult RemovePackedPosition([FromBody] RemovePackedPositionRequest request)
         {
             try
             {
@@ -139,7 +230,7 @@ namespace KontrolaPakowania.API.Controllers
         }
 
         [HttpPost("close-package")]
-        public async Task<IActionResult> ClosePackage([FromBody] ClosePackageRequest request)
+        public IActionResult ClosePackage([FromBody] ClosePackageRequest request)
         {
             try
             {

@@ -30,6 +30,13 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    public async Task Show(string message)
+    {
+        Message = message;
+        Visible = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
     public async Task Hide()
     {
         Visible = false;

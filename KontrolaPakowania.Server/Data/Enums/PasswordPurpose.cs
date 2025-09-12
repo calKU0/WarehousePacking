@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace KontrolaPakowania.Shared.Enums
+namespace KontrolaPakowania.Server.Data.Enums
 {
     public enum PasswordPurpose
     {

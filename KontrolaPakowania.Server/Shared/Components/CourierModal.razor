@@ -1,0 +1,69 @@
+﻿@inject IJSRuntime JS
+
+@if (Show)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg rounded-3">
+                <div class="modal-header">
+                    <h5 class="modal-title">Wybierz kuriera</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <select class="form-select" @bind="SelectedCourier">
+                        <option value="">-- wybierz --</option>
+                        @foreach (var courier in Couriers)
+                        {
+                            <option value="@courier">@courier</option>
+                        }
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="Close">Anuluj</button>
+                    <button class="btn btn-primary" @onclick="Confirm" disabled="@string.IsNullOrEmpty(SelectedCourier)">
+                        Zatwierdź
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool Show { get; set; }
+    private string SelectedCourier { get; set; } = string.Empty;
+    private List<string> Couriers { get; set; } = new() { "DPD", "GLS", "Fedex" };
+
+    private TaskCompletionSource<string> _tcs;
+
+    public Task<string> ShowModal(string defaultCourier = null)
+    {
+        SelectedCourier = defaultCourier ?? string.Empty;
+        Show = true;
+        StateHasChanged();
+
+        _tcs = new TaskCompletionSource<string>();
+        return _tcs.Task;
+    }
+
+    private void Confirm()
+    {
+        _tcs?.SetResult(SelectedCourier);
+        Close();
+    }
+
+    private void Cancel()
+    {
+        _tcs?.SetResult(null);
+        Close();
+    }
+
+    private void Close()
+    {
+        Show = false;
+        SelectedCourier = string.Empty;
+        StateHasChanged();
+    }
+
+}

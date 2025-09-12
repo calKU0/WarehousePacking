@@ -1,4 +1,7 @@
-﻿@inherits LayoutComponentBase
+﻿@inject IJSRuntime JS
+@inject UserSessionService UserSession
+
+@inherits LayoutComponentBase
 
 <div class="page">
     <div class="sidebar @(isCollapsed ? "collapsed" : "")">

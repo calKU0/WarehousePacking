@@ -15,11 +15,30 @@ namespace KontrolaPakowania.API.Services
             _db = db;
         }
 
-        public async Task<bool> Login(string username, string password)
+        public async Task<bool> Login(LoginDto login)
         {
-            const string procedure = "kp.ValidateCredentials";
-            var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { username, password }, CommandType.StoredProcedure, Connection.ERPConnection);
+            if (string.IsNullOrEmpty(login.Username) || string.IsNullOrEmpty(login.StationNumber) || string.IsNullOrEmpty(login.Password))
+                throw new ArgumentException("Username, Password and StationNumber cannot be empty");
+
+            const string procedure = "kp.LoginUser";
+            var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { username = login.Username, password = login.Password, stationNumber = login.StationNumber }, CommandType.StoredProcedure, Connection.ERPConnection);
             return result == 1;
+        }
+
+        public async Task<IEnumerable<LoginDto>> GetLoggedUsersAsync()
+        {
+            const string procedure = "kp.GetLoggedUsers";
+            return await _db.QueryAsync<LoginDto>(procedure, commandType: CommandType.StoredProcedure, connection: Connection.ERPConnection);
+        }
+
+        public async Task<bool> LogoutAsync(string username)
+        {
+            if (string.IsNullOrEmpty(username))
+                throw new ArgumentException("Username cannot be empty");
+
+            const string procedure = "kp.LogoutUser";
+            var rows = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { username }, CommandType.StoredProcedure, Connection.ERPConnection);
+            return rows > 0;
         }
 
         public async Task<bool> ValidatePasswordAsync(string password)

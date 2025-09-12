@@ -37,25 +37,57 @@ namespace KontrolaPakowania.API.Tests.AuthServiceTests
         #region Login Tests
 
         [Theory]
-        [InlineData("BABJER", "14789632")]
-        [InlineData("FEDYUL", "123456789")]
+        [InlineData("BABJER", "14789632", "1120")]
+        [InlineData("FEDYUL", "123456789", "1121")]
         [Trait("Category", "Integration")]
-        public async Task Login_ReturnsTrue_ForValidCredentials(string username, string password)
+        public async Task LoginFlow_Works(string username, string password, string stationNumber)
         {
-            // Act
-            var result = await _service.Login(username, password);
+            // Arrange & Act
+            var loginDto = new LoginDto
+            {
+                Username = username,
+                Password = password,
+                StationNumber = stationNumber
+            };
+            var loginResult = await _service.Login(loginDto);
 
             // Assert
-            Assert.True(result);
+            Assert.True(loginResult);
+
+            // Act
+            var operators = await _service.GetLoggedUsersAsync();
+
+            // Assert
+            Assert.NotNull(operators);
+            Assert.All(operators, op =>
+            {
+                Assert.False(string.IsNullOrEmpty(op.Username));
+                Assert.False(string.IsNullOrEmpty(op.StationNumber));
+                Assert.NotEqual(default(DateTime), op.LoginDate);
+            });
+
+            // Arrange & Act
+            var logoutResult = await _service.LogoutAsync(loginDto.Username);
+
+            // Assert
+            Assert.True(logoutResult);
         }
 
         [Theory]
-        [InlineData("admin", "wrong-password")]
-        [InlineData("user", "123456")]
+        [InlineData("admin", "wrong-password", "1120")]
+        [InlineData("user", "123456", "1131")]
         [Trait("Category", "Integration")]
-        public async Task Login_ReturnsFalse_ForInvalidCredentials(string username, string password)
+        public async Task Login_ReturnsFalse_ForInvalidCredentials(string username, string password, string stationNumber)
         {
-            var result = await _service.Login(username, password);
+            // Arrange & Act
+            var loginDto = new LoginDto
+            {
+                Username = username,
+                Password = password,
+                StationNumber = stationNumber
+            };
+
+            var result = await _service.Login(loginDto);
 
             // Assert
             Assert.False(result);

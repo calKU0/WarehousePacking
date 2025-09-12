@@ -10,7 +10,17 @@ namespace KontrolaPakowania.API.Services.Interfaces
 
         Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl, PackingLocation location);
 
+        Task<IEnumerable<JlItemDto>> GetPackingJlItemsAsync(string barcode);
+
         Task<JlDto> GetJlInfoByCodeAsync(string jl, PackingLocation location);
+
+        Task<bool> AddJlRealization(JlInProgressDto jl);
+
+        Task<IEnumerable<JlInProgressDto>> GetJlListInProgress();
+
+        Task<bool> RemoveJlRealization(string jl);
+
+        Task<bool> ReleaseJl(string jl);
 
         int OpenPackage(OpenPackageRequest request);
 

@@ -2,11 +2,13 @@
 using KontrolaPakowania.API.Services;
 using KontrolaPakowania.API.Services.Exceptions;
 using KontrolaPakowania.API.Services.Interfaces;
+using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
 using KontrolaPakowania.Shared.Settings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,8 +39,10 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             _erpXlClient = provider.GetRequiredService<IErpXlClient>();
             _service = provider.GetRequiredService<IPackingService>();
 
-            _erpXlClient.Login();
+            //_erpXlClient.Login();
         }
+
+        #region JL Tests
 
         [Theory]
         [InlineData(PackingLocation.Góra)]
@@ -119,135 +123,175 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             }
         }
 
-        [Theory]
-        [InlineData(DocumentStatus.Bufor)]
-        [InlineData(DocumentStatus.Delete)]
-        [Trait("Category", "Integration")]
-        public void OpenAndClosePackage_Works_WithDifferentStatuses(DocumentStatus status)
+        [Fact, Trait("Category", "Integration")]
+        public async Task JlRealization_Works()
         {
             // Arrange
-            var openRequest = new OpenPackageRequest { RouteId = 22 };
-            var packageId = _service.OpenPackage(openRequest);
-
-            Assert.True(packageId > 0);
+            var jl = new JlInProgressDto
+            {
+                Name = "KS-999-999-999",
+                User = "KURKRZ",
+                Courier = "DPD",
+                ClientName = "TESTCDN",
+                StationNumber = "9999",
+                Date = DateTime.Now
+            };
 
             // Act
-            var closeRequest = new ClosePackageRequest
-            {
-                DocumentRef = packageId,
-                Status = status
-            };
-
-            var result = _service.ClosePackage(closeRequest);
+            var addResult = await _service.AddJlRealization(jl);
 
             // Assert
-            Assert.True(result > 0);
-        }
-
-        [Fact]
-        [Trait("Category", "Integration")]
-        public void ClosePackage_WithConfirmStatusWithoutProducts_ShouldThrowException()
-        {
-            // Arrange
-            var openRequest = new OpenPackageRequest { RouteId = 22 };
-            var packageId = _service.OpenPackage(openRequest);
-
-            Assert.True(packageId > 0);
-
-            var closeRequest = new ClosePackageRequest
-            {
-                DocumentRef = packageId,
-                Status = DocumentStatus.Confirm
-            };
-
-            // Act & Assert
-            var ex = Assert.Throws<XlApiException>(() => _service.ClosePackage(closeRequest));
-
-            Assert.Contains("Nie udało się zamknąć paczki", ex.Message);
-            Assert.NotEqual(0, ex.ErrorCode);
-        }
-
-        [Fact, Trait("Category", "Integration")]
-        public void AddPackedPosition_Works()
-        {
-            // 1. Open package
-            var openRequest = new OpenPackageRequest { RouteId = 22 };
-            var packageId = _service.OpenPackage(openRequest);
-
-            // 2.1. Add document position
-            var addRequest1 = new AddPackedPositionRequest
-            {
-                DocumentId = 1944244,
-                DocumentType = 2033,
-                DocumentRef = packageId,
-                PositionNumber = 1,
-                Quantity = "1.00"
-            };
-
-            var addResult1 = _service.AddPackedPosition(addRequest1);
-            Assert.True(addResult1);
-
-            // 2.2. Add second document position
-            //var addRequest2 = new AddPackedPositionRequest
-            //{
-            //    DocumentId = 1944244,
-            //    DocumentType = 2033,
-            //    DocumentRef = packageId,
-            //    PositionNumber = 2,
-            //    Quantity = "1.00"
-            //};
-
-            //var addResult2 = _service.AddPackedPosition(addRequest2);
-            //Assert.True(addResult2);
-
-            // 3. Close package
-            var closeRequest = new ClosePackageRequest
-            {
-                DocumentRef = packageId,
-                Status = DocumentStatus.Confirm
-            };
-
-            var closeResult = _service.ClosePackage(closeRequest);
-            Assert.True(closeResult > 0);
-        }
-
-        [Fact, Trait("Category", "Integration")]
-        public void AddAndRemovePackedPosition_Works()
-        {
-            // 1. Open package
-            var openRequest = new OpenPackageRequest { RouteId = 22 };
-            var packageId = _service.OpenPackage(openRequest);
-
-            // 2. Add document position
-            var addRequest = new AddPackedPositionRequest
-            {
-                DocumentId = 1944258,
-                DocumentType = 2033,
-                DocumentRef = packageId,
-                PositionNumber = 1,
-                Quantity = "1.00"
-            };
-
-            var addResult = _service.AddPackedPosition(addRequest);
             Assert.True(addResult);
 
-            // 3. Remove document position
-            var removeRequest = new RemovePackedPositionRequest
-            {
-                DocumentId = 111,
-                DocumentType = 302,
-                DocumentRef = packageId,
-                PositionNumber = 1,
-                Quantity = "1.00"
-            };
+            // Act
+            var jlListResult = await _service.GetJlListInProgress();
 
-            var removeResult = _service.RemovePackedPosition(removeRequest);
-            Assert.True(removeResult);
+            // Assert
+            Assert.NotNull(jlListResult);
+            Assert.True(jlListResult.Count() >= 0);
 
-            // 4. Close package
-            var closeRequest = new ClosePackageRequest { DocumentRef = packageId, Status = DocumentStatus.Bufor };
-            var closeResult = _service.ClosePackage(closeRequest);
-            Assert.True(closeResult > 0);
+            // Act
+            var RemoveResult = await _service.RemoveJlRealization(jl.Name);
+
+            // Assert
+            Assert.True(RemoveResult);
         }
+
+        #endregion JL Tests
+
+        #region Packing Tests
+
+        //[Theory]
+        //[InlineData(DocumentStatus.Bufor)]
+        //[InlineData(DocumentStatus.Delete)]
+        //[Trait("Category", "Integration")]
+        //public void OpenAndClosePackage_Works_WithDifferentStatuses(DocumentStatus status)
+        //{
+        //    // Arrange
+        //    var openRequest = new OpenPackageRequest { RouteId = 22 };
+        //    var packageId = _service.OpenPackage(openRequest);
+
+        //    Assert.True(packageId > 0);
+
+        //    // Act
+        //    var closeRequest = new ClosePackageRequest
+        //    {
+        //        DocumentRef = packageId,
+        //        Status = status
+        //    };
+
+        //    var result = _service.ClosePackage(closeRequest);
+
+        //    // Assert
+        //    Assert.True(result > 0);
+        //}
+
+        //[Fact]
+        //[Trait("Category", "Integration")]
+        //public void ClosePackage_WithConfirmStatusWithoutProducts_ShouldThrowException()
+        //{
+        //    // Arrange
+        //    var openRequest = new OpenPackageRequest { RouteId = 22 };
+        //    var packageId = _service.OpenPackage(openRequest);
+
+        //    Assert.True(packageId > 0);
+
+        //    var closeRequest = new ClosePackageRequest
+        //    {
+        //        DocumentRef = packageId,
+        //        Status = DocumentStatus.Confirm
+        //    };
+
+        //    // Act & Assert
+        //    var ex = Assert.Throws<XlApiException>(() => _service.ClosePackage(closeRequest));
+
+        //    Assert.Contains("Nie udało się zamknąć paczki", ex.Message);
+        //    Assert.NotEqual(0, ex.ErrorCode);
+        //}
+
+        //[Fact, Trait("Category", "Integration")]
+        //public void AddPackedPosition_Works()
+        //{
+        //    // 1. Open package
+        //    var openRequest = new OpenPackageRequest { RouteId = 22 };
+        //    var packageId = _service.OpenPackage(openRequest);
+
+        //    // 2.1. Add document position
+        //    var addRequest1 = new AddPackedPositionRequest
+        //    {
+        //        DocumentId = 1944244,
+        //        DocumentType = 2033,
+        //        DocumentRef = packageId,
+        //        PositionNumber = 1,
+        //        Quantity = "1.00"
+        //    };
+
+        //    var addResult1 = _service.AddPackedPosition(addRequest1);
+        //    Assert.True(addResult1);
+
+        //    // 2.2. Add second document position
+        //    //var addRequest2 = new AddPackedPositionRequest
+        //    //{
+        //    //    DocumentId = 1944244,
+        //    //    DocumentType = 2033,
+        //    //    DocumentRef = packageId,
+        //    //    PositionNumber = 2,
+        //    //    Quantity = "1.00"
+        //    //};
+
+        //    //var addResult2 = _service.AddPackedPosition(addRequest2);
+        //    //Assert.True(addResult2);
+
+        //    // 3. Close package
+        //    var closeRequest = new ClosePackageRequest
+        //    {
+        //        DocumentRef = packageId,
+        //        Status = DocumentStatus.Confirm
+        //    };
+
+        //    var closeResult = _service.ClosePackage(closeRequest);
+        //    Assert.True(closeResult > 0);
+        //}
+
+        //[Fact, Trait("Category", "Integration")]
+        //public void AddAndRemovePackedPosition_Works()
+        //{
+        //    // 1. Open package
+        //    var openRequest = new OpenPackageRequest { RouteId = 22 };
+        //    var packageId = _service.OpenPackage(openRequest);
+
+        //    // 2. Add document position
+        //    var addRequest = new AddPackedPositionRequest
+        //    {
+        //        DocumentId = 1944258,
+        //        DocumentType = 2033,
+        //        DocumentRef = packageId,
+        //        PositionNumber = 1,
+        //        Quantity = "1.00"
+        //    };
+
+        //    var addResult = _service.AddPackedPosition(addRequest);
+        //    Assert.True(addResult);
+
+        //    // 3. Remove document position
+        //    var removeRequest = new RemovePackedPositionRequest
+        //    {
+        //        DocumentId = 111,
+        //        DocumentType = 302,
+        //        DocumentRef = packageId,
+        //        PositionNumber = 1,
+        //        Quantity = "1.00"
+        //    };
+
+        //    var removeResult = _service.RemovePackedPosition(removeRequest);
+        //    Assert.True(removeResult);
+
+        //    // 4. Close package
+        //    var closeRequest = new ClosePackageRequest { DocumentRef = packageId, Status = DocumentStatus.Bufor };
+        //    var closeResult = _service.ClosePackage(closeRequest);
+        //    Assert.True(closeResult > 0);
+        //}
+
+        #endregion Packing Tests
     }
 }

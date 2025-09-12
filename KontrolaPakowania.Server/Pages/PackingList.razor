@@ -1,10 +1,12 @@
 ﻿@page "/kontrola-pakowania"
+@inherits ProtectedPageBase
+
 @using KontrolaPakowania.Shared.DTOs.Requests
 @using KontrolaPakowania.Shared.Enums
 @inject PackingService PackingService
 @inject WorkstationService WorkstationService
 @inject NavigationManager Navigation
-@inject UserSession UserSession
+@inject UserSessionService UserSession
 @inject AuthService AuthService
 @inject IJSRuntime JSRuntime
 @implements IDisposable
@@ -104,6 +106,11 @@
                    OnClose="() => ShowPasswordModal = false" />
 }
 
+<LoggedOperatorsModal @ref="LoggedOperatorsModal" />
+<JlInProgressModal @ref="JlInProgressModal" />
+<PackingJlItemsModal @ref="PackingJlItemsModal" />
+<TextBoxModal @ref="TextBoxModal" />
+
 <Toast @ref="ToastError" Title="Error" Color="danger" />
 
 @code  {
@@ -112,22 +119,24 @@
     private string Kuweta { get; set; } = string.Empty;
     private System.Threading.Timer? _timer;
     private ElementReference kuwetaInputRef;
-    private ManagerControlModal ManagerModal;
-    private Toast ToastError;
-    private JlDto SelectedJl;
+    private Toast ToastError = new();
+    private JlDto? SelectedJl;
+    private WorkstationSettings? Settings;
+
+    private ManagerControlModal ManagerModal = new();
+    private TextBoxModal TextBoxModal = new();
+    private LoggedOperatorsModal LoggedOperatorsModal = new();
+    private JlInProgressModal JlInProgressModal = new();
+    private PackingJlItemsModal PackingJlItemsModal = new();
 
     private int JlReadyToPackCount { get; set; } = 0;
     private int AddressesCount { get; set; } = 0;
-    private string Username { get; set; } = "Jan Kowalski";
+    private string Username { get; set; } = string.Empty;
     private PasswordPurpose CurrentPasswordPurpose = PasswordPurpose.None;
 
     protected override async Task OnInitializedAsync()
     {
-        if (!UserSession.IsLoggedIn)
-        {
-            Navigation.NavigateTo("/login", true);
-        }
-
+        Username = UserSession.Username;
         await LoadData();
 
         // Auto-refresh every 1 minute
@@ -149,9 +158,9 @@
     {
         try
         {
-            var settings = await WorkstationService.GetSettingsAsync();
+            Settings = await WorkstationService.GetSettingsAsync();
 
-            JlList = await PackingService.GetJlList(settings.PackingLocation);
+            JlList = await PackingService.GetJlList(Settings.PackingLocation);
 
             // Calculate count
             var jlReadyToPack = JlList.Where(jl => jl.Status == 1).ToList();
@@ -175,14 +184,14 @@
         await LoadData();
     }
 
-    private void OnRowDoubleClick(JlDto jl)
+    private async void OnRowDoubleClick(JlDto jl)
     {
         SelectedJl = jl;
         if (jl.Status != 1)
         {
             CurrentPasswordPurpose = PasswordPurpose.JlNotReadyAction;
             ShowPasswordModal = true;
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
         else
         {
@@ -198,8 +207,7 @@
         bool valid = await AuthService.ValidatePasswordAsync(password);
         if (!valid)
         {
-            ToastError.Message = "Błędne hasło";
-            await ToastError.Show();
+            await ToastError.Show("Błędne hasło");
             await Task.Delay(4000);
             await ToastError.Hide();
             return;
@@ -226,17 +234,36 @@
         StateHasChanged();
     }
 
-    private void HandleManagerClick(int returnClick)
+    private async void HandleManagerClick(int returnClick)
     {
         switch (returnClick)
         {
-            case 1: /* Etykiety */ break;
-            case 2: /* Spakuj */ break;
-            case 3: /* Zawartość */ break;
-            case 4: /* Kurier */ break;
-            case 5: /* Zalogowani */ break;
-            case 6: /* Kuwety podjęte */ break;
-            case 7: /* Zwolnij */ break;
+            case 3: /* Zawartość */
+                var barcode = await TextBoxModal.Show("Zawartość kuwety", "Wprowadź kod wewnętrzny", "Kod wewnętrzny");
+                if (!string.IsNullOrEmpty(barcode))
+                {
+                    await PackingJlItemsModal.ShowModal(barcode);
+                }
+                break;
+            case 5: /* Zalogowani */
+                await LoggedOperatorsModal.ShowModal();
+                break;
+            case 6: /* Kuwety podjęte */
+                await JlInProgressModal.ShowModal();
+                break;
+            case 7: /* Zwolnij */
+                var jlCode = await TextBoxModal.Show("Zwolnij kuwetę", "Wprowadź kod kuwety", "Kod kuwety");
+                if (!string.IsNullOrEmpty(jlCode))
+                {
+                    var releaseSuccess = await PackingService.ReleaseJl(jlCode);
+                    if (!releaseSuccess)
+                    {
+                        await ToastError.Show("Kuweta nie została zwolniona. Spróbuj ponownie.");
+                        await Task.Delay(6000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+                        return;
+                    }
+                }
+                break;
             case 8: /* Zmień magazyn */ break;
         }
     }

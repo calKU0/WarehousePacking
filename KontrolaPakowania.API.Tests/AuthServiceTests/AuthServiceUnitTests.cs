@@ -28,8 +28,12 @@ namespace KontrolaPakowania.API.Tests.AuthServiceTests
         public async Task Login_ReturnsTrue_WhenCredentialsValid()
         {
             // Arrange
-            string username = "admin";
-            string password = "1234";
+            LoginDto loginDto = new LoginDto
+            {
+                Username = "admin",
+                Password = "1234",
+                StationNumber = "1120"
+            };
             _dbExecutorMock.Setup(db => db.QuerySingleOrDefaultAsync<int>(
                     It.IsAny<string>(),
                     It.IsAny<object?>(),
@@ -38,7 +42,7 @@ namespace KontrolaPakowania.API.Tests.AuthServiceTests
                 .ReturnsAsync(1);
 
             // Act
-            var result = await _service.Login(username, password);
+            var result = await _service.Login(loginDto);
 
             // Assert
             Assert.True(result);
@@ -48,8 +52,12 @@ namespace KontrolaPakowania.API.Tests.AuthServiceTests
         public async Task Login_ReturnsFalse_WhenCredentialsInvalid()
         {
             // Arrange
-            string username = "admin";
-            string password = "wrong";
+            LoginDto loginDto = new LoginDto
+            {
+                Username = "admin",
+                Password = "wrong-password",
+                StationNumber = "1120"
+            };
             _dbExecutorMock.Setup(db => db.QuerySingleOrDefaultAsync<int>(
                     It.IsAny<string>(),
                     It.IsAny<object?>(),
@@ -58,7 +66,7 @@ namespace KontrolaPakowania.API.Tests.AuthServiceTests
                 .ReturnsAsync(0);
 
             // Act
-            var result = await _service.Login(username, password);
+            var result = await _service.Login(loginDto);
 
             // Assert
             Assert.False(result);
@@ -68,8 +76,12 @@ namespace KontrolaPakowania.API.Tests.AuthServiceTests
         public async Task Login_ThrowsException_WhenDbExecutorThrows()
         {
             // Arrange
-            string username = "admin";
-            string password = "1234";
+            LoginDto loginDto = new LoginDto
+            {
+                Username = "admin",
+                Password = "1234",
+                StationNumber = "1120"
+            };
             _dbExecutorMock.Setup(db => db.QuerySingleOrDefaultAsync<int>(
                     It.IsAny<string>(),
                     It.IsAny<object?>(),
@@ -78,7 +90,97 @@ namespace KontrolaPakowania.API.Tests.AuthServiceTests
                 .ThrowsAsync(new Exception("Database error"));
 
             // Act & Assert
-            await Assert.ThrowsAsync<Exception>(() => _service.Login(username, password));
+            await Assert.ThrowsAsync<Exception>(() => _service.Login(loginDto));
+        }
+
+        [Fact, Trait("Category", "Unit")]
+        public async Task LogoutOperatorAsync_ShouldReturnTrue_WhenRowsAffectedGreaterThanZero()
+        {
+            // Arrange
+            string username = "admin";
+
+            _dbExecutorMock
+                .Setup(db => db.QuerySingleOrDefaultAsync<int>(
+                    It.IsAny<string>(),
+                    It.IsAny<object?>(),
+                    CommandType.StoredProcedure,
+                    Connection.ERPConnection))
+                .ReturnsAsync(1); // 1 row deleted
+
+            // Act
+            var result = await _service.LogoutAsync(username);
+
+            // Assert
+            Assert.True(result);
+        }
+
+        [Fact, Trait("Category", "Unit")]
+        public async Task LogoutOperatorAsync_ShouldReturnFalse_WhenNoRowsAffected()
+        {
+            // Arrange
+            string username = "admin";
+
+            _dbExecutorMock
+                .Setup(db => db.QuerySingleOrDefaultAsync<int>(
+                    It.IsAny<string>(),
+                    It.IsAny<object?>(),
+                    CommandType.StoredProcedure,
+                    Connection.ERPConnection))
+                .ReturnsAsync(0); // No rows deleted
+
+            // Act
+            var result = await _service.LogoutAsync(username);
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task GetLoggedUsersAsync_ShouldReturnList_WhenDbReturnsData()
+        {
+            // Arrange
+            var expected = new List<LoginDto>
+        {
+            new LoginDto { Username = "user1", StationNumber = "S1" },
+            new LoginDto { Username = "user2", StationNumber = "S2" }
+        };
+
+            _dbExecutorMock
+                .Setup(db => db.QueryAsync<LoginDto>(
+                    It.IsAny<string>(),
+                    It.IsAny<object?>(),
+                    CommandType.StoredProcedure,
+                    Connection.ERPConnection))
+                .ReturnsAsync(expected);
+
+            // Act
+            var result = await _service.GetLoggedUsersAsync();
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Count());
+            Assert.Contains(result, x => x.Username == "user1" && x.StationNumber == "S1");
+            Assert.Contains(result, x => x.Username == "user2" && x.StationNumber == "S2");
+        }
+
+        [Fact]
+        public async Task GetLoggedUsersAsync_ShouldReturnEmpty_WhenDbReturnsEmpty()
+        {
+            // Arrange
+            _dbExecutorMock
+                .Setup(db => db.QueryAsync<LoginDto>(
+                    It.IsAny<string>(),
+                    It.IsAny<object?>(),
+                    CommandType.StoredProcedure,
+                    Connection.ERPConnection))
+                .ReturnsAsync(new List<LoginDto>());
+
+            // Act
+            var result = await _service.GetLoggedUsersAsync();
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
         }
 
         #endregion Login Tests

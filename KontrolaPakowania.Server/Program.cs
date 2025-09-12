@@ -1,15 +1,20 @@
 using Blazored.LocalStorage;
 using KontrolaPakowania.Server;
-using KontrolaPakowania.Server.Data;
 using KontrolaPakowania.Server.Services;
 using KontrolaPakowania.Shared.Settings;
+using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents()
+    .AddCircuitOptions(options =>
+    {
+        options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromSeconds(5);
+        options.JSInteropDefaultCallTimeout = TimeSpan.FromSeconds(10);
+    });
 
 builder.Services.AddBlazoredLocalStorage();
 
@@ -49,7 +54,8 @@ builder.Services.AddHttpClient("GLS", (serviceProvider, client) =>
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<WorkstationService>();
 builder.Services.AddScoped<PackingService>();
-builder.Services.AddScoped<UserSession>();
+builder.Services.AddScoped<UserSessionService>();
+//builder.Services.AddSingleton<CircuitHandler, UserCircuitHandler>();
 
 var app = builder.Build();
 

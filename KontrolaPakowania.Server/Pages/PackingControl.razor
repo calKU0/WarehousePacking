@@ -1,19 +1,20 @@
 ﻿@using KontrolaPakowania.Shared.DTOs.Requests
+@using KontrolaPakowania.Shared.Enums
 @using KontrolaPakowania.Shared.Helpers
 
 @page "/kontrola-pakowania/{jl}"
 @layout NoNavLayout
+@inherits ProtectedPageBase
 
 @inject IJSRuntime JSRuntime
 @inject PackingService PackingService
 @inject WorkstationService WorkstationService
-@inject NavigationManager Navigation
-@inject UserSession UserSession
+@inject UserSessionService UserSession
 @inject AuthService AuthService
 
 <div class="container-fluid d-flex flex-column vh-100 p-3 pack-control">
     <div class="d-flex align-items-center mb-3 header-row">
-        @if (JlItems != null && JlItems.Any() && JlItems.FirstOrDefault().Country != "PL")
+        @if (JlItems != null && JlItems.Any() && Country != "PL")
         {
             <!-- First image placeholder (Export) -->
             <div class="header-image-placeholder me-2">
@@ -25,14 +26,24 @@
         {
             <!-- Second image placeholder (Courier) -->
             <div class="header-image-placeholder me-3">
-                <img src="@Utils.GetCourierSrc(CurrentJl.Courier)" alt="@CurrentJl.Courier" />
-        </div>
+                <img src="@Utils.GetCourierSrc(CurrentJl.LogoCourier)" alt="@CurrentJl.LogoCourier" />
+            </div>
         }
+
+        <div class="me-3">
+            <h4>Operator: @Username</h4>
+        </div>
 
         <!-- Header text -->
         <div class="flex-grow-1 text-center">
             <h2 class="scan-blink">Zeskanuj Towar</h2>
         </div>
+
+        <ManagerControlModal OnButtonClick="HandleManagerClick"
+                             OnRequestPassword="OnManagerButtonClick"
+                             ShowPackingButtons="true"
+                             @ref="ManagerModal" />
+
     </div>
 
 
@@ -102,7 +113,7 @@
                 <div class="card-header d-flex justify-content-between">
                     <span>Spakowane</span>
                     <span>
-                        Waga: @(PackedItems != null && PackedItems.Any()
+                        Waga: @(PackedItems.Any()
                                                 ? PackedItems.Sum(w => w.Weight * w.JlQuantity).ToString("F2")
                                                 : "0") kg
                     </span>
@@ -142,19 +153,22 @@
     <!-- Buttons at the bottom -->
     <div class="row g-2 mt-3 flex-shrink-0">
         <div class="col-6 col-md">
-            <button class="btn btn-warning w-100 h-100 py-3">Następny karton/paczka</button>
+            <button class="btn btn-warning w-100 h-100 py-4 fs-5">Następny karton/paczka</button>
+        </div>
+        @if (Settings != null && Settings.PackingLocation == PackingLocation.Dół)
+        {
+            <div class="col-6 col-md">
+                <button class="btn btn-warning w-100 h-100 py-4 fs-5">Bufor</button>
+            </div>
+        }
+        <div class="col-6 col-md">
+            <button class="btn btn-danger w-100 h-100 py-4 fs-5" @onclick="MoveBackToLeft">Usuń pozycję</button>
         </div>
         <div class="col-6 col-md">
-            <button class="btn btn-warning w-100 h-100 py-3">Bufor</button>
+            <button class="btn btn-danger w-100 h-100 py-4 fs-5" @onclick="Close" disabled="@(PackedItems.Any())">Zamknij</button>
         </div>
         <div class="col-6 col-md">
-            <button class="btn btn-danger w-100 h-100 py-3" @onclick="MoveBackToLeft">Usuń pozycję</button>
-        </div>
-        <div class="col-6 col-md">
-            <button class="btn btn-danger w-100 h-100 py-3" @onclick="Close" disabled="@(PackedItems.Any())">Zamknij</button>
-        </div>
-        <div class="col-6 col-md">
-            <button class="btn btn-success w-100 h-100 py-3">Zakończ</button>
+            <button class="btn btn-success w-100 h-100 py-4 fs-5">Zakończ</button>
         </div>
     </div>
 
@@ -167,6 +181,19 @@
                         OnClose="() => ShowProductModal = false" />
 }
 
+@if (ShowPasswordModal)
+{
+    <PasswordModal Title="Wpisz hasło"
+                   OnConfirm="HandlePasswordConfirm"
+                   OnClose="() => ShowPasswordModal = false" />
+}
+
+<CourierModal @ref="CourierModal" />
+<LoggedOperatorsModal @ref="LoggedOperatorsModal" />
+<JlInProgressModal @ref="JlInProgressModal" />
+<PackingJlItemsModal @ref="PackingJlItemsModal" />
+<TextBoxModal @ref="TextBoxModal" />
+
 <ConfirmDialog @ref="confirmDialog"
                Title="Zamknij"
                Message="Czy na pewno chcesz zamknąć?"
@@ -176,27 +203,47 @@
 <Toast @ref="ToastError" Title="Error" Color="danger" />
 
 @code {
-    [Parameter] public string Jl { get; set; }
+    [Parameter] public string Jl { get; set; } = string.Empty;
+
     private JlDto CurrentJl = new();
-    private List<JlItemDto> JlItems;
+    private List<JlItemDto> JlItems = new();
     private List<JlItemDto> PackedItems = new();
+    private WorkstationSettings Settings = new();
     private HashSet<string> HighlightedRows = new();
     private ElementReference itemInputRef;
+    private string Username = string.Empty;
+    private string Country = string.Empty;
 
-    private Toast ToastError;
-    private ConfirmDialog confirmDialog;
+    private Toast ToastError = new();
+    private ConfirmDialog confirmDialog = new();
+    private ManagerControlModal ManagerModal = new();
+    private TextBoxModal TextBoxModal = new();
+    private CourierModal CourierModal = new();
+    private LoggedOperatorsModal LoggedOperatorsModal = new();
+    private JlInProgressModal JlInProgressModal = new();
+    private PackingJlItemsModal PackingJlItemsModal = new();
     private bool ShowProductModal = false;
+    private bool ShowPasswordModal = false;
+    private PasswordPurpose CurrentPasswordPurpose = PasswordPurpose.None;
 
     private JlItemDto? SelectedItem;
     private JlItemDto? SelectedPackedItem;
 
     protected override async Task OnInitializedAsync()
     {
-        if (!UserSession.IsLoggedIn)
-        {
-            Navigation.NavigateTo("/login", true);
-        }
         await LoadData();
+
+        JlInProgressDto jlRealization = new JlInProgressDto
+        {
+            Name = CurrentJl.Name,
+            Courier = CurrentJl.Courier,
+            ClientName = CurrentJl.ClientName,
+            StationNumber = Settings.StationNumber,
+            Date = DateTime.Now,
+            User = UserSession.Username
+        };
+
+        await PackingService.AddJlRealization(jlRealization);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -211,16 +258,18 @@
     {
         try
         {
-            var settings = await WorkstationService.GetSettingsAsync();
-            JlItems = await PackingService.GetJlItems(Jl, settings.PackingLocation);
-            CurrentJl = await PackingService.GetJlInfoByCode(Jl, settings.PackingLocation);
+            Settings = await WorkstationService.GetSettingsAsync();
+            Username = UserSession.Username;
+            JlItems = await PackingService.GetJlItems(Jl, Settings.PackingLocation);
+            CurrentJl = await PackingService.GetJlInfoByCode(Jl, Settings.PackingLocation);
+            Country = JlItems.FirstOrDefault().Country;
         }
         catch (Exception ex)
         {
             JlItems = new List<JlItemDto>();
 
-            ToastError.Message = $"Błąd przy próbie pobrania zawartości kuwety: {ex.Message}";
-            await ToastError.Show();           
+            await ToastError.Show( $"Błąd przy próbie pobrania zawartości kuwety: {ex.Message}");
+            await Task.Delay(7000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
         }
         StateHasChanged();
     }
@@ -231,7 +280,7 @@
         ShowProductModal = true;
     }
 
-    private void MoveToRight(decimal qty)
+    private async void MoveToRight(decimal qty)
     {
         try
         {
@@ -284,18 +333,70 @@
         }
         catch (Exception ex)
         {
-            ToastError.Message = $"Błąd przy próbie spakowania towaru: {ex.Message}";
-            _ = ToastError.Show();
+            await ToastError.Show($"Błąd przy próbie spakowania towaru: {ex.Message}");
+            await Task.Delay(7000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
         }
         finally
         {
 
             ShowProductModal = false;
             SelectedItem = null;
-            _ = JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", itemInputRef);
-            StateHasChanged();
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", itemInputRef);
+            await InvokeAsync(StateHasChanged);
         }
     }
+
+    private async Task MoveAllToRight()
+    {
+        try
+        {
+            if (JlItems == null || !JlItems.Any()) return;
+
+            foreach (var item in JlItems.ToList())
+            {
+                var existingPacked = PackedItems.FirstOrDefault(p => p.Code == item.Code);
+
+                if (existingPacked != null)
+                {
+                    existingPacked.JlQuantity += item.JlQuantity;
+                }
+                else
+                {
+                    PackedItems.Add(new JlItemDto
+                    {
+                        Id = item.Id,
+                        Code = item.Code,
+                        Name = item.Name,
+                        SupplierCode = item.SupplierCode,
+                        DocumentQuantity = item.DocumentQuantity,
+                        JlQuantity = item.JlQuantity,
+                        Weight = item.Weight,
+                        Image = item.Image,
+                        ProductType = item.ProductType,
+                        Country = item.Country,
+                        Unit = item.Unit,
+                        DocumentId = item.DocumentId,
+                        JlCode = item.JlCode
+                    });
+                }
+
+                JlItems.Remove(item);
+            }
+        }
+        catch (Exception ex)
+        {
+            await ToastError.Show($"Błąd przy próbie spakowania towaru: {ex.Message}");
+            await Task.Delay(7000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+        }
+        finally
+        {
+            ShowProductModal = false;
+            SelectedItem = null;
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", itemInputRef);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
 
 
     private async Task HandleCodeInput(KeyboardEventArgs e)
@@ -321,13 +422,13 @@
             }
             catch (Exception ex)
             {
-                ToastError.Message = $"Błąd przy próbie zaczytania towaru: {ex.Message}";
-                _ = ToastError.Show();
+                await ToastError.Show($"Błąd przy próbie zaczytania towaru: {ex.Message}");
+                await Task.Delay(7000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
             }
             finally
             {
                 await JSRuntime.InvokeVoidAsync("blazorFocus.clearValue", itemInputRef);
-                StateHasChanged();
+                await InvokeAsync(StateHasChanged);
             }
         }
     }
@@ -337,7 +438,7 @@
         SelectedPackedItem = packed;
     }
 
-    private void MoveBackToLeft()
+    private async void MoveBackToLeft()
     {
         try
         {
@@ -367,13 +468,12 @@
         }
         catch (Exception ex)
         {
-            ToastError.Message = $"Błąd przy próbie usunięcia towaru: {ex.Message}";
-            _ = ToastError.Show();
+            await ToastError.Show($"Błąd przy próbie usunięcia towaru: {ex.Message}");
         }
         finally
         {
-            _ = JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", itemInputRef);
-            StateHasChanged();
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", itemInputRef);
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -388,9 +488,98 @@
         confirmDialog.Show = false;
     }
 
-    private void ConfirmClose()
+    private async void ConfirmClose()
     {
         confirmDialog.Show = false;
+        await PackingService.RemoveJlRealization(CurrentJl.Name);
         Navigation.NavigateTo("/kontrola-pakowania");
+    }
+
+    private async Task HandlePasswordConfirm(string password)
+    {
+        ShowPasswordModal = false;
+
+        bool valid = await AuthService.ValidatePasswordAsync(password);
+        if (!valid)
+        {
+            await ToastError.Show("Błędne hasło");
+            await Task.Delay(4000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+            return;
+        }
+
+        switch (CurrentPasswordPurpose)
+        {
+            case PasswordPurpose.ManagerAction:
+                ManagerModal.OpenModal();
+                break;
+        }
+
+        CurrentPasswordPurpose = PasswordPurpose.None;
+    }
+
+    private void OnManagerButtonClick()
+    {
+        CurrentPasswordPurpose = PasswordPurpose.ManagerAction;
+        ShowPasswordModal = true;
+        StateHasChanged();
+    }
+
+    private async void HandleManagerClick(int returnClick)
+    {
+        switch (returnClick)
+        {
+            case 1: /* Etykiety */ break;
+            case 2: /* Spakuj */ 
+                await MoveAllToRight();
+                break;
+            case 3: /* Zawartość */
+                var barcode = await TextBoxModal.Show("Zawartość kuwety", "Wprowadź kod wewnętrzny", "Kod wewnętrzny");
+                if (!string.IsNullOrEmpty(barcode))
+                {
+                    await PackingJlItemsModal.ShowModal(barcode);
+                }
+                break;
+            case 4: /* Kurier */ 
+                if (Country != "PL")
+                {
+                    await ToastError.Show("Nie można zmienić kuriera na export!");
+                    await Task.Delay(4000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+                    return;
+                }
+
+                if (CurrentJl.CourierServices.Saturday || CurrentJl.CourierServices._12 || CurrentJl.CourierServices.Return || CurrentJl.CourierServices.Dropshipping)
+                {
+                    await ToastError.Show($"Przesyłka z dodatkową usługą (Sobota, Zwrotna, 12:00 lub Dropshipping). Nie możesz zmienić kuriera. Nadaj numer wewnętrzny lub wyślij bieżącym kurierem");
+                    return;
+                }
+
+                var selectedCourier = await CourierModal.ShowModal(CurrentJl.Courier);
+                if (!string.IsNullOrEmpty(selectedCourier))
+                {
+                    CurrentJl.Courier = selectedCourier;
+                    await InvokeAsync(StateHasChanged);
+                }
+                break;
+            case 5: /* Zalogowani */ 
+                await LoggedOperatorsModal.ShowModal();
+                break;
+            case 6: /* Kuwety podjęte */
+                await JlInProgressModal.ShowModal();
+                break;
+            case 7: /* Zwolnij */ 
+                var jlCode = await TextBoxModal.Show("Zwolnij kuwetę", "Wprowadź kod kuwety", "Kod kuwety");
+                if (!string.IsNullOrEmpty(jlCode))
+                {
+                    var releaseSuccess = await PackingService.ReleaseJl(jlCode);
+                    if (!releaseSuccess)
+                    {
+                        await ToastError.Show("Kuweta nie została zwolniona. Spróbuj ponownie.");
+                        await Task.Delay(6000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+                        return;
+                    }
+                }
+                break;
+            case 8: /* Zmień magazyn */ break;
+        }
     }
 }

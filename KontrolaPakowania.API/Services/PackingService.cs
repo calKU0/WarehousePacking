@@ -44,7 +44,30 @@ public class PackingService : IPackingService
             _ => throw new ArgumentOutOfRangeException(nameof(location))
         };
 
-        return await _db.QuerySingleOrDefaultAsync<JlDto>(procedure, new { jl }, CommandType.StoredProcedure, Connection.WMSConnection);
+        var jlDto = await _db.QuerySingleOrDefaultAsync<JlDto>(procedure, new { jl }, CommandType.StoredProcedure, Connection.WMSConnection);
+
+        var courierLower = jlDto.Courier.ToLower();
+        var services = new CourierServices
+        {
+            _12 = jlDto.Courier.Contains("12"),
+            Saturday = courierLower.Contains("sobota"),
+            Return = courierLower.Contains("zwrotna"),
+            Dropshipping = courierLower.Contains("dropshipping")
+        };
+
+        jlDto.CourierServices = services;
+
+        var suffixes = new List<string>();
+        if (services.Saturday) suffixes.Add("Sobota");
+        if (services.Return) suffixes.Add("zwrotna");
+        if (services._12) suffixes.Add("1200");
+        if (services.Dropshipping) suffixes.Add("Dropshipping");
+
+        jlDto.LogoCourier = suffixes.Any()
+            ? $"{jlDto.Courier}-{string.Join(", ", suffixes)}"
+            : jlDto.Courier;
+
+        return jlDto;
     }
 
     public async Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl, PackingLocation location)
@@ -57,6 +80,39 @@ public class PackingService : IPackingService
         };
 
         return await _db.QueryAsync<JlItemDto>(procedure, new { jl }, CommandType.StoredProcedure, Connection.WMSConnection);
+    }
+
+    public async Task<IEnumerable<JlItemDto>> GetPackingJlItemsAsync(string barcode)
+    {
+        const string procedure = "kp.GetJlPackingItems";
+        return await _db.QueryAsync<JlItemDto>(procedure, new { barcode }, CommandType.StoredProcedure, Connection.ERPConnection);
+    }
+
+    public async Task<bool> AddJlRealization(JlInProgressDto jl)
+    {
+        const string procedure = "kp.AddJlRealization";
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { jl.Name, jl.User, jl.StationNumber, jl.Courier, jl.ClientName }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return result > 0;
+    }
+
+    public async Task<IEnumerable<JlInProgressDto>> GetJlListInProgress()
+    {
+        const string procedure = "kp.GetJlListInProgress";
+        return await _db.QueryAsync<JlInProgressDto>(procedure, commandType: CommandType.StoredProcedure, connection: Connection.ERPConnection);
+    }
+
+    public async Task<bool> RemoveJlRealization(string jl)
+    {
+        const string procedure = "kp.RemoveJlRealization";
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { jl }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return result > 0;
+    }
+
+    public async Task<bool> ReleaseJl(string jl)
+    {
+        const string procedure = "kp.ReleseJl";
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { jl }, CommandType.StoredProcedure, Connection.WMSConnection);
+        return result > 0;
     }
 
     public int OpenPackage(OpenPackageRequest request)
