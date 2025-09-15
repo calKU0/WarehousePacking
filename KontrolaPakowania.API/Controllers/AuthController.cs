@@ -1,4 +1,4 @@
-﻿using KontrolaPakowania.API.Services.Interfaces;
+﻿using KontrolaPakowania.API.Services.Auth;
 using KontrolaPakowania.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
 

@@ -1,5 +1,6 @@
 ﻿@page "/"
 @inject UserSessionService UserSession
+@inject IJSRuntime JSRuntime
 @inherits ProtectedPageBase
 
 <h3>Main Page</h3>
@@ -7,4 +8,22 @@
 <p>Welcome, @UserSession.Username!</p>
 
 @code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await EnsureAgentInstalled();          
+        }
+    }
+
+    private async Task EnsureAgentInstalled()
+    {
+        bool agentAlive = await JSRuntime.InvokeAsync<bool>("isAgentRunning");
+
+        if (!agentAlive)
+        {
+            // Trigger download
+            await JSRuntime.InvokeVoidAsync("downloadAgent", "/downloads/PrintingAgent.exe", "PrintingAgent.exe");
+        }
+    }
 }

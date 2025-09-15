@@ -1,5 +1,5 @@
 ﻿using KontrolaPakowania.API.Services.Exceptions;
-using KontrolaPakowania.API.Services.Interfaces;
+using KontrolaPakowania.API.Services.Packing;
 using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;

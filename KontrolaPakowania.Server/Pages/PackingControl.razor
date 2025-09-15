@@ -11,6 +11,8 @@
 @inject WorkstationService WorkstationService
 @inject UserSessionService UserSession
 @inject AuthService AuthService
+@inject ShipmentService ShipmentService
+@inject ClientPrinterService ClientPrinterService;
 
 <div class="container-fluid d-flex flex-column vh-100 p-3 pack-control">
     <div class="d-flex align-items-center mb-3 header-row">
@@ -22,7 +24,7 @@
             </div>
         }
 
-        @if (CurrentJl != null && !string.IsNullOrEmpty(CurrentJl.Courier))
+        @if (CurrentJl != null && CurrentJl.Courier != Courier.Unknown)
         {
             <!-- Second image placeholder (Courier) -->
             <div class="header-image-placeholder me-3">
@@ -168,7 +170,7 @@
             <button class="btn btn-danger w-100 h-100 py-4 fs-5" @onclick="Close" disabled="@(PackedItems.Any())">Zamknij</button>
         </div>
         <div class="col-6 col-md">
-            <button class="btn btn-success w-100 h-100 py-4 fs-5">Zakończ</button>
+            <button class="btn btn-success w-100 h-100 py-4 fs-5" @onclick="FinishPacking">Zakończ</button>
         </div>
     </div>
 
@@ -236,7 +238,7 @@
         JlInProgressDto jlRealization = new JlInProgressDto
         {
             Name = CurrentJl.Name,
-            Courier = CurrentJl.Courier,
+            Courier = CurrentJl.CourierName,
             ClientName = CurrentJl.ClientName,
             StationNumber = Settings.StationNumber,
             Date = DateTime.Now,
@@ -554,9 +556,10 @@
                 }
 
                 var selectedCourier = await CourierModal.ShowModal(CurrentJl.Courier);
-                if (!string.IsNullOrEmpty(selectedCourier))
+                if (selectedCourier.HasValue && selectedCourier.Value != Courier.Unknown)
                 {
-                    CurrentJl.Courier = selectedCourier;
+                    CurrentJl.Courier = selectedCourier.Value;
+                    CurrentJl.InitCourierLogo();
                     await InvokeAsync(StateHasChanged);
                 }
                 break;
@@ -580,6 +583,62 @@
                 }
                 break;
             case 8: /* Zmień magazyn */ break;
+        }
+    }
+
+    private async Task FinishPacking()
+    {
+        try
+        {
+            if (!PackedItems.Any())
+            {
+                await ToastError.Show("Brak spakowanych towarów!");
+                await Task.Delay(6000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+                return;
+            }
+
+            // Prepare shipment request
+            ShipmentRequest shipmentRequest = new ShipmentRequest
+            {
+                Courier = CurrentJl.Courier,
+                RecipientName = CurrentJl.ClientName,
+                RecipientCity = "Gdańsk",
+                RecipientStreet = "Kazimierza Wielkiego 32/20",
+                RecipientPostalCode = "80-180",
+                RecipientCountry = "PL",
+                RecipientPhone = "797250984",
+                RecipientEmail = "krzysztop497@gmail.com",
+                Description = $"110129482",
+                References = CurrentJl.Name,
+                PackageQuantity = 1,
+                Weight = PackedItems.Sum(p => p.Weight * p.JlQuantity),
+            };
+
+            var response = await ShipmentService.SendPackage(shipmentRequest);
+
+            if (response?.PackageId > 0)
+            {
+                if (response.LabelBytes != null)
+                {
+                    var labelContent = Convert.ToBase64String(response.LabelBytes);
+                    await ClientPrinterService.PrintAsync(Settings.PrinterLabel, response.LabelType.ToString(), labelContent);
+                }
+                else
+                {
+                    await ToastError.Show("Nie udało się wygenerować etykiety kurierskiej!");
+                    await Task.Delay(6000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+                }
+            }
+            else
+            {
+                await ToastError.Show("Nie udało się wygenerować przesyłki!");
+                await Task.Delay(6000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+            }
+        }
+        catch (Exception ex)
+        {
+            await ToastError.Show($"Błąd przy próbie finalizacji pakowania: {ex.Message}");
+            await Task.Delay(8000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
         }
     }
 }

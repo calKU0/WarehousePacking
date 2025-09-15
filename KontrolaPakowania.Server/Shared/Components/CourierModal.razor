@@ -1,4 +1,5 @@
-﻿@inject IJSRuntime JS
+﻿@using KontrolaPakowania.Shared.Enums
+@inject IJSRuntime JS
 
 @if (Show)
 {
@@ -21,7 +22,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @onclick="Close">Anuluj</button>
-                    <button class="btn btn-primary" @onclick="Confirm" disabled="@string.IsNullOrEmpty(SelectedCourier)">
+                    <button class="btn btn-primary" @onclick="Confirm" disabled="@(!SelectedCourier.HasValue)">
                         Zatwierdź
                     </button>
                 </div>
@@ -32,18 +33,18 @@
 
 @code {
     private bool Show { get; set; }
-    private string SelectedCourier { get; set; } = string.Empty;
-    private List<string> Couriers { get; set; } = new() { "DPD", "GLS", "Fedex" };
+    private Courier? SelectedCourier { get; set; } = null;
+    private List<Courier> Couriers { get; set; } = new() { Courier.DPD, Courier.GLS, Courier.Fedex };
 
-    private TaskCompletionSource<string> _tcs;
+    private TaskCompletionSource<Courier?> _tcs;
 
-    public Task<string> ShowModal(string defaultCourier = null)
+    public Task<Courier?> ShowModal(Courier? defaultCourier = null)
     {
-        SelectedCourier = defaultCourier ?? string.Empty;
+        SelectedCourier = defaultCourier;
         Show = true;
         StateHasChanged();
 
-        _tcs = new TaskCompletionSource<string>();
+        _tcs = new TaskCompletionSource<Courier?>();
         return _tcs.Task;
     }
 
@@ -62,8 +63,7 @@
     private void Close()
     {
         Show = false;
-        SelectedCourier = string.Empty;
+        SelectedCourier = null;
         StateHasChanged();
     }
-
 }

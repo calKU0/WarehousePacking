@@ -1,0 +1,15 @@
+{
+  "providerId": "Microsoft.Tools.ServiceModel.Svcutil",
+  "version": "8.0.0",
+  "options": {
+    "inputs": [
+      "https://ade-test.gls-poland.com/adeplus/pm1/ade_webapi2.php?wsdl"
+    ],
+    "namespaceMappings": [
+      "*, KontrolaPakowania.API.Services.Couriers.GLS"
+    ],
+    "outputFile": "Reference.cs",
+    "targetFramework": "net9.0",
+    "typeReuseMode": "All"
+  }
+}

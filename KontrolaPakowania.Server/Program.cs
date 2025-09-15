@@ -1,7 +1,7 @@
 using Blazored.LocalStorage;
 using KontrolaPakowania.Server;
 using KontrolaPakowania.Server.Services;
-using KontrolaPakowania.Shared.Settings;
+using KontrolaPakowania.Server.Settings;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.Extensions.Options;
 
@@ -14,14 +14,13 @@ builder.Services.AddRazorComponents()
     {
         options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromSeconds(5);
         options.JSInteropDefaultCallTimeout = TimeSpan.FromSeconds(10);
+        options.DetailedErrors = true;
     });
 
 builder.Services.AddBlazoredLocalStorage();
 
 // Settings
-builder.Services.Configure<ApiSettings>(
-    builder.Configuration.GetSection("Apis")
-);
+builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("Apis"));
 
 // Database client
 builder.Services.AddHttpClient("Database", (serviceProvider, client) =>
@@ -32,29 +31,13 @@ builder.Services.AddHttpClient("Database", (serviceProvider, client) =>
     client.DefaultRequestHeaders.Add("X-Api-Key", settings.Database.ApiKey);
 });
 
-// FedEx client
-builder.Services.AddHttpClient("FedEx", (serviceProvider, client) =>
-{
-    var settings = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
-    client.BaseAddress = new Uri(settings.FedEx.BaseUrl);
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
-    client.DefaultRequestHeaders.Add("X-Api-Key", settings.FedEx.ApiKey);
-});
-
-// GLS client
-builder.Services.AddHttpClient("GLS", (serviceProvider, client) =>
-{
-    var settings = serviceProvider.GetRequiredService<IOptions<ApiSettings>>().Value;
-    client.BaseAddress = new Uri(settings.GLS.BaseUrl);
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
-    client.DefaultRequestHeaders.Add("X-Api-Key", settings.GLS.ApiKey);
-});
-
 // Scopes
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<WorkstationService>();
 builder.Services.AddScoped<PackingService>();
 builder.Services.AddScoped<UserSessionService>();
+builder.Services.AddScoped<ShipmentService>();
+builder.Services.AddScoped<ClientPrinterService>();
 //builder.Services.AddSingleton<CircuitHandler, UserCircuitHandler>();
 
 var app = builder.Build();

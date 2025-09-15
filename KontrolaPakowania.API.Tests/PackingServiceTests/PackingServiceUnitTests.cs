@@ -1,7 +1,7 @@
 ﻿using KontrolaPakowania.API.Data;
 using KontrolaPakowania.API.Data.Enums;
+using KontrolaPakowania.API.Services.ErpXl;
 using KontrolaPakowania.API.Services.Exceptions;
-using KontrolaPakowania.API.Services.Interfaces;
 using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
@@ -85,7 +85,7 @@ public class PackingServiceUnitTests
             ClientName = "TESTCDN",
             Barcode = "5901234123457",
             Status = 1,
-            Courier = "DPD",
+            CourierName = "DPD",
             Weight = 1.5m,
             Priority = 1,
             Sorting = 1,
@@ -109,7 +109,7 @@ public class PackingServiceUnitTests
         Assert.Equal("KS-001-001-001", result.Name);
         Assert.Equal("TESTCDN", result.ClientName);
         Assert.Equal("5901234123457", result.Barcode);
-        Assert.Equal("DPD", result.Courier);
+        Assert.Equal("DPD", result.CourierName);
         Assert.Equal(1, result.Status);
         Assert.Equal(1.5m, result.Weight);
         Assert.Equal(1, result.Priority);

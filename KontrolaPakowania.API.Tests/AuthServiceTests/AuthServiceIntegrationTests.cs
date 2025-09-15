@@ -1,8 +1,6 @@
 ﻿using KontrolaPakowania.API.Data;
-using KontrolaPakowania.API.Services;
-using KontrolaPakowania.API.Services.Interfaces;
+using KontrolaPakowania.API.Services.Auth;
 using KontrolaPakowania.Shared.DTOs;
-using KontrolaPakowania.Shared.Settings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;

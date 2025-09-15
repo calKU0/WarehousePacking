@@ -1,11 +1,11 @@
 ﻿using KontrolaPakowania.API.Data;
-using KontrolaPakowania.API.Services;
+using KontrolaPakowania.API.Services.ErpXl;
 using KontrolaPakowania.API.Services.Exceptions;
-using KontrolaPakowania.API.Services.Interfaces;
+using KontrolaPakowania.API.Services.Packing;
+using KontrolaPakowania.API.Settings;
 using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
-using KontrolaPakowania.Shared.Settings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -83,7 +83,7 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             Assert.True(jlInfo.Weight > 0, "Weight should be greater than 0");
             Assert.True(jlInfo.Priority >= 0, "Priority should be non-negative");
             Assert.False(string.IsNullOrEmpty(jlInfo.ClientName), "ClientName should not be null or empty");
-            Assert.False(string.IsNullOrEmpty(jlInfo.Courier), "Courier should not be null or empty");
+            Assert.False(string.IsNullOrEmpty(jlInfo.CourierName), "Courier should not be null or empty");
             Assert.True(jlInfo.ClientAddressId > 0, "ClientAddressId should be greater than 0");
             Assert.IsType<bool>(jlInfo.OutsideEU);
         }

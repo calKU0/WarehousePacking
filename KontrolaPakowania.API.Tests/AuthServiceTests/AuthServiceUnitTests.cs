@@ -1,7 +1,6 @@
 ﻿using KontrolaPakowania.API.Data;
 using KontrolaPakowania.API.Data.Enums;
-using KontrolaPakowania.API.Services;
-using KontrolaPakowania.API.Services.Interfaces;
+using KontrolaPakowania.API.Services.Auth;
 using KontrolaPakowania.Shared.DTOs;
 using Moq;
 using System;

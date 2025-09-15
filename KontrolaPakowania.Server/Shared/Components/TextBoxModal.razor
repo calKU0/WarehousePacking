@@ -1,4 +1,5 @@
 ﻿@using Microsoft.AspNetCore.Components
+@inject IJSRuntime JSRuntime
 
 @if (IsVisible)
 {
@@ -12,7 +13,7 @@
                 </div>
                 <div class="modal-body">
                     <p>@Message</p>
-                    <input class="form-control" @bind="InputValue" placeholder="@InputPlaceholder" />
+                    <input class="form-control" @bind="InputValue" @ref=inputRef placeholder ="@InputPlaceholder" />
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-primary" @onclick="Confirm">Potwierdź</button>
@@ -31,6 +32,7 @@
 
     public bool IsVisible { get; set; } = false;
     public string InputValue { get; set; } = string.Empty;
+    private ElementReference inputRef;
     private TaskCompletionSource<string> _tcs;
 
     public Task<string> Show(string title = null, string message = null, string placeholder = null)
@@ -41,6 +43,7 @@
 
         InputValue = string.Empty;
         IsVisible = true;
+        _ = JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", inputRef);
         StateHasChanged();
 
         _tcs = new TaskCompletionSource<string>();
