@@ -286,61 +286,103 @@ public class PackingServiceUnitTests
     public void OpenPackage_ReturnsPackageId()
     {
         // Arrange
-        var request = new OpenPackageRequest { RouteId = 10 };
-        _erpXlClientMock.Setup(x => x.CreatePackage(request)).Returns(123);
+        var request = new CreatePackageRequest { RouteId = 10 };
+        var response = new CreatePackageResponse { DocumentId = 1, DocumentRef = 2 };
+        _erpXlClientMock.Setup(x => x.CreatePackage(request)).Returns(response);
 
         // Act
-        var result = _service.OpenPackage(request);
+        var result = _service.CreatePackage(request);
 
         // Assert
-        Assert.Equal(123, result);
+        Assert.Equal(response, result);
         _erpXlClientMock.Verify(x => x.CreatePackage(request), Times.Once);
     }
 
     [Fact, Trait("Category", "Unit")]
-    public void AddPackedPosition_ReturnsTrue()
+    public async Task AddPackedPosition_ReturnsTrue_WhenDbReturnsRows()
     {
-        var request = new AddPackedPositionRequest { DocumentId = 1 };
-        _erpXlClientMock.Setup(x => x.AddPositionToPackage(request)).Returns(true);
+        // Arrange
+        var request = new AddPackedPositionRequest
+        {
+            SourceDocumentId = 1,
+            SourceDocumentType = 1,
+            PackingDocumentId = 2,
+            PositionNumber = 1,
+            Quantity = 1.00M
+        };
 
-        var result = _service.AddPackedPosition(request);
+        _dbExecutorMock
+            .Setup(db => db.QuerySingleOrDefaultAsync<int>(
+                "kp.AddPackedPosition",
+                It.IsAny<object>(), // tutaj nie dopasowujemy szczegółowych właściwości
+                CommandType.StoredProcedure,
+                Connection.ERPConnection))
+            .ReturnsAsync(1);
 
+        // Act
+        var result = await _service.AddPackedPosition(request);
+
+        // Assert
         Assert.True(result);
-        _erpXlClientMock.Verify(x => x.AddPositionToPackage(request), Times.Once);
+        _dbExecutorMock.Verify(db => db.QuerySingleOrDefaultAsync<int>(
+            "kp.AddPackedPosition",
+            It.IsAny<object>(),
+            CommandType.StoredProcedure,
+            Connection.ERPConnection), Times.Once);
     }
 
     [Fact, Trait("Category", "Unit")]
-    public void RemovePackedPosition_ReturnsTrue()
+    public async Task RemovePackedPosition_ReturnsTrue_WhenDbReturnsRows()
     {
-        var request = new RemovePackedPositionRequest { DocumentId = 1 };
-        _erpXlClientMock.Setup(x => x.RemovePositionFromPackage(request)).Returns(true);
+        // Arrange
+        var request = new RemovePackedPositionRequest
+        {
+            SourceDocumentId = 1,
+            SourceDocumentType = 2,
+            PackingDocumentId = 2,
+            PositionNumber = 1,
+        };
 
-        var result = _service.RemovePackedPosition(request);
+        _dbExecutorMock
+            .Setup(db => db.QuerySingleOrDefaultAsync<int>(
+                "kp.RemovePackedPosition",
+                It.IsAny<object>(),
+                CommandType.StoredProcedure,
+                Connection.ERPConnection))
+            .ReturnsAsync(1);
 
+        // Act
+        var result = await _service.RemovePackedPosition(request);
+
+        // Assert
         Assert.True(result);
-        _erpXlClientMock.Verify(x => x.RemovePositionFromPackage(request), Times.Once);
+        _dbExecutorMock.Verify(db => db.QuerySingleOrDefaultAsync<int>(
+            "kp.RemovePackedPosition",
+            It.IsAny<object>(),
+            CommandType.StoredProcedure,
+            Connection.ERPConnection), Times.Once);
     }
 
     [Fact, Trait("Category", "Unit")]
-    public void ClosePackage_ReturnsId()
+    public void ClosePackage_ReturnsTrue()
     {
         var request = new ClosePackageRequest { DocumentRef = 999, Status = DocumentStatus.Bufor };
-        _erpXlClientMock.Setup(x => x.ClosePackage(request)).Returns(500);
+        _erpXlClientMock.Setup(x => x.ClosePackage(request)).Returns(true);
 
         var result = _service.ClosePackage(request);
 
-        Assert.Equal(500, result);
+        Assert.True(result);
         _erpXlClientMock.Verify(x => x.ClosePackage(request), Times.Once);
     }
 
     [Fact, Trait("Category", "Unit")]
     public void OpenPackage_WhenApiThrows_ShouldPropagateException()
     {
-        var request = new OpenPackageRequest { RouteId = 10 };
+        var request = new CreatePackageRequest { RouteId = 10 };
         _erpXlClientMock.Setup(x => x.CreatePackage(request))
             .Throws(new XlApiException(101, "XL error"));
 
-        Assert.Throws<XlApiException>(() => _service.OpenPackage(request));
+        Assert.Throws<XlApiException>(() => _service.CreatePackage(request));
     }
 
     #endregion Packing Tests

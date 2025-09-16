@@ -12,7 +12,7 @@ namespace KontrolaPakowania.Shared.DTOs.Requests
         public Courier Courier { get; set; }
         public int PackageId { get; set; }
         public string TrackingNumber { get; set; } = string.Empty;
-        public byte[] LabelBytes { get; set; } = Array.Empty<byte>();
+        public string LabelBase64 { get; set; } = string.Empty;
 
         public PrintDataType LabelType { get; set; } = PrintDataType.PDF;
     }

@@ -26,6 +26,19 @@ namespace KontrolaPakowania.API.Data
             return await connection.QueryAsync<T>(sql, param, commandType: commandType);
         }
 
+        public async Task<TFirst?> QuerySingleOrDefaultAsync<TFirst, TSecond>(string sql, Func<TFirst, TSecond, TFirst> map, string splitOn, object? param = null, CommandType? commandType = null, Connection connectionName = Connection.WMSConnection)
+        {
+            var connectionString = _config.GetConnectionString(connectionName.ToString())
+                ?? throw new InvalidOperationException($"Connection string '{connectionName}' not found.");
+
+            using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
+
+            var result = await connection.QueryAsync<TFirst, TSecond, TFirst>(sql, map, param, commandType: commandType, splitOn: splitOn);
+
+            return result.FirstOrDefault();
+        }
+
         public async Task<T?> QuerySingleOrDefaultAsync<T>(string sql, object? param = null, CommandType? commandType = null, Connection connectionName = Connection.WMSConnection)
         {
             var connectionString = _config.GetConnectionString(connectionName.ToString())
@@ -36,6 +49,5 @@ namespace KontrolaPakowania.API.Data
 
             return await connection.QuerySingleOrDefaultAsync<T>(sql, param, commandType: commandType);
         }
-
     }
 }

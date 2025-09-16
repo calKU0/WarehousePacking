@@ -1,25 +1,35 @@
-﻿using KontrolaPakowania.API.Settings;
+﻿using KontrolaPakowania.API.Data;
+using KontrolaPakowania.API.Data.Enums;
+using KontrolaPakowania.API.Services.Couriers.Mapping;
+using KontrolaPakowania.API.Services.ErpXl;
+using KontrolaPakowania.API.Settings;
+using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Data;
 
 namespace KontrolaPakowania.API.Services.Couriers.GLS
 {
     public class GlsService : ICourierService
     {
         private readonly IGlsClientWrapper _client;
+        private readonly IParcelMapper<cConsign> _mapper;
         private readonly GlsSettings _settings;
 
         private string _sessionId;
         private static cParcelWeightsMax _maxWeights;
         private static float _maxCod;
         private Task _loginTask;
+        private readonly IDbExecutor _db;
 
-        public GlsService(IOptions<CourierSettings> courierSettings, IGlsClientWrapper client)
+        public GlsService(IOptions<CourierSettings> courierSettings, IGlsClientWrapper client, IDbExecutor db, IParcelMapper<cConsign> mapper)
         {
             _settings = courierSettings.Value.GLS;
             _client = client;
+            _db = db;
+            _mapper = mapper;
         }
 
         private Task EnsureLoggedInAsync()
@@ -44,10 +54,7 @@ namespace KontrolaPakowania.API.Services.Couriers.GLS
             await EnsureLoggedInAsync();
 
             // Map
-            var parcelData = MapToGlsConsign(request);
-            var parcelServices = MapToGlsServices(request.Services);
-
-            parcelData.srv_bool = parcelServices;
+            var parcelData = await MapToGlsConsign(request);
 
             // Insert parcel
             var inserted = await _client.InsertParcelAsync(_sessionId, parcelData);
@@ -63,8 +70,8 @@ namespace KontrolaPakowania.API.Services.Couriers.GLS
                 PackageId = parcelId,
                 Courier = Courier.GLS,
                 TrackingNumber = label.number,
-                LabelBytes = Convert.FromBase64String(label.file),
-                LabelType = PrintDataType.PDF
+                LabelBase64 = label.file,
+                LabelType = PrintDataType.EPL
             };
         }
 
@@ -83,57 +90,35 @@ namespace KontrolaPakowania.API.Services.Couriers.GLS
             }
         }
 
-        public async Task LogoutAsync() => await _client.LogoutAsync(_sessionId);
-
-        private cConsign MapToGlsConsign(ShipmentRequest request)
+        public async Task LogoutAsync()
         {
-            return new cConsign
-            {
-                rname1 = request.RecipientName,
-                rcountry = request.RecipientCountry,
-                rzipcode = request.RecipientPostalCode,
-                rcity = request.RecipientCity,
-                rstreet = request.RecipientStreet,
-                rphone = request.RecipientPhone,
-                rcontact = request.RecipientEmail,
+            if (string.IsNullOrEmpty(_sessionId))
+                await EnsureLoggedInAsync();
 
-                notes = request.Description,
-                references = request.References,
-
-                quantity = request.PackageQuantity,
-                quantitySpecified = true,
-                weight = (float)request.Weight,
-                weightSpecified = true,
-            };
+            await _client.LogoutAsync(_sessionId);
         }
 
-        private cServicesBool MapToGlsServices(ShipmentServices services)
+        private async Task<cConsign> MapToGlsConsign(ShipmentRequest request)
         {
-            return new cServicesBool
-            {
-                pod = services.POD,
-                podSpecified = services.POD,
+            const string procedure = "kp.GetPackageInfo";
 
-                exw = services.EXW,
-                exwSpecified = services.EXW,
+            var package = await _db.QuerySingleOrDefaultAsync<PackageInfo, ShipmentServices>(
+                procedure,
+                (pkg, services) =>
+                {
+                    pkg.Services = services;
+                    return pkg;
+                },
+                "POD",
+                new { request.PackageId },
+                CommandType.StoredProcedure,
+                Connection.ERPConnection
+            );
 
-                rod = services.ROD,
-                rodSpecified = services.ROD,
+            if (package == null)
+                throw new InvalidOperationException($"Package with Id {request.PackageId} not found.");
 
-                s10 = services.S10,
-                s10Specified = services.S10,
-
-                s12 = services.S12,
-                s12Specified = services.S12,
-
-                sat = services.Saturday,
-                satSpecified = services.Saturday,
-
-                cod = services.COD,
-                codSpecified = services.COD,
-                cod_amount = (float)services.CODAmount,
-                cod_amountSpecified = services.COD
-            };
+            return _mapper.Map(package);
         }
     }
 }

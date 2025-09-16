@@ -5,16 +5,12 @@ namespace KontrolaPakowania.API.Services.ErpXl
 {
     public interface IErpXlClient
     {
-        public int Login();
+        int Login();
 
-        public int Logout();
+        int Logout();
 
-        public int CreatePackage(OpenPackageRequest request);
+        CreatePackageResponse CreatePackage(CreatePackageRequest request);
 
-        public bool AddPositionToPackage(AddPackedPositionRequest request);
-
-        public bool RemovePositionFromPackage(RemovePackedPositionRequest request);
-
-        public int ClosePackage(ClosePackageRequest request);
+        bool ClosePackage(ClosePackageRequest request);
     }
 }

@@ -34,23 +34,40 @@ namespace KontrolaPakowania.PrintAgent
             [MarshalAs(UnmanagedType.LPStr)] public string pDataType;
         }
 
-        public static bool SendStringToPrinter(string printerName, string zpl)
+        public static bool SendBytesToPrinter(string printerName, byte[] bytes)
         {
             IntPtr hPrinter;
             if (!OpenPrinter(printerName, out hPrinter, IntPtr.Zero))
                 return false;
 
-            var di = new DOCINFOA { pDocName = "ZPL Print Job", pDataType = "RAW" };
-            StartDocPrinter(hPrinter, 1, ref di);
-            StartPagePrinter(hPrinter);
+            var di = new DOCINFOA
+            {
+                pDocName = "Raw Label Print Job",
+                pDataType = "RAW"
+            };
 
-            IntPtr pBytes = Marshal.StringToCoTaskMemAnsi(zpl);
-            WritePrinter(hPrinter, pBytes, zpl.Length, out _);
-            Marshal.FreeCoTaskMem(pBytes);
+            try
+            {
+                if (!StartDocPrinter(hPrinter, 1, ref di))
+                    return false;
 
-            EndPagePrinter(hPrinter);
-            EndDocPrinter(hPrinter);
-            ClosePrinter(hPrinter);
+                if (!StartPagePrinter(hPrinter))
+                    return false;
+
+                IntPtr unmanagedBytes = Marshal.AllocCoTaskMem(bytes.Length);
+                Marshal.Copy(bytes, 0, unmanagedBytes, bytes.Length);
+
+                WritePrinter(hPrinter, unmanagedBytes, bytes.Length, out _);
+
+                Marshal.FreeCoTaskMem(unmanagedBytes);
+
+                EndPagePrinter(hPrinter);
+                EndDocPrinter(hPrinter);
+            }
+            finally
+            {
+                ClosePrinter(hPrinter);
+            }
 
             return true;
         }

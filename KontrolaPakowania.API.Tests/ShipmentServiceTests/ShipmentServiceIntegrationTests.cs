@@ -1,14 +1,11 @@
-﻿using KontrolaPakowania.API.Services.Couriers.GLS;
+﻿using KontrolaPakowania.API.Data;
+using KontrolaPakowania.API.Services.Couriers.GLS;
+using KontrolaPakowania.API.Services.Couriers.Mapping;
 using KontrolaPakowania.API.Settings;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace KontrolaPakowania.API.Tests.ShipmentServiceTests
 {
@@ -20,7 +17,7 @@ namespace KontrolaPakowania.API.Tests.ShipmentServiceTests
         {
             // Load configuration from appsettings.json
             var config = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory()) // make sure this is the test project folder
+                .SetBasePath(Directory.GetCurrentDirectory()) // test project folder
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .Build();
 
@@ -33,72 +30,60 @@ namespace KontrolaPakowania.API.Tests.ShipmentServiceTests
 
             var clientWrapper = new GlsClientWrapper(new Ade2PortTypeClient());
 
-            _glsService = new GlsService(options, clientWrapper);
+            var dbExecutor = new DapperDbExecutor(config);
+
+            // Mapper (maps PackageInfo → cConsign)
+            var mapper = new GlsParcelMapper();
+
+            // Service under test
+            _glsService = new GlsService(options, clientWrapper, dbExecutor, mapper);
         }
 
         [Fact, Trait("Category", "Integration")]
         public async Task SendPackageAsync_ShouldReturnShipmentResponse()
         {
+            // Arrange: package must exist in DB with this Id
             var shipment = new ShipmentRequest
             {
-                RecipientName = "John Doe",
-                RecipientStreet = "Kazimierza Wielkiego 32/20",
-                RecipientCity = "Gdańsk",
-                RecipientPostalCode = "80-180",
-                RecipientCountry = "PL",
-                Weight = 1.5m,
-                PackageQuantity = 1,
-                References = "FS-999/25/SPR",
-                Description = "Test Shipment",
-
-                Services = new ShipmentServices
-                {
-                    COD = true,
-                    CODAmount = 100.00m,
-                }
+                PackageId = 10580,
+                Courier = Courier.GLS
             };
 
+            // Act
             var result = await _glsService.SendPackageAsync(shipment);
 
+            // Assert
             Assert.NotNull(result);
             Assert.Equal(Courier.GLS, result.Courier);
             Assert.True(result.PackageId > 0);
             Assert.False(string.IsNullOrWhiteSpace(result.TrackingNumber));
-            Assert.NotNull(result.LabelBytes);
-            Assert.NotEmpty(result.LabelBytes);
+            Assert.NotNull(result.LabelBase64);
+            Assert.NotEmpty(result.LabelBase64);
         }
 
         [Fact, Trait("Category", "Integration")]
-        public async Task SendAndDeleteParcel_EndToEnd()
+        public async Task SendPackageAsync_FullFlow_ShouldReturnValidResponse_And_DeleteParcel()
         {
-            // Arrange
+            // Arrange: existing package in DB
             var shipment = new ShipmentRequest
             {
-                RecipientName = "John Doe",
-                RecipientStreet = "Kazimierza Wielkiego 32/20",
-                RecipientCity = "Gdańsk",
-                RecipientPostalCode = "80-180",
-                RecipientCountry = "PL",
-                Weight = 1.5m,
-                PackageQuantity = 1,
-                Services = new ShipmentServices { POD = true }
+                PackageId = 10580,
+                Courier = Courier.GLS
             };
 
-            // Act: send parcel
-            var sendResult = await _glsService.SendPackageAsync(shipment);
+            // Act
+            var response = await _glsService.SendPackageAsync(shipment);
 
             // Assert send
-            Assert.NotNull(sendResult);
-            Assert.True(sendResult.PackageId > 0);
-            Assert.False(string.IsNullOrWhiteSpace(sendResult.TrackingNumber));
-            Assert.NotNull(sendResult.LabelBytes);
-            Assert.NotEmpty(sendResult.LabelBytes);
+            Assert.NotNull(response);
+            Assert.True(response.PackageId > 0);
+            Assert.Equal(Courier.GLS, response.Courier);
+            Assert.False(string.IsNullOrWhiteSpace(response.TrackingNumber));
+            Assert.NotEmpty(response.LabelBase64);
 
-            // Act: delete parcel
-            var deletedId = await _glsService.DeleteParcelAsync(sendResult.PackageId);
-
-            // Assert delete
-            Assert.Equal(sendResult.PackageId, deletedId);
+            // Cleanup: delete parcel
+            var deletedId = await _glsService.DeleteParcelAsync(response.PackageId);
+            Assert.Equal(response.PackageId, deletedId);
         }
 
         [Fact, Trait("Category", "Integration")]

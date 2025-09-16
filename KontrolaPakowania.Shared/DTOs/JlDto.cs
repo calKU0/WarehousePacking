@@ -22,8 +22,9 @@ namespace KontrolaPakowania.Shared.DTOs
         public int Priority { get; set; }
         public int Sorting { get; set; }
         public bool OutsideEU { get; set; } = false;
-        public string ClientName { get; set; } = string.Empty;
+        public int ClientId { get; set; }
         public int ClientAddressId { get; set; }
+        public string ClientName { get; set; } = string.Empty;
 
         public void InitCourierFromName()
         {

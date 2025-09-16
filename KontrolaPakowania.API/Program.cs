@@ -4,6 +4,7 @@ using KontrolaPakowania.API.Services.Couriers;
 using KontrolaPakowania.API.Services.Couriers.DPD;
 using KontrolaPakowania.API.Services.Couriers.Fedex;
 using KontrolaPakowania.API.Services.Couriers.GLS;
+using KontrolaPakowania.API.Services.Couriers.Mapping;
 using KontrolaPakowania.API.Services.ErpXl;
 using KontrolaPakowania.API.Services.Packing;
 using KontrolaPakowania.API.Settings;
@@ -55,13 +56,14 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IDbExecutor, DapperDbExecutor>();
 builder.Services.AddScoped<IPackingService, PackingService>();
 builder.Services.AddScoped<Ade2PortTypeClient>();
+builder.Services.AddScoped<IParcelMapper<cConsign>, GlsParcelMapper>();
 builder.Services.AddScoped<IGlsClientWrapper, GlsClientWrapper>();
 builder.Services.AddScoped<GlsService>();
 builder.Services.AddScoped<DpdService>();
 builder.Services.AddScoped<FedexService>();
 builder.Services.AddScoped<CourierFactory>();
 builder.Services.AddSingleton<IErpXlClient, ErpXlClient>();
-//builder.Services.AddHostedService<ErpXlHostedService>();
+builder.Services.AddHostedService<ErpXlHostedService>();
 
 var app = builder.Build();
 

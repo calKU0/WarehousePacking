@@ -8,6 +8,8 @@ using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using SharpZebra.Printing;
+using PrinterSettings = SharpZebra.Printing.PrinterSettings;
 
 internal class Program
 {
@@ -124,7 +126,18 @@ internal class Program
     {
         if (job.DataType == "ZPL" || job.DataType == "EPL")
         {
-            RawPrinterHelper.SendStringToPrinter(job.PrinterName, job.Content);
+            // Convert string to ASCII bytes
+            var bytes = Convert.FromBase64String(job.Content);
+
+            // Determine if printerName contains colon (network printer)
+            if (job.PrinterName.Contains(":"))
+            {
+                NetworkPrint(job.PrinterName, bytes);
+            }
+            else
+            {
+                Print(job.PrinterName, bytes);
+            }
         }
         else if (job.DataType == "PDF")
         {
@@ -134,6 +147,41 @@ internal class Program
         else
         {
             Console.Error.WriteLine($"[ERROR] Unsupported label type: {job.DataType}");
+        }
+    }
+
+    private static void Print(string printerName, byte[] label)
+    {
+        var printerSettings = new PrinterSettings { PrinterName = printerName };
+        var printer = new SpoolPrinter(printerSettings);
+        bool? result = printer.Print(label);
+
+        if (!result.GetValueOrDefault())
+        {
+            throw new Exception($"Failed to print to {printerName}");
+        }
+    }
+
+    private static void NetworkPrint(string printerName, byte[] label)
+    {
+        // Format: IP:PORT, e.g., "192.168.0.50:9100"
+        var segments = printerName.Split(':');
+        var printerSettings = new PrinterSettings
+        {
+            PrinterName = segments[0]
+        };
+
+        if (segments.Length > 1)
+        {
+            printerSettings.PrinterPort = int.Parse(segments[1]);
+        }
+
+        var printer = new NetworkPrinter(printerSettings);
+        bool? result = printer.Print(label);
+
+        if (!result.GetValueOrDefault())
+        {
+            throw new Exception($"Failed to print to network printer {printerName}");
         }
     }
 

@@ -116,22 +116,26 @@ public class PackingService : IPackingService
         return result > 0;
     }
 
-    public int OpenPackage(OpenPackageRequest request)
+    public CreatePackageResponse CreatePackage(CreatePackageRequest request)
     {
         return _erpXlClient.CreatePackage(request);
     }
 
-    public bool AddPackedPosition(AddPackedPositionRequest request)
+    public async Task<bool> AddPackedPosition(AddPackedPositionRequest request)
     {
-        return _erpXlClient.AddPositionToPackage(request);
+        const string procedure = "kp.AddPackedPosition";
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.PackingDocumentId, request.SourceDocumentId, request.SourceDocumentType, request.PositionNumber, request.Quantity, request.Weight, request.Volume }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return result > 0;
     }
 
-    public bool RemovePackedPosition(RemovePackedPositionRequest request)
+    public async Task<bool> RemovePackedPosition(RemovePackedPositionRequest request)
     {
-        return _erpXlClient.RemovePositionFromPackage(request);
+        const string procedure = "kp.RemovePackedPosition";
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.PackingDocumentId, request.SourceDocumentId, request.SourceDocumentType, request.PositionNumber, request.Quantity, request.Weight, request.Volume }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return result > 0;
     }
 
-    public int ClosePackage(ClosePackageRequest request)
+    public bool ClosePackage(ClosePackageRequest request)
     {
         return _erpXlClient.ClosePackage(request);
     }

@@ -215,6 +215,8 @@
     private ElementReference itemInputRef;
     private string Username = string.Empty;
     private string Country = string.Empty;
+    private int PackingDocumentId;
+    private int PackingDocumentRef;
 
     private Toast ToastError = new();
     private ConfirmDialog confirmDialog = new();
@@ -233,19 +235,17 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
-
-        JlInProgressDto jlRealization = new JlInProgressDto
+        try
         {
-            Name = CurrentJl.Name,
-            Courier = CurrentJl.CourierName,
-            ClientName = CurrentJl.ClientName,
-            StationNumber = Settings.StationNumber,
-            Date = DateTime.Now,
-            User = UserSession.Username
-        };
-
-        await PackingService.AddJlRealization(jlRealization);
+            await LoadData();
+            await AddJlRealization();
+            await CreatePackage();
+        }
+        catch (Exception ex)
+        {
+            await ToastError.Show($"Błąd przy inicjalizacji: {ex.Message}");
+            await Task.Delay(7000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -276,6 +276,65 @@
         StateHasChanged();
     }
 
+    private async Task AddJlRealization()
+    {
+        try
+        {
+            JlInProgressDto jlRealization = new JlInProgressDto
+            {
+                Name = CurrentJl.Name,
+                Courier = CurrentJl.CourierName,
+                ClientName = CurrentJl.ClientName,
+                StationNumber = Settings.StationNumber,
+                Date = DateTime.Now,
+                User = UserSession.Username
+            };
+
+            await PackingService.AddJlRealization(jlRealization);
+        }
+        catch (Exception ex)
+        {
+            JlItems = new List<JlItemDto>();
+
+            await ToastError.Show($"Błąd przy próbie dodania realizacji JL: {ex.Message}");
+            await Task.Delay(7000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+        }
+        StateHasChanged();
+    }
+
+    private async Task CreatePackage()
+    {
+        try
+        {
+            CreatePackageRequest packageRequest = new CreatePackageRequest
+            {
+                RouteId = CurrentJl.RouteId,
+                ClientAddressId = CurrentJl.ClientAddressId,
+                ClientId = CurrentJl.ClientId,
+            };
+
+            var result = await PackingService.CreatePackage(packageRequest);
+            if (result.DocumentRef > 0 && result.DocumentId > 0)
+            {
+                PackingDocumentId = result.DocumentId;
+                PackingDocumentRef = result.DocumentRef;
+            }
+            else
+            {
+                await ToastError.Show("Nie udało się utworzyć dokumentu pakowania. Spróbuj ponownie.");
+                await Task.Delay(7000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+            }
+        }
+        catch (Exception ex)
+        {
+            JlItems = new List<JlItemDto>();
+
+            await ToastError.Show($"Błąd przy próbie stworzenia dokumentu paczki: {ex.Message}");
+            await Task.Delay(7000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+        }
+        StateHasChanged();
+    }
+
     private void OpenProductModal(JlItemDto item)
     {
         SelectedItem = item;
@@ -287,6 +346,25 @@
         try
         {
             if (SelectedItem == null || JlItems == null) return;
+
+            AddPackedPositionRequest request = new AddPackedPositionRequest
+            {
+                PackingDocumentId = PackingDocumentId,
+                SourceDocumentId = SelectedItem.DocumentId,
+                SourceDocumentType = SelectedItem.DocumentType,
+                PositionNumber = SelectedItem.PositionNumber,
+                Quantity = qty,
+                Weight = SelectedItem.Weight,
+                Volume = SelectedItem.Volume
+            };
+
+            var success = await PackingService.AddPackedPosition(request);
+            if (!success)
+            {
+                await ToastError.Show("Nie udało się dodać spakowanej pozycji. Spróbuj ponownie.");
+                await Task.Delay(7000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+                return;
+            }
 
             if (qty == SelectedItem.DocumentQuantity)
             {
@@ -343,6 +421,65 @@
 
             ShowProductModal = false;
             SelectedItem = null;
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", itemInputRef);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async void MoveBackToLeft()
+    {
+        try
+        {
+            if (SelectedPackedItem == null) return;
+
+
+            RemovePackedPositionRequest request = new RemovePackedPositionRequest
+            {
+                PackingDocumentId = PackingDocumentId,
+                SourceDocumentId = SelectedPackedItem.DocumentId,
+                SourceDocumentType = SelectedPackedItem.DocumentType,
+                PositionNumber = SelectedPackedItem.PositionNumber,
+                Quantity = SelectedPackedItem.JlQuantity,
+                Weight = SelectedPackedItem.Weight,
+                Volume = SelectedPackedItem.Volume
+            };
+
+            var success = await PackingService.RemovePackedPosition(request);
+            if (!success)
+            {
+                await ToastError.Show("Nie udało się usunąć spakowanej pozycji. Spróbuj ponownie.");
+                await Task.Delay(7000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+                return;
+            }
+
+            // Find if the item already exists in left list
+            var existingLeft = JlItems.FirstOrDefault(j => j.Code == SelectedPackedItem.Code);
+
+            if (existingLeft != null)
+            {
+                // Add quantity back to existing item
+                existingLeft.JlQuantity += SelectedPackedItem.JlQuantity;
+            }
+            else
+            {
+                // Recreate the item in left list
+                JlItems.Add(SelectedPackedItem);
+            }
+
+            // Remove from right
+            PackedItems.Remove(SelectedPackedItem);
+
+            // Remove highlight if no longer partially packed
+            HighlightedRows.Remove(SelectedPackedItem.Code);
+
+            SelectedPackedItem = null;
+        }
+        catch (Exception ex)
+        {
+            await ToastError.Show($"Błąd przy próbie usunięcia towaru: {ex.Message}");
+        }
+        finally
+        {
             await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", itemInputRef);
             await InvokeAsync(StateHasChanged);
         }
@@ -438,45 +575,6 @@
     private void SelectPackedItem(JlItemDto packed)
     {
         SelectedPackedItem = packed;
-    }
-
-    private async void MoveBackToLeft()
-    {
-        try
-        {
-            if (SelectedPackedItem == null) return;
-
-            // Find if the item already exists in left list
-            var existingLeft = JlItems.FirstOrDefault(j => j.Code == SelectedPackedItem.Code);
-
-            if (existingLeft != null)
-            {
-                // Add quantity back to existing item
-                existingLeft.JlQuantity += SelectedPackedItem.JlQuantity;
-            }
-            else
-            {
-                // Recreate the item in left list
-                JlItems.Add(SelectedPackedItem);
-            }
-
-            // Remove from right
-            PackedItems.Remove(SelectedPackedItem);
-
-            // Remove highlight if no longer partially packed
-            HighlightedRows.Remove(SelectedPackedItem.Code);
-
-            SelectedPackedItem = null;
-        }
-        catch (Exception ex)
-        {
-            await ToastError.Show($"Błąd przy próbie usunięcia towaru: {ex.Message}");
-        }
-        finally
-        {
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", itemInputRef);
-            await InvokeAsync(StateHasChanged);
-        }
     }
 
     private void Close()
@@ -597,30 +695,34 @@
                 return;
             }
 
-            // Prepare shipment request
+            ClosePackageRequest closeRequest = new ClosePackageRequest
+            {
+                DocumentRef = PackingDocumentRef,
+                Status = DocumentStatus.Confirm
+            };
+
+            var success = await PackingService.ClosePackage(closeRequest);
+            if (!success)
+            {
+                await ToastError.Show("Nie udało się zamknąć dokumentu pakowania. Spróbuj ponownie.");
+                await Task.Delay(6000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+                return;
+            }
+
+            // Shipment
             ShipmentRequest shipmentRequest = new ShipmentRequest
             {
+                PackageId = PackingDocumentId,
                 Courier = CurrentJl.Courier,
-                RecipientName = CurrentJl.ClientName,
-                RecipientCity = "Gdańsk",
-                RecipientStreet = "Kazimierza Wielkiego 32/20",
-                RecipientPostalCode = "80-180",
-                RecipientCountry = "PL",
-                RecipientPhone = "797250984",
-                RecipientEmail = "krzysztop497@gmail.com",
-                Description = $"110129482",
-                References = CurrentJl.Name,
-                PackageQuantity = 1,
-                Weight = PackedItems.Sum(p => p.Weight * p.JlQuantity),
             };
 
             var response = await ShipmentService.SendPackage(shipmentRequest);
 
             if (response?.PackageId > 0)
             {
-                if (response.LabelBytes != null)
+                if (!string.IsNullOrEmpty(response.LabelBase64))
                 {
-                    var labelContent = Convert.ToBase64String(response.LabelBytes);
+                    var labelContent = response.LabelBase64;
                     await ClientPrinterService.PrintAsync(Settings.PrinterLabel, response.LabelType.ToString(), labelContent);
                 }
                 else

@@ -28,6 +28,7 @@ namespace KontrolaPakowania.API.Services.Packing
 
         public int Login()
         {
+            AttachThreadToClarion(1);
             XLLoginInfo_20241 xLLoginInfo = new()
             {
                 Wersja = _config.ApiVersion,
@@ -62,7 +63,7 @@ namespace KontrolaPakowania.API.Services.Packing
             return result;
         }
 
-        public int CreatePackage(OpenPackageRequest request)
+        public CreatePackageResponse CreatePackage(CreatePackageRequest request)
         {
             AttachThreadToClarion(1);
             ManageTransaction(0); // Open transaction
@@ -75,6 +76,14 @@ namespace KontrolaPakowania.API.Services.Packing
                 Tryb = 2, // 1 - Interactive, 2 - Wsadowy,
                 NaKoszt = 0, // 0 - Nasz, 1 - Klienta
                 TrasaID = request.RouteId,
+                KntNumer = request.ClientId,
+                KntTyp = 32,
+                KntFirma = 449892,
+                KntLp = 0,
+                KnANumer = request.ClientAddressId,
+                KnATyp = 32,
+                KnAFirma = 449892,
+                KnALp = 0,
             };
 
             var result = cdn_api.cdn_api.XLNowaPaczka(_sessionId, ref resultId, xLPaczka);
@@ -86,69 +95,15 @@ namespace KontrolaPakowania.API.Services.Packing
             }
 
             ManageTransaction(1); // Commit transaction
-            return resultId;
-        }
-
-        public bool AddPositionToPackage(AddPackedPositionRequest request)
-        {
-            bool isSuccess = true;
-            AttachThreadToClarion(1);
-            ManageTransaction(0); // Open transaction
-
-            XLSpiInfo_20241 xLSpiInfo = new()
+            CreatePackageResponse response = new()
             {
-                Wersja = _config.ApiVersion,
-                TrNNumer = request.DocumentId,
-                TrNTyp = request.DocumentType,
-                TrNFirma = 449892,
-                TrNLp = 0,
-                TrNSubLp = 1,
-                Ilosc = "1.00"
+                DocumentRef = resultId,
+                DocumentId = xLPaczka.GIDNumer
             };
-
-            var result = cdn_api.cdn_api.XLDodajDokumentDoPaczki(request.DocumentRef, xLSpiInfo);
-            if (result != 0)
-            {
-                string errorMessage = CheckError((int)ErrorCode.DodajDokumentDoPaczki, result);
-                ManageTransaction(2); // Close transaction
-                isSuccess = false;
-                throw new XlApiException(result, $"Nie udało się dodać pozycji dokumentu do paczki w XL. ID dokumentu: {request.DocumentId}, LP: {request.PositionNumber}. {errorMessage}");
-            }
-
-            ManageTransaction(1); // Commit transaction
-            return isSuccess;
+            return response;
         }
 
-        public bool RemovePositionFromPackage(RemovePackedPositionRequest request)
-        {
-            bool isSuccess = true;
-            AttachThreadToClarion(1);
-            ManageTransaction(0); // Open transaction
-
-            XLSpiInfo_20241 xLSpiInfo = new()
-            {
-                Wersja = _config.ApiVersion,
-                TrNNumer = request.DocumentId,
-                TrNTyp = request.DocumentType,
-                TrNFirma = 449892,
-                TrNLp = request.PositionNumber,
-                Ilosc = request.Quantity,
-            };
-
-            var result = cdn_api.cdn_api.XLUsunDokumentZPaczki(request.DocumentRef, xLSpiInfo);
-            if (result != 0)
-            {
-                string errorMessage = CheckError((int)ErrorCode.UsunDokumentZPaczki, result);
-                ManageTransaction(2); // Close transaction
-                isSuccess = false;
-                throw new XlApiException(result, $"Nie udało się usunąć pozycji dokumentu z paczki w XL. ID dokumentu: {request.DocumentId}, LP: {request.PositionNumber}. {errorMessage}");
-            }
-
-            ManageTransaction(1); // Commit transaction
-            return isSuccess;
-        }
-
-        public int ClosePackage(ClosePackageRequest request)
+        public bool ClosePackage(ClosePackageRequest request)
         {
             AttachThreadToClarion(1);
             ManageTransaction(0); // Open transaction
@@ -168,7 +123,7 @@ namespace KontrolaPakowania.API.Services.Packing
             }
 
             ManageTransaction(1); // Commit transaction
-            return xLZamknieciePaczkiInfo.ID;
+            return xLZamknieciePaczkiInfo.ID >= 0;
         }
 
         private string CheckError(int function, int errorCode)

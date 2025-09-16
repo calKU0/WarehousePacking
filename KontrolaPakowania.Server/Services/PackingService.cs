@@ -1,4 +1,5 @@
 ﻿using KontrolaPakowania.Shared.DTOs;
+using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
 using System.Net.Http.Json;
 
@@ -79,6 +80,42 @@ namespace KontrolaPakowania.Server.Services
         public async Task<bool> ReleaseJl(string jlCode)
         {
             var response = await _dbClient.DeleteAsync($"api/packing/release-jl?jl={jlCode}");
+            response.EnsureSuccessStatusCode();
+
+            bool success = await response.Content.ReadFromJsonAsync<bool>();
+            return success;
+        }
+
+        public async Task<CreatePackageResponse> CreatePackage(CreatePackageRequest request)
+        {
+            var response = await _dbClient.PostAsJsonAsync($"api/packing/create-package", request);
+            response.EnsureSuccessStatusCode();
+
+            var result = await response.Content.ReadFromJsonAsync<CreatePackageResponse>();
+            return result!;
+        }
+
+        public async Task<bool> AddPackedPosition(AddPackedPositionRequest request)
+        {
+            var response = await _dbClient.PostAsJsonAsync($"api/packing/add-packed-position", request);
+            response.EnsureSuccessStatusCode();
+
+            bool success = await response.Content.ReadFromJsonAsync<bool>();
+            return success;
+        }
+
+        public async Task<bool> RemovePackedPosition(RemovePackedPositionRequest request)
+        {
+            var response = await _dbClient.PostAsJsonAsync($"api/packing/remove-packed-position", request);
+            response.EnsureSuccessStatusCode();
+
+            bool success = await response.Content.ReadFromJsonAsync<bool>();
+            return success;
+        }
+
+        public async Task<bool> ClosePackage(ClosePackageRequest request)
+        {
+            var response = await _dbClient.PostAsJsonAsync($"api/packing/close-package", request);
             response.EnsureSuccessStatusCode();
 
             bool success = await response.Content.ReadFromJsonAsync<bool>();

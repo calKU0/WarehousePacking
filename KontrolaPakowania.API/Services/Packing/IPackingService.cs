@@ -22,12 +22,12 @@ namespace KontrolaPakowania.API.Services.Packing
 
         Task<bool> ReleaseJl(string jl);
 
-        int OpenPackage(OpenPackageRequest request);
+        CreatePackageResponse CreatePackage(CreatePackageRequest request);
 
-        bool AddPackedPosition(AddPackedPositionRequest request);
+        Task<bool> AddPackedPosition(AddPackedPositionRequest request);
 
-        bool RemovePackedPosition(RemovePackedPositionRequest request);
+        Task<bool> RemovePackedPosition(RemovePackedPositionRequest request);
 
-        int ClosePackage(ClosePackageRequest request);
+        bool ClosePackage(ClosePackageRequest request);
     }
 }

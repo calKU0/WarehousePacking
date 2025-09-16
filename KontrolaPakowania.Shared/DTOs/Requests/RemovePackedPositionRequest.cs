@@ -8,10 +8,12 @@ namespace KontrolaPakowania.Shared.DTOs.Requests
 {
     public class RemovePackedPositionRequest
     {
-        public int DocumentRef { get; set; }
-        public int DocumentId { get; set; }
-        public int DocumentType { get; set; }
+        public int PackingDocumentId { get; set; }
+        public int SourceDocumentId { get; set; }
+        public int SourceDocumentType { get; set; }
         public int PositionNumber { get; set; }
-        public string Quantity { get; set; } = "0";
+        public decimal Quantity { get; set; }
+        public decimal Weight { get; set; }
+        public decimal Volume { get; set; }
     }
 }

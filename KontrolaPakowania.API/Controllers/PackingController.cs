@@ -163,13 +163,13 @@ namespace KontrolaPakowania.API.Controllers
             }
         }
 
-        [HttpPost("open-package")]
-        public IActionResult OpenPackage([FromBody] OpenPackageRequest request)
+        [HttpPost("create-package")]
+        public IActionResult CreatePackage([FromBody] CreatePackageRequest request)
         {
             try
             {
-                int documentRef = _packingService.OpenPackage(request);
-                return Ok(documentRef);
+                CreatePackageResponse reponse = _packingService.CreatePackage(request);
+                return Ok(reponse);
             }
             catch (XlApiException ex)
             {
@@ -186,11 +186,11 @@ namespace KontrolaPakowania.API.Controllers
         }
 
         [HttpPost("add-packed-position")]
-        public IActionResult AddPackedPosition([FromBody] AddPackedPositionRequest request)
+        public async Task<IActionResult> AddPackedPosition([FromBody] AddPackedPositionRequest request)
         {
             try
             {
-                bool success = _packingService.AddPackedPosition(request);
+                bool success = await _packingService.AddPackedPosition(request);
                 return Ok(success);
             }
             catch (XlApiException ex)
@@ -208,11 +208,11 @@ namespace KontrolaPakowania.API.Controllers
         }
 
         [HttpPost("remove-packed-position")]
-        public IActionResult RemovePackedPosition([FromBody] RemovePackedPositionRequest request)
+        public async Task<IActionResult> RemovePackedPosition([FromBody] RemovePackedPositionRequest request)
         {
             try
             {
-                bool success = _packingService.RemovePackedPosition(request);
+                bool success = await _packingService.RemovePackedPosition(request);
                 return Ok(success);
             }
             catch (XlApiException ex)
@@ -234,8 +234,8 @@ namespace KontrolaPakowania.API.Controllers
         {
             try
             {
-                int packageId = _packingService.ClosePackage(request);
-                return Ok(packageId);
+                bool success = _packingService.ClosePackage(request);
+                return Ok(success);
             }
             catch (XlApiException ex)
             {
