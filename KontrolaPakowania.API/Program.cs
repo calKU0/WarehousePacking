@@ -1,16 +1,17 @@
 using KontrolaPakowania.API.Data;
 using KontrolaPakowania.API.Services.Auth;
-using KontrolaPakowania.API.Services.Couriers;
-using KontrolaPakowania.API.Services.Couriers.DPD;
-using KontrolaPakowania.API.Services.Couriers.Fedex;
-using KontrolaPakowania.API.Services.Couriers.GLS;
-using KontrolaPakowania.API.Services.Couriers.Mapping;
+using KontrolaPakowania.API.Services.Shipment;
+using KontrolaPakowania.API.Services.Shipment.DPD;
+using KontrolaPakowania.API.Services.Shipment.Fedex;
+using KontrolaPakowania.API.Services.Shipment.GLS;
+using KontrolaPakowania.API.Services.Shipment.Mapping;
 using KontrolaPakowania.API.Services.ErpXl;
 using KontrolaPakowania.API.Services.Packing;
 using KontrolaPakowania.API.Settings;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
 using System.Text;
+using KontrolaPakowania.API.Services.Shipment.DPD.Reference;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,17 +30,15 @@ builder.Services.Configure<CourierSettings>(builder.Configuration.GetSection("Co
 builder.Services.AddHttpClient<DpdService>((sp, client) =>
 {
     var settings = sp.GetRequiredService<IOptions<CourierSettings>>().Value.DPD;
-    client.BaseAddress = new Uri(settings.BaseUrl);
-    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {settings.ApiKey}");
-});
 
-builder.Services.AddHttpClient<GlsService>((sp, client) =>
-{
-    var settings = sp.GetRequiredService<IOptions<CourierSettings>>().Value.GLS;
     client.BaseAddress = new Uri(settings.BaseUrl);
+
+    // Set Basic Authentication header
     var byteArray = Encoding.ASCII.GetBytes($"{settings.Username}:{settings.Password}");
-    client.DefaultRequestHeaders.Authorization =
-        new AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+
+    // Set x-dpd-fid header
+    client.DefaultRequestHeaders.Add("x-dpd-fid", settings.MasterFID);
 });
 
 builder.Services.AddHttpClient<FedexSettings>((sp, client) =>
@@ -57,6 +56,7 @@ builder.Services.AddScoped<IDbExecutor, DapperDbExecutor>();
 builder.Services.AddScoped<IPackingService, PackingService>();
 builder.Services.AddScoped<Ade2PortTypeClient>();
 builder.Services.AddScoped<IParcelMapper<cConsign>, GlsParcelMapper>();
+builder.Services.AddScoped<IParcelMapper<DpdCreatePackageRequest>, DpdPackageMapper>();
 builder.Services.AddScoped<IGlsClientWrapper, GlsClientWrapper>();
 builder.Services.AddScoped<GlsService>();
 builder.Services.AddScoped<DpdService>();

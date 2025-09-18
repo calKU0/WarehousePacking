@@ -28,6 +28,10 @@ namespace KontrolaPakowania.API.Services.Packing
 
         Task<bool> RemovePackedPosition(RemovePackedPositionRequest request);
 
-        bool ClosePackage(ClosePackageRequest request);
+        Task<bool> ClosePackage(ClosePackageRequest request);
+
+        Task<bool> UpdatePackageCourier(UpdatePackageCourierRequest request);
+
+        Task<string> GenerateInternalBarcode(string stationNumber);
     }
 }

@@ -1,0 +1,9 @@
+﻿.shipment-modal {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.shipment-modal-content {
+    padding: 1rem;
+    border-radius: 1rem;
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.3);
+}

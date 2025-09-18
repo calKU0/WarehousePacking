@@ -22,6 +22,9 @@ namespace KontrolaPakowania.Shared.DTOs
         public string References { get; set; } = string.Empty;
         public int PackageQuantity { get; set; } = 1;
         public decimal Weight { get; set; }
+        public decimal Length { get; set; }
+        public decimal Width { get; set; }
+        public decimal Height { get; set; }
         public ShipmentServices Services { get; set; } = new ShipmentServices();
     }
 

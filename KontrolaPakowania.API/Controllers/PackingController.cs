@@ -230,12 +230,56 @@ namespace KontrolaPakowania.API.Controllers
         }
 
         [HttpPost("close-package")]
-        public IActionResult ClosePackage([FromBody] ClosePackageRequest request)
+        public async Task<IActionResult> ClosePackage([FromBody] ClosePackageRequest request)
         {
             try
             {
-                bool success = _packingService.ClosePackage(request);
+                bool success = await _packingService.ClosePackage(request);
                 return Ok(success);
+            }
+            catch (XlApiException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPatch("update-package-courier")]
+        public async Task<IActionResult> UpdatePackageCourier([FromBody] UpdatePackageCourierRequest request)
+        {
+            try
+            {
+                bool success = await _packingService.UpdatePackageCourier(request);
+                return Ok(success);
+            }
+            catch (XlApiException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("generate-internal-barcode")]
+        public async Task<IActionResult> GenerateInternalBarcode([FromQuery] string stationNumber)
+        {
+            try
+            {
+                string barcode = await _packingService.GenerateInternalBarcode(stationNumber);
+                return Ok(barcode);
             }
             catch (XlApiException ex)
             {

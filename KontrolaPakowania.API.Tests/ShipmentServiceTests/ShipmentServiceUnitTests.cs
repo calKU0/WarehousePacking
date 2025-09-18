@@ -1,7 +1,8 @@
 ﻿using KontrolaPakowania.API.Data;
 using KontrolaPakowania.API.Data.Enums;
-using KontrolaPakowania.API.Services.Couriers.GLS;
-using KontrolaPakowania.API.Services.Couriers.Mapping;
+using KontrolaPakowania.API.Services.ErpXl;
+using KontrolaPakowania.API.Services.Shipment.GLS;
+using KontrolaPakowania.API.Services.Shipment.Mapping;
 using KontrolaPakowania.API.Settings;
 using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
@@ -20,10 +21,12 @@ namespace KontrolaPakowania.API.Tests.ShipmentServiceTests
         private readonly Mock<IGlsClientWrapper> _clientMock;
         private readonly Mock<IDbExecutor> _dbMock;
         private readonly Mock<IParcelMapper<cConsign>> _mapperMock;
+        private readonly Mock<IErpXlClient> _erpXlClientMock;
         private readonly GlsService _glsService;
 
         public ShipmentServiceUnitTests()
         {
+            _erpXlClientMock = new Mock<IErpXlClient>();
             _dbMock = new Mock<IDbExecutor>();
             _mapperMock = new Mock<IParcelMapper<cConsign>>();
 
@@ -55,7 +58,7 @@ namespace KontrolaPakowania.API.Tests.ShipmentServiceTests
             _clientMock.Setup(c => c.DeleteParcelAsync(It.IsAny<string>(), It.IsAny<int>()))
                        .ReturnsAsync(new cID { id = 1001 });
 
-            _glsService = new GlsService(courierSettings, _clientMock.Object, _dbMock.Object, _mapperMock.Object);
+            _glsService = new GlsService(courierSettings, _clientMock.Object, _dbMock.Object, _mapperMock.Object, _erpXlClientMock.Object);
         }
 
         [Fact, Trait("Category", "Unit")]
@@ -64,7 +67,6 @@ namespace KontrolaPakowania.API.Tests.ShipmentServiceTests
             // Arrange
             var request = new ShipmentRequest { PackageId = 1 };
 
-            // Mock DB to return PackageInfo
             var packageInfo = new PackageInfo
             {
                 Id = 1,
@@ -91,8 +93,19 @@ namespace KontrolaPakowania.API.Tests.ShipmentServiceTests
                 It.IsAny<Connection>()
             )).ReturnsAsync(packageInfo);
 
-            // Mock mapper to convert PackageInfo -> cConsign
-            var consign = new cConsign { rname1 = packageInfo.RecipientName };
+            // Mock mapper with srv_bool populated
+            var consign = new cConsign
+            {
+                rname1 = packageInfo.RecipientName,
+                srv_bool = new cServicesBool
+                {
+                    podSpecified = packageInfo.Services.POD,
+                    codSpecified = packageInfo.Services.COD,
+                    cod_amount = (float)packageInfo.Services.CODAmount,
+                    cod_amountSpecified = packageInfo.Services.COD
+                }
+            };
+
             _mapperMock.Setup(m => m.Map(packageInfo)).Returns(consign);
 
             // Act

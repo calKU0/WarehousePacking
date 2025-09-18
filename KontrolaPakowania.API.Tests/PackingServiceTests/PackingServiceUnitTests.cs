@@ -364,12 +364,18 @@ public class PackingServiceUnitTests
     }
 
     [Fact, Trait("Category", "Unit")]
-    public void ClosePackage_ReturnsTrue()
+    public async Task ClosePackage_ReturnsTrue()
     {
-        var request = new ClosePackageRequest { DocumentRef = 999, Status = DocumentStatus.Bufor };
+        var request = new ClosePackageRequest
+        {
+            DocumentRef = 999,
+            DocumentId = 999,
+            InternalBarcode = "1111111111111",
+            Status = DocumentStatus.Bufor
+        };
         _erpXlClientMock.Setup(x => x.ClosePackage(request)).Returns(true);
 
-        var result = _service.ClosePackage(request);
+        var result = await _service.ClosePackage(request);
 
         Assert.True(result);
         _erpXlClientMock.Verify(x => x.ClosePackage(request), Times.Once);
@@ -383,6 +389,108 @@ public class PackingServiceUnitTests
             .Throws(new XlApiException(101, "XL error"));
 
         Assert.Throws<XlApiException>(() => _service.CreatePackage(request));
+    }
+
+    [Fact, Trait("Category", "Unit")]
+    public async Task UpdatePackageCourier_ReturnsTrue_WhenDbReturnsTrue()
+    {
+        // Arrange
+        var request = new UpdatePackageCourierRequest
+        {
+            PackageId = 1,
+            Courier = Courier.DPD
+        };
+
+        // 1. Mock GetCourierRouteId
+        _dbExecutorMock
+            .Setup(db => db.QuerySingleOrDefaultAsync<int>(
+                "kp.GetCourierRouteId",
+                It.IsAny<object?>(),
+                CommandType.StoredProcedure,
+                Connection.ERPConnection))
+            .ReturnsAsync(99); // fake routeId
+
+        // 2. Mock UpdatePackageCourier
+        _dbExecutorMock
+            .Setup(db => db.QuerySingleOrDefaultAsync<int>(
+                "kp.UpdatePackageCourier",
+                It.IsAny<object?>(),
+                CommandType.StoredProcedure,
+                Connection.ERPConnection))
+            .ReturnsAsync(1); // simulate rows updated
+
+        // Act
+        var result = await _service.UpdatePackageCourier(request);
+
+        // Assert
+        Assert.True(result);
+
+        // Verify both SPs were called
+        _dbExecutorMock.Verify(db => db.QuerySingleOrDefaultAsync<int>(
+            "kp.GetCourierRouteId",
+            It.IsAny<object?>(),
+            CommandType.StoredProcedure,
+            Connection.ERPConnection), Times.Once);
+
+        _dbExecutorMock.Verify(db => db.QuerySingleOrDefaultAsync<int>(
+            "kp.UpdatePackageCourier",
+            It.IsAny<object?>(),
+            CommandType.StoredProcedure,
+            Connection.ERPConnection), Times.Once);
+    }
+
+    [Fact, Trait("Category", "Unit")]
+    public async Task UpdatePackageCourier_ReturnsFalse_WhenNoRowsUpdated()
+    {
+        // Arrange
+        var request = new UpdatePackageCourierRequest
+        {
+            PackageId = 1,
+            Courier = Courier.Fedex
+        };
+
+        _dbExecutorMock
+            .Setup(db => db.QuerySingleOrDefaultAsync<int>(
+                "kp.GetCourierRouteId",
+                It.IsAny<object?>(),
+                CommandType.StoredProcedure,
+                Connection.ERPConnection))
+            .ReturnsAsync(100);
+
+        _dbExecutorMock
+            .Setup(db => db.QuerySingleOrDefaultAsync<int>(
+                "kp.UpdatePackageCourier",
+                It.IsAny<object?>(),
+                CommandType.StoredProcedure,
+                Connection.ERPConnection))
+            .ReturnsAsync(0); // no rows updated
+
+        // Act
+        var result = await _service.UpdatePackageCourier(request);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact, Trait("Category", "Unit")]
+    public async Task GenerateInternalBarcode_ReturnsExpectedBarcode()
+    {
+        // Arrange
+        string stationNumber = "9999";
+        string dbResult = "3009999000000";
+
+        _dbExecutorMock.Setup(d => d.QuerySingleOrDefaultAsync<string>(
+                "kp.GenerateInternalBarcode",
+                It.IsAny<object>(),
+                CommandType.StoredProcedure,
+                Connection.ERPConnection))
+            .ReturnsAsync(dbResult);
+
+        // Act
+        var result = await _service.GenerateInternalBarcode(stationNumber);
+
+        // Assert
+        Assert.Equal(dbResult, result);
     }
 
     #endregion Packing Tests

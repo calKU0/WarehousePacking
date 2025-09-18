@@ -121,5 +121,22 @@ namespace KontrolaPakowania.Server.Services
             bool success = await response.Content.ReadFromJsonAsync<bool>();
             return success;
         }
+
+        public async Task<bool> UpdatePackageCourier(UpdatePackageCourierRequest request)
+        {
+            var response = await _dbClient.PatchAsJsonAsync($"api/packing/update-package-courier", request);
+            response.EnsureSuccessStatusCode();
+
+            bool success = await response.Content.ReadFromJsonAsync<bool>();
+            return success;
+        }
+
+        public async Task<string> GenerateInternalBarcode(string stationNumber)
+        {
+            var response = await _dbClient.GetAsync($"api/packing/generate-internal-barcode?stationNumber={stationNumber}");
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<string>() ?? string.Empty;
+        }
     }
 }

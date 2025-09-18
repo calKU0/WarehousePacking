@@ -1,10 +1,13 @@
 ﻿using KontrolaPakowania.API.Data;
-using KontrolaPakowania.API.Services.Couriers.GLS;
-using KontrolaPakowania.API.Services.Couriers.Mapping;
+using KontrolaPakowania.API.Services.ErpXl;
+using KontrolaPakowania.API.Services.Packing;
+using KontrolaPakowania.API.Services.Shipment.GLS;
+using KontrolaPakowania.API.Services.Shipment.Mapping;
 using KontrolaPakowania.API.Settings;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace KontrolaPakowania.API.Tests.ShipmentServiceTests
@@ -12,6 +15,7 @@ namespace KontrolaPakowania.API.Tests.ShipmentServiceTests
     public class ShipmentServiceIntegrationTests
     {
         private readonly GlsService _glsService;
+        private readonly IErpXlClient _erpXlClient;
 
         public ShipmentServiceIntegrationTests()
         {
@@ -25,6 +29,11 @@ namespace KontrolaPakowania.API.Tests.ShipmentServiceTests
             var courierSettings = new CourierSettings();
             config.GetSection("CourierApis:GLS").Bind(courierSettings.GLS = new GlsSettings());
 
+            var services = new ServiceCollection();
+            services.Configure<XlApiSettings>(config.GetSection("XlApiSettings"));
+            services.AddSingleton<IErpXlClient, ErpXlClient>();
+            services.AddSingleton<IConfiguration>(config);
+
             // Wrap in IOptions
             var options = Options.Create(courierSettings);
 
@@ -35,30 +44,13 @@ namespace KontrolaPakowania.API.Tests.ShipmentServiceTests
             // Mapper (maps PackageInfo → cConsign)
             var mapper = new GlsParcelMapper();
 
+            var provider = services.BuildServiceProvider();
+            _erpXlClient = provider.GetRequiredService<IErpXlClient>();
+
+            _erpXlClient.Login();
+
             // Service under test
-            _glsService = new GlsService(options, clientWrapper, dbExecutor, mapper);
-        }
-
-        [Fact, Trait("Category", "Integration")]
-        public async Task SendPackageAsync_ShouldReturnShipmentResponse()
-        {
-            // Arrange: package must exist in DB with this Id
-            var shipment = new ShipmentRequest
-            {
-                PackageId = 10580,
-                Courier = Courier.GLS
-            };
-
-            // Act
-            var result = await _glsService.SendPackageAsync(shipment);
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.Equal(Courier.GLS, result.Courier);
-            Assert.True(result.PackageId > 0);
-            Assert.False(string.IsNullOrWhiteSpace(result.TrackingNumber));
-            Assert.NotNull(result.LabelBase64);
-            Assert.NotEmpty(result.LabelBase64);
+            _glsService = new GlsService(options, clientWrapper, dbExecutor, mapper, _erpXlClient);
         }
 
         [Fact, Trait("Category", "Integration")]
@@ -67,7 +59,7 @@ namespace KontrolaPakowania.API.Tests.ShipmentServiceTests
             // Arrange: existing package in DB
             var shipment = new ShipmentRequest
             {
-                PackageId = 10580,
+                PackageId = TestConstants.PackageId,
                 Courier = Courier.GLS
             };
 

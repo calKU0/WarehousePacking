@@ -1,0 +1,62 @@
+﻿@using KontrolaPakowania.Shared.Enums
+@inject ClientPrinterService ClientPrinterService
+@inject NavigationManager Navigation
+@inherits ComponentBase
+
+@if (IsVisible)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block shipment-modal">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shipment-modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">Przesyłka wysłana</h5>
+                </div>
+                <div class="modal-body text-center">
+                    <p>Numer przesyłki: <strong>@TrackingNumber</strong></p>
+                </div>
+                <div class="modal-footer d-flex justify-content-around border-0">
+                    <button class="btn btn-primary shipment-btn flex-fill mx-1 tall-btn" @onclick="OnOkClicked">OK</button>
+                    <button class="btn btn-success shipment-btn flex-fill mx-1 tall-btn" @onclick="OnPrintClicked">Wydrukuj etykietę ponownie</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    public bool IsVisible { get; set; }
+    public string TrackingNumber { get; set; } = string.Empty;
+    public string LabelBase64 { get; set; } = string.Empty;
+    public string Printer { get; set; } = string.Empty;
+    public PrintDataType LabelType { get; set; }
+
+    private async Task OnOkClicked()
+    {
+        Navigation.NavigateTo("/kontrola-pakowania");
+        Hide();
+    }
+    private async Task OnPrintClicked()
+    {
+        if (!string.IsNullOrEmpty(LabelBase64))
+        {
+            await ClientPrinterService.PrintAsync(Printer, LabelType.ToString(), LabelBase64);
+        }
+    }
+
+    public void Show(string trackingNumber, string labelBase64, PrintDataType labelType, string printer)
+    {
+        TrackingNumber = trackingNumber;
+        LabelBase64 = labelBase64;
+        LabelType = labelType;
+        Printer = printer;
+        IsVisible = true;
+        StateHasChanged();
+    }
+
+    public void Hide()
+    {
+        IsVisible = false;
+        StateHasChanged();
+    }
+}

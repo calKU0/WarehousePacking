@@ -169,14 +169,14 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
         [InlineData(DocumentStatus.Bufor)]
         [InlineData(DocumentStatus.Delete)]
         [Trait("Category", "Integration")]
-        public void OpenAndClosePackage_Works_WithDifferentStatuses(DocumentStatus status)
+        public async Task OpenAndClosePackage_Works_WithDifferentStatuses(DocumentStatus status)
         {
             // Arrange
             var openRequest = new CreatePackageRequest
             {
-                RouteId = 22,
-                ClientAddressId = 515921,
-                ClientId = 7237,
+                RouteId = TestConstants.RouteId,
+                ClientAddressId = TestConstants.ClientAddressId,
+                ClientId = TestConstants.ClientId,
             };
             var package = _service.CreatePackage(openRequest);
 
@@ -190,7 +190,7 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
                 Status = status
             };
 
-            var result = _service.ClosePackage(closeRequest);
+            var result = await _service.ClosePackage(closeRequest);
 
             // Assert
             Assert.True(result);
@@ -198,14 +198,14 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
 
         [Fact]
         [Trait("Category", "Integration")]
-        public void ClosePackage_WithConfirmStatusWithoutProducts_ShouldThrowException()
+        public async Task ClosePackage_WithConfirmStatusWithoutProducts_ShouldThrowException()
         {
             // Arrange
             var openRequest = new CreatePackageRequest
             {
-                RouteId = 22,
-                ClientAddressId = 515921,
-                ClientId = 7237,
+                RouteId = TestConstants.RouteId,
+                ClientAddressId = TestConstants.ClientAddressId,
+                ClientId = TestConstants.ClientId,
             };
             var package = _service.CreatePackage(openRequest);
 
@@ -215,11 +215,14 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             var closeRequest = new ClosePackageRequest
             {
                 DocumentRef = package.DocumentRef,
+                DocumentId = package.DocumentId,
+                InternalBarcode = await _service.GenerateInternalBarcode("9999"),
                 Status = DocumentStatus.Confirm
             };
 
             // Act & Assert
-            var ex = Assert.Throws<XlApiException>(() => _service.ClosePackage(closeRequest));
+            var ex = await Assert.ThrowsAsync<XlApiException>(async () =>
+                await _service.ClosePackage(closeRequest));
 
             Assert.Contains("Nie udało się zamknąć paczki", ex.Message);
             Assert.NotEqual(0, ex.ErrorCode);
@@ -231,9 +234,9 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             // 1. Open package
             var openRequest = new CreatePackageRequest
             {
-                RouteId = 22,
-                ClientAddressId = 515921,
-                ClientId = 7237,
+                RouteId = TestConstants.RouteId,
+                ClientAddressId = TestConstants.ClientAddressId,
+                ClientId = TestConstants.ClientId,
             };
             var package = _service.CreatePackage(openRequest);
 
@@ -241,8 +244,8 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             var addRequest1 = new AddPackedPositionRequest
             {
                 PackingDocumentId = package.DocumentId,
-                SourceDocumentId = 1944244,
-                SourceDocumentType = 2033,
+                SourceDocumentId = TestConstants.SourceDocumentId,
+                SourceDocumentType = TestConstants.SourceDocumentType,
                 PositionNumber = 1,
                 Quantity = 1.00M,
                 Weight = 2,
@@ -256,8 +259,8 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             var addRequest2 = new AddPackedPositionRequest
             {
                 PackingDocumentId = package.DocumentId,
-                SourceDocumentId = 1944244,
-                SourceDocumentType = 2033,
+                SourceDocumentId = TestConstants.SourceDocumentId,
+                SourceDocumentType = TestConstants.SourceDocumentType,
                 PositionNumber = 2,
                 Quantity = 1.00M,
                 Weight = 2,
@@ -271,10 +274,12 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             var closeRequest = new ClosePackageRequest
             {
                 DocumentRef = package.DocumentRef,
+                DocumentId = package.DocumentId,
+                InternalBarcode = await _service.GenerateInternalBarcode("9999"),
                 Status = DocumentStatus.Confirm
             };
 
-            var closeResult = _service.ClosePackage(closeRequest);
+            var closeResult = await _service.ClosePackage(closeRequest);
             Assert.True(closeResult);
         }
 
@@ -284,9 +289,9 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             // 1. Open package
             var openRequest = new CreatePackageRequest
             {
-                RouteId = 22,
-                ClientAddressId = 515921,
-                ClientId = 7237,
+                RouteId = TestConstants.RouteId,
+                ClientAddressId = TestConstants.ClientAddressId,
+                ClientId = TestConstants.ClientId,
             };
             var package = _service.CreatePackage(openRequest);
 
@@ -294,8 +299,8 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             var addRequest = new AddPackedPositionRequest
             {
                 PackingDocumentId = package.DocumentId,
-                SourceDocumentId = 1944244,
-                SourceDocumentType = 2033,
+                SourceDocumentId = TestConstants.SourceDocumentId,
+                SourceDocumentType = TestConstants.SourceDocumentType,
                 PositionNumber = 1,
                 Quantity = 1.00M,
                 Weight = 2,
@@ -309,8 +314,8 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             var removeRequest = new RemovePackedPositionRequest
             {
                 PackingDocumentId = package.DocumentId,
-                SourceDocumentId = 1944244,
-                SourceDocumentType = 2033,
+                SourceDocumentId = TestConstants.SourceDocumentId,
+                SourceDocumentType = TestConstants.SourceDocumentType,
                 PositionNumber = 1,
                 Quantity = 1.00M,
                 Weight = 2,
@@ -321,9 +326,47 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             Assert.True(removeResult);
 
             // 4. Close package
-            var closeRequest = new ClosePackageRequest { DocumentRef = package.DocumentRef, Status = DocumentStatus.Bufor };
-            var closeResult = _service.ClosePackage(closeRequest);
+            var closeRequest = new ClosePackageRequest
+            {
+                DocumentRef = package.DocumentRef,
+                DocumentId = package.DocumentId,
+                InternalBarcode = await _service.GenerateInternalBarcode("9999"),
+                Status = DocumentStatus.Bufor
+            };
+            var closeResult = await _service.ClosePackage(closeRequest);
             Assert.True(closeResult);
+        }
+
+        [Fact, Trait("Category", "Integration")]
+        public async Task UpdatePackageCourier_Integration_ReturnsTrue()
+        {
+            // Arrange
+            var request = new UpdatePackageCourierRequest
+            {
+                PackageId = TestConstants.PackageId,
+                Courier = Courier.DPD
+            };
+
+            // Act
+            var result = await _service.UpdatePackageCourier(request);
+
+            // Assert
+            Assert.True(result);
+        }
+
+        [Fact, Trait("Category", "Integration")]
+        public async Task GenerateInternalBarcode_ReturnsNonEmptyString()
+        {
+            // Arrange
+            string stationNumber = "9999";
+
+            // Act
+            var result = await _service.GenerateInternalBarcode(stationNumber);
+
+            // Assert
+            Assert.False(string.IsNullOrWhiteSpace(result));
+            Assert.True(result.Length == 13);
+            Assert.Matches(@"^\d+$", result); // result is numeric
         }
 
         #endregion Packing Tests

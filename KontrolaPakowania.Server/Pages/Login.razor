@@ -59,19 +59,27 @@
 
     private async Task HandleLogin()
     {
-        loginDto.StationNumber = Settings.StationNumber;
-        loginDto.LoginDate = DateTime.Now;
-
-        bool validCredentials = await AuthService.Login(loginDto);
-        if (validCredentials)
+        try
         {
-            await UserSession.LoginAsync(loginDto.Username);
-            Navigation.NavigateTo("/");
+            loginDto.StationNumber = Settings.StationNumber;
+            loginDto.LoginDate = DateTime.Now;
+
+            bool validCredentials = await AuthService.Login(loginDto);
+            if (validCredentials)
+            {
+                await UserSession.LoginAsync(loginDto.Username);
+                Navigation.NavigateTo("/");
+            }
+
+            else
+            {
+                await ToastError.Show("Nieprawidłowa nazwa użytkownika lub hasło.");
+                await Task.Delay(4000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+            }
         }
-
-        else
+        catch (Exception ex)
         {
-            await ToastError.Show("Nieprawidłowa nazwa użytkownika lub hasło.");
+            await ToastError.Show($"Błąd przy próbie zalogowania {ex.Message}");
             await Task.Delay(4000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
         }
     }

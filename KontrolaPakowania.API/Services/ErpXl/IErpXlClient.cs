@@ -12,5 +12,7 @@ namespace KontrolaPakowania.API.Services.ErpXl
         CreatePackageResponse CreatePackage(CreatePackageRequest request);
 
         bool ClosePackage(ClosePackageRequest request);
+
+        int CreateErpShipment(CreateErpShipmentRequest request);
     }
 }

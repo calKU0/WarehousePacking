@@ -1,4 +1,5 @@
-﻿using cdn_api;
+﻿using Azure;
+using cdn_api;
 using KontrolaPakowania.API.Services.ErpXl;
 using KontrolaPakowania.API.Services.Exceptions;
 using KontrolaPakowania.API.Settings;
@@ -152,6 +153,66 @@ namespace KontrolaPakowania.API.Services.Packing
             };
             int result = cdn_api.cdn_api.XLTransakcja(_sessionId, xLTransakcja);
             return result;
+        }
+
+        public int CreateErpShipment(CreateErpShipmentRequest request)
+        {
+            AttachThreadToClarion(1);
+            ManageTransaction(0); // Open transaction
+
+            int documentRef = 0;
+
+            XLWysylkaInfo_20241 xLWysylka = new()
+            {
+                Wersja = _config.ApiVersion,
+                Tryb = 2, // 1 - Interactive, 2 - Wsadowy,
+                Ubezpieczenie = request.Insurance.ToString(),
+                Pobranie = request.CODAmout.ToString(),
+                LinkPrzesylki = "test",
+                ZNPnr = "1234",
+            };
+
+            int shipmentResult = cdn_api.cdn_api.XLNowaWysylka(_sessionId, ref documentRef, xLWysylka);
+            if (shipmentResult != 0)
+            {
+                string errorMessage = CheckError((int)ErrorCode.NowaWysylka, shipmentResult);
+                ManageTransaction(2); // Close transaction
+                throw new XlApiException(shipmentResult, $"Nie udało się utworzyć wysyłki w XL. {errorMessage}");
+            }
+
+            XLSpiInfo_20241 xLSpiInfo = new()
+            {
+                Wersja = _config.ApiVersion,
+                TrNTyp = 340,
+                TrNNumer = request.PackageId,
+                TrNFirma = 449892,
+                TrNLp = 0,
+            };
+
+            int linkResult = cdn_api.cdn_api.XLDodajPaczkeDoWysylki(documentRef, xLSpiInfo);
+            if (linkResult != 0)
+            {
+                string errorMessage = CheckError((int)ErrorCode.DodajPaczkeDoWysylki, linkResult);
+                ManageTransaction(2); // Close transaction
+                throw new XlApiException(linkResult, $"Nie udało się dodać paczki do wysyłki w XL. {errorMessage}");
+            }
+
+            XLZamkniecieWysylkiInfo_20241 xLZamkniecieWysylki = new()
+            {
+                Wersja = _config.ApiVersion,
+                Tryb = 0
+            };
+            int closeResult = cdn_api.cdn_api.XLZamknijWysylke(documentRef, xLZamkniecieWysylki);
+            if (closeResult != 0)
+            {
+                string errorMessage = CheckError((int)ErrorCode.ZamknijWysylke, closeResult);
+                ManageTransaction(2); // Close transaction
+                throw new XlApiException(linkResult, $"Nie udało się zamknąć wysyłki w XL. {errorMessage}");
+            }
+
+            ManageTransaction(1); // Commit transaction
+
+            return xLZamkniecieWysylki.WysNumer;
         }
     }
 }

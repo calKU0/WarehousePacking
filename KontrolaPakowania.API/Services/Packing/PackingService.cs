@@ -11,6 +11,7 @@ using KontrolaPakowania.Shared.Enums;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using System.Data;
+using System.Diagnostics.Metrics;
 using System.Reflection.Emit;
 
 public class PackingService : IPackingService
@@ -135,8 +136,31 @@ public class PackingService : IPackingService
         return result > 0;
     }
 
-    public bool ClosePackage(ClosePackageRequest request)
+    public async Task<bool> ClosePackage(ClosePackageRequest request)
     {
+        if (!string.IsNullOrEmpty(request.InternalBarcode))
+        {
+            const string procedure = "kp.UpdateInternalBarcode";
+            var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.InternalBarcode, request.DocumentId }, CommandType.StoredProcedure, Connection.ERPConnection);
+        }
         return _erpXlClient.ClosePackage(request);
+    }
+
+    public async Task<bool> UpdatePackageCourier(UpdatePackageCourierRequest request)
+    {
+        const string routeProcedure = "kp.GetCourierRouteId";
+        string courier = request.Courier.ToString();
+        var routeId = await _db.QuerySingleOrDefaultAsync<int>(routeProcedure, new { courier }, CommandType.StoredProcedure, Connection.ERPConnection);
+
+        const string updateProcedure = "kp.UpdatePackageCourier";
+        var result = await _db.QuerySingleOrDefaultAsync<int>(updateProcedure, new { request.PackageId, routeId }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return result > 0;
+    }
+
+    public async Task<string> GenerateInternalBarcode(string stationNumber)
+    {
+        const string procedure = "kp.GenerateInternalBarcode";
+        var result = await _db.QuerySingleOrDefaultAsync<string>(procedure, new { stationNumber }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return result;
     }
 }

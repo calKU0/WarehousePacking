@@ -25,6 +25,7 @@ namespace KontrolaPakowania.Shared.DTOs
         public int ClientId { get; set; }
         public int ClientAddressId { get; set; }
         public string ClientName { get; set; } = string.Empty;
+        public bool PackageClosed { get; set; }
 
         public void InitCourierFromName()
         {

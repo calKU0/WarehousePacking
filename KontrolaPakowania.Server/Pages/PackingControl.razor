@@ -5,6 +5,7 @@
 @page "/kontrola-pakowania/{jl}"
 @layout NoNavLayout
 @inherits ProtectedPageBase
+@implements IDisposable
 
 @inject IJSRuntime JSRuntime
 @inject PackingService PackingService
@@ -186,8 +187,8 @@
 @if (ShowPasswordModal)
 {
     <PasswordModal Title="Wpisz hasło"
-                   OnConfirm="HandlePasswordConfirm"
-                   OnClose="() => ShowPasswordModal = false" />
+                  OnConfirm="HandlePasswordConfirm"
+                  OnClose="() => ShowPasswordModal = false" />
 }
 
 <CourierModal @ref="CourierModal" />
@@ -197,10 +198,17 @@
 <TextBoxModal @ref="TextBoxModal" />
 
 <ConfirmDialog @ref="confirmDialog"
-               Title="Zamknij"
-               Message="Czy na pewno chcesz zamknąć?"
-               OnCancelClicked="HideConfirm"
-               OnConfirmClicked="ConfirmClose" />
+              Title="Zamknij"
+              Message="Czy na pewno chcesz zamknąć?"
+              OnCancelClicked="HideConfirm"
+              OnConfirmClicked="ConfirmClose" />
+
+<FinishPackingModal @ref="FinishPackingModal"
+            CourierSrc="@Utils.GetCourierSrc(CurrentJl.LogoCourier)"
+            OnCourierLabel="HandleCourierLabel"
+            OnInternalBarcode="HandleInternalBarcode" />
+
+<ShipmentModal @ref="ShipmentModal" />
 
 <Toast @ref="ToastError" Title="Error" Color="danger" />
 
@@ -226,6 +234,9 @@
     private LoggedOperatorsModal LoggedOperatorsModal = new();
     private JlInProgressModal JlInProgressModal = new();
     private PackingJlItemsModal PackingJlItemsModal = new();
+    private FinishPackingModal FinishPackingModal = new();
+    private ShipmentModal ShipmentModal = new();
+
     private bool ShowProductModal = false;
     private bool ShowPasswordModal = false;
     private PasswordPurpose CurrentPasswordPurpose = PasswordPurpose.None;
@@ -240,6 +251,7 @@
             await LoadData();
             await AddJlRealization();
             await CreatePackage();
+            Navigation.LocationChanged += OnLocationChanged;
         }
         catch (Exception ex)
         {
@@ -264,7 +276,7 @@
             Username = UserSession.Username;
             JlItems = await PackingService.GetJlItems(Jl, Settings.PackingLocation);
             CurrentJl = await PackingService.GetJlInfoByCode(Jl, Settings.PackingLocation);
-            Country = JlItems.FirstOrDefault().Country;
+            Country = JlItems.FirstOrDefault()!.Country;
         }
         catch (Exception ex)
         {
@@ -590,9 +602,23 @@
 
     private async void ConfirmClose()
     {
-        confirmDialog.Show = false;
-        await PackingService.RemoveJlRealization(CurrentJl.Name);
-        Navigation.NavigateTo("/kontrola-pakowania");
+        try
+        {
+            confirmDialog.Show = false;
+            await PackingService.RemoveJlRealization(CurrentJl.Name);
+            ClosePackageRequest closePackageRequest = new()
+            {
+                DocumentRef = PackingDocumentRef,
+                Status = DocumentStatus.Delete
+            };
+            await PackingService.ClosePackage(closePackageRequest);
+            Navigation.NavigateTo("/kontrola-pakowania");
+        }
+        catch (Exception ex)
+        {
+            await ToastError.Show($"Błąd przy próbie zamknięcia pakowania: {ex.Message}");
+            await Task.Delay(8000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+        }
     }
 
     private async Task HandlePasswordConfirm(string password)
@@ -639,26 +665,49 @@
                     await PackingJlItemsModal.ShowModal(barcode);
                 }
                 break;
-            case 4: /* Kurier */ 
-                if (Country != "PL")
+            case 4: /* Kurier */
+                try
                 {
-                    await ToastError.Show("Nie można zmienić kuriera na export!");
-                    await Task.Delay(4000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
-                    return;
-                }
+                    if (Country != "PL")
+                    {
+                        await ToastError.Show("Nie można zmienić kuriera na export!");
+                        await Task.Delay(4000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+                        return;
+                    }
 
-                if (CurrentJl.CourierServices.Saturday || CurrentJl.CourierServices._12 || CurrentJl.CourierServices.Return || CurrentJl.CourierServices.Dropshipping)
-                {
-                    await ToastError.Show($"Przesyłka z dodatkową usługą (Sobota, Zwrotna, 12:00 lub Dropshipping). Nie możesz zmienić kuriera. Nadaj numer wewnętrzny lub wyślij bieżącym kurierem");
-                    return;
-                }
+                    if (CurrentJl.CourierServices.Saturday || CurrentJl.CourierServices._12 || CurrentJl.CourierServices.Return || CurrentJl.CourierServices.Dropshipping)
+                    {
+                        await ToastError.Show($"Przesyłka z dodatkową usługą (Sobota, Zwrotna, 12:00 lub Dropshipping). Nie możesz zmienić kuriera. Nadaj numer wewnętrzny lub wyślij bieżącym kurierem");
+                        await Task.Delay(6000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+                        return;
+                    }
 
-                var selectedCourier = await CourierModal.ShowModal(CurrentJl.Courier);
-                if (selectedCourier.HasValue && selectedCourier.Value != Courier.Unknown)
+                    var selectedCourier = await CourierModal.ShowModal(CurrentJl.Courier);
+                    if (selectedCourier.HasValue && selectedCourier.Value != Courier.Unknown)
+                    {
+                        UpdatePackageCourierRequest updateRequest = new UpdatePackageCourierRequest
+                            {
+                                PackageId = PackingDocumentId,
+                                Courier = selectedCourier.Value
+                            };
+
+                        var success = await PackingService.UpdatePackageCourier(updateRequest);
+                        if (!success)
+                        {
+                            await ToastError.Show("Nie udało się zmienić kuriera. Spróbuj ponownie.");
+                            await Task.Delay(5000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+                            return;
+                        }
+
+                        CurrentJl.Courier = selectedCourier.Value;
+                        CurrentJl.InitCourierLogo();
+                        await InvokeAsync(StateHasChanged);
+                    }
+                }
+                catch (Exception ex)
                 {
-                    CurrentJl.Courier = selectedCourier.Value;
-                    CurrentJl.InitCourierLogo();
-                    await InvokeAsync(StateHasChanged);
+                    await ToastError.Show($"Błąd przy próbie zmiany kuriera: {ex.Message}");
+                    await Task.Delay(6000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
                 }
                 break;
             case 5: /* Zalogowani */ 
@@ -667,17 +716,25 @@
             case 6: /* Kuwety podjęte */
                 await JlInProgressModal.ShowModal();
                 break;
-            case 7: /* Zwolnij */ 
-                var jlCode = await TextBoxModal.Show("Zwolnij kuwetę", "Wprowadź kod kuwety", "Kod kuwety");
-                if (!string.IsNullOrEmpty(jlCode))
+            case 7: /* Zwolnij */
+                try
                 {
-                    var releaseSuccess = await PackingService.ReleaseJl(jlCode);
-                    if (!releaseSuccess)
+                    var jlCode = await TextBoxModal.Show("Zwolnij kuwetę", "Wprowadź kod kuwety", "Kod kuwety");
+                    if (!string.IsNullOrEmpty(jlCode))
                     {
-                        await ToastError.Show("Kuweta nie została zwolniona. Spróbuj ponownie.");
-                        await Task.Delay(6000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
-                        return;
+                        var releaseSuccess = await PackingService.ReleaseJl(jlCode);
+                        if (!releaseSuccess)
+                        {
+                            await ToastError.Show("Kuweta nie została zwolniona. Spróbuj ponownie.");
+                            await Task.Delay(6000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+                            return;
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    await ToastError.Show($"Błąd przy próbie zwolnienia kuwety: {ex.Message}");
+                    await Task.Delay(6000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
                 }
                 break;
             case 8: /* Zmień magazyn */ break;
@@ -695,9 +752,24 @@
                 return;
             }
 
+            FinishPackingModal.Show();
+        }
+        catch (Exception ex)
+        {
+            await ToastError.Show($"Błąd przy próbie finalizacji pakowania: {ex.Message}");
+            await Task.Delay(8000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+        }
+    }
+
+    private async Task ClosePackage(string internalBarcode)
+    {
+        if (!CurrentJl.PackageClosed)
+        {
             ClosePackageRequest closeRequest = new ClosePackageRequest
             {
                 DocumentRef = PackingDocumentRef,
+                DocumentId = PackingDocumentId,
+                InternalBarcode = internalBarcode,
                 Status = DocumentStatus.Confirm
             };
 
@@ -708,6 +780,24 @@
                 await Task.Delay(6000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
                 return;
             }
+
+            CurrentJl.PackageClosed = true;
+        }
+    }
+
+    private async Task HandleCourierLabel()
+    {
+        try
+        {
+            string internalBarcode = await PackingService.GenerateInternalBarcode(Settings.StationNumber);
+            if (string.IsNullOrEmpty(internalBarcode))
+            {
+                await ToastError.Show("Nie udało się wygenerować numeru wewnętrznego. Spróbuj ponownie.");
+                await Task.Delay(6000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+                return;
+            }
+
+            await ClosePackage(internalBarcode);
 
             // Shipment
             ShipmentRequest shipmentRequest = new ShipmentRequest
@@ -724,6 +814,7 @@
                 {
                     var labelContent = response.LabelBase64;
                     await ClientPrinterService.PrintAsync(Settings.PrinterLabel, response.LabelType.ToString(), labelContent);
+                    ShipmentModal.Show(response.TrackingNumber, response.LabelBase64, response.LabelType, Settings.PrinterLabel);
                 }
                 else
                 {
@@ -742,5 +833,37 @@
             await ToastError.Show($"Błąd przy próbie finalizacji pakowania: {ex.Message}");
             await Task.Delay(8000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
         }
+    }
+
+    private async Task HandleInternalBarcode()
+    {
+        try
+        {
+            string internalBarcode = await TextBoxModal.Show("Numer wewnętrzny", "Wprowadź numer wewnętrzny", "Kod kreskowy");
+            if (string.IsNullOrEmpty(internalBarcode)) return;
+
+            await ClosePackage(internalBarcode);
+            Navigation.NavigateTo("/kontrola-pakowania");
+        }
+        catch (Exception ex)
+        {
+            await ToastError.Show($"Błąd przy próbie finalizacji pakowania: {ex.Message}");
+            await Task.Delay(8000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+        }
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        var uri = Navigation.ToBaseRelativePath(Navigation.Uri); // removes domain
+        if (!uri.StartsWith("kontrola-pakowania/", StringComparison.OrdinalIgnoreCase))
+        {
+            await PackingService.RemoveJlRealization(CurrentJl.Name);
+        }
+        await PackingService.RemoveJlRealization(CurrentJl.Name);
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
     }
 }
