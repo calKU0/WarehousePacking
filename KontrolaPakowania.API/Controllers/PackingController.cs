@@ -1,5 +1,4 @@
-﻿using KontrolaPakowania.API.Services.Exceptions;
-using KontrolaPakowania.API.Services.Packing;
+﻿using KontrolaPakowania.API.Services.Packing;
 using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
@@ -20,7 +19,7 @@ namespace KontrolaPakowania.API.Controllers
         }
 
         [HttpGet("jl-list")]
-        public async Task<IActionResult> GetJlList([FromQuery] PackingLocation location)
+        public async Task<IActionResult> GetJlList([FromQuery] PackingLevel location)
         {
             try
             {
@@ -38,7 +37,7 @@ namespace KontrolaPakowania.API.Controllers
         }
 
         [HttpGet("jl-info")]
-        public async Task<IActionResult> GetJlInfo([FromQuery] string jl, [FromQuery] PackingLocation location)
+        public async Task<IActionResult> GetJlInfo([FromQuery] string jl, [FromQuery] PackingLevel location)
         {
             try
             {
@@ -56,7 +55,7 @@ namespace KontrolaPakowania.API.Controllers
         }
 
         [HttpGet("jl-items")]
-        public async Task<IActionResult> GetJlItems([FromQuery] string jl, [FromQuery] PackingLocation location)
+        public async Task<IActionResult> GetJlItems([FromQuery] string jl, [FromQuery] PackingLevel location)
         {
             try
             {
@@ -164,16 +163,15 @@ namespace KontrolaPakowania.API.Controllers
         }
 
         [HttpPost("create-package")]
-        public IActionResult CreatePackage([FromBody] CreatePackageRequest request)
+        public async Task<IActionResult> CreatePackage([FromBody] CreatePackageRequest request)
         {
             try
             {
-                CreatePackageResponse reponse = _packingService.CreatePackage(request);
-                return Ok(reponse);
-            }
-            catch (XlApiException ex)
-            {
-                return StatusCode(500, ex.Message);
+                int packageId = await _packingService.CreatePackage(request);
+                if (packageId > 0)
+                    await _packingService.AddPackageAttributes(packageId, request.PackageWarehouse, request.PackingLevel, request.StationNumber);
+
+                return Ok(packageId);
             }
             catch (ArgumentException ex)
             {
@@ -193,10 +191,6 @@ namespace KontrolaPakowania.API.Controllers
                 bool success = await _packingService.AddPackedPosition(request);
                 return Ok(success);
             }
-            catch (XlApiException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
             catch (ArgumentException ex)
             {
                 return BadRequest(ex.Message);
@@ -214,10 +208,6 @@ namespace KontrolaPakowania.API.Controllers
             {
                 bool success = await _packingService.RemovePackedPosition(request);
                 return Ok(success);
-            }
-            catch (XlApiException ex)
-            {
-                return StatusCode(500, ex.Message);
             }
             catch (ArgumentException ex)
             {
@@ -237,10 +227,6 @@ namespace KontrolaPakowania.API.Controllers
                 bool success = await _packingService.ClosePackage(request);
                 return Ok(success);
             }
-            catch (XlApiException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
             catch (ArgumentException ex)
             {
                 return BadRequest(ex.Message);
@@ -258,10 +244,6 @@ namespace KontrolaPakowania.API.Controllers
             {
                 bool success = await _packingService.UpdatePackageCourier(request);
                 return Ok(success);
-            }
-            catch (XlApiException ex)
-            {
-                return StatusCode(500, ex.Message);
             }
             catch (ArgumentException ex)
             {
@@ -281,9 +263,55 @@ namespace KontrolaPakowania.API.Controllers
                 string barcode = await _packingService.GenerateInternalBarcode(stationNumber);
                 return Ok(barcode);
             }
-            catch (XlApiException ex)
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
             {
                 return StatusCode(500, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get current warehouse for package by barcode.
+        /// </summary>
+        [HttpGet("get-package-warehouse")]
+        public async Task<ActionResult<PackingWarehouse>> GetPackageWarehouse([FromQuery] string barcode)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(barcode))
+                    return BadRequest("Barcode is required.");
+
+                var warehouse = await _packingService.GetPackageWarehouse(barcode);
+
+                return Ok(warehouse);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Update warehouse for package by barcode.
+        /// </summary>
+        [HttpPatch("update-package-warehouse")]
+        public async Task<ActionResult<bool>> UpdatePackageWarehouse([FromQuery] string barcode, [FromBody] PackingWarehouse warehouse)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(barcode))
+                    return BadRequest("Barcode is required.");
+
+                var success = await _packingService.UpdatePackageWarehouse(barcode, warehouse);
+
+                return Ok(success);
             }
             catch (ArgumentException ex)
             {

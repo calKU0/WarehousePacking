@@ -1,5 +1,4 @@
 ﻿using KontrolaPakowania.API.Data;
-using KontrolaPakowania.API.Services.ErpXl;
 using KontrolaPakowania.API.Services.Packing;
 using KontrolaPakowania.API.Services.Shipment.DPD;
 using KontrolaPakowania.API.Services.Shipment.DPD.Reference;

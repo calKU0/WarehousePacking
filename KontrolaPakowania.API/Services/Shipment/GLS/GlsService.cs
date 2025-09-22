@@ -1,7 +1,6 @@
 ﻿using KontrolaPakowania.API.Data;
 using KontrolaPakowania.API.Data.Enums;
 using KontrolaPakowania.API.Services.Shipment.Mapping;
-using KontrolaPakowania.API.Services.ErpXl;
 using KontrolaPakowania.API.Settings;
 using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
@@ -92,8 +91,8 @@ namespace KontrolaPakowania.API.Services.Shipment.GLS
 
             return ShipmentResponse.CreateSuccess(
                 courier: Courier.GLS,
-                packageId: parcelId,
-                trackingLink: $"https://gls-group.eu/PL/pl/pobierz-numer-przesylki?match={label.number}",
+                packageId: request.PackageId,
+                trackingLink: $"https://gls-group.eu/PL/pl/sledzenie-paczek/?match=={label.number}",
                 trackingNumber: label.number,
                 labelBase64: label.file,
                 labelType: PrintDataType.ZPL,

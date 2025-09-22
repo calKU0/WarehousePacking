@@ -1,5 +1,6 @@
 ﻿@page "/settings"
 @using KontrolaPakowania.Shared.Enums
+@using KontrolaPakowania.Shared.Helpers
 @inject WorkstationService WorkstationService
 @inject NavigationManager NavigationManager
 
@@ -20,8 +21,18 @@
 
             <div class="mb-3">
                 <label class="form-label">Miejsce pakowania:</label>
-                <select class="form-select" @bind="WorkStationSettings.PackingLocation">
-                    @foreach (var location in Enum.GetValues(typeof(PackingLocation)).Cast<PackingLocation>())
+                <select class="form-select" @bind="WorkStationSettings.PackingWarehouse">
+                    @foreach (var warehouse in Enum.GetValues(typeof(PackingWarehouse)).Cast<PackingWarehouse>())
+                    {
+                        <option value="@warehouse">@warehouse.GetDescription()</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Miejsce pakowania:</label>
+                <select class="form-select" @bind="WorkStationSettings.PackingLevel">
+                    @foreach (var location in Enum.GetValues(typeof(PackingLevel)).Cast<PackingLevel>())
                     {
                         <option value="@location">@location</option>
                     }

@@ -13,6 +13,7 @@ namespace KontrolaPakowania.API.Tests
 
         public const int ClientAddressId = 515921;
         public const int ClientId = 7237;
+        public const string Username = "KURKRZ";
 
         // Source Documents
         public const int SourceDocumentId = 1944244;
@@ -20,7 +21,9 @@ namespace KontrolaPakowania.API.Tests
         public const int SourceDocumentType = 2033;
 
         // Packages
-        public const int PackageId = 10621;
+        public const int PackageId = 10630;
+
+        public const string PackageBarcode = "3009999000004";
 
         // Shipments
         public const int ShipmentId = 10792;

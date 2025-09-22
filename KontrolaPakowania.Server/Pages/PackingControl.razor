@@ -163,7 +163,7 @@
         <div class="col-6 col-md">
             <button class="btn btn-warning w-100 h-100 py-4 fs-5">Następny karton/paczka</button>
         </div>
-        @if (Settings != null && Settings.PackingLocation == PackingLocation.Dół)
+        @if (Settings != null && Settings.PackingLevel == PackingLevel.Dół)
         {
             <div class="col-6 col-md">
                 <button class="btn btn-warning w-100 h-100 py-4 fs-5">Bufor</button>
@@ -189,17 +189,16 @@
                         OnClose="() => ShowProductModal = false" />
 }
 
-@if (ShowPasswordModal)
-{
-    <PasswordModal Title="Wpisz hasło"
-                  OnConfirm="HandlePasswordConfirm"
-                  OnClose="() => ShowPasswordModal = false" />
-}
 
+
+
+<PasswordModal @ref=PackingRequirementsModal OnConfirm ="HandlePasswordConfirm" OnCancel="HandlePasswordCancel" />
+<PasswordModal @ref=ManagerPasswordModal OnConfirm="HandlePasswordConfirm" />
 <CourierModal @ref="CourierModal" />
 <LoggedOperatorsModal @ref="LoggedOperatorsModal" />
 <JlInProgressModal @ref="JlInProgressModal" />
 <PackingJlItemsModal @ref="PackingJlItemsModal" />
+<ChangePackingWarehouseModal @ref="ChangePackingWarehouseModal" />
 <TextBoxModal @ref="TextBoxModal" />
 
 <ConfirmDialog @ref="confirmDialog"
@@ -228,10 +227,11 @@
     private ElementReference itemInputRef;
     private string Username = string.Empty;
     private string Country = string.Empty;
-    private int PackingDocumentId;
-    private int PackingDocumentRef;
+    private int PackageId;
 
     private Toast ToastError = new();
+    private PasswordModal ManagerPasswordModal = new();
+    private PasswordModal PackingRequirementsModal = new();
     private ConfirmDialog confirmDialog = new();
     private ManagerControlModal ManagerModal = new();
     private TextBoxModal TextBoxModal = new();
@@ -239,11 +239,11 @@
     private LoggedOperatorsModal LoggedOperatorsModal = new();
     private JlInProgressModal JlInProgressModal = new();
     private PackingJlItemsModal PackingJlItemsModal = new();
+    private ChangePackingWarehouseModal ChangePackingWarehouseModal = new();
     private FinishPackingModal FinishPackingModal = new();
     private ShipmentModal ShipmentModal = new();
 
     private bool ShowProductModal = false;
-    private bool ShowPasswordModal = false;
     private PasswordPurpose CurrentPasswordPurpose = PasswordPurpose.None;
 
     private JlItemDto? SelectedItem;
@@ -256,6 +256,7 @@
             await LoadData();
             await AddJlRealization();
             await CreatePackage();
+            ShowPackingRequirements();
             Navigation.LocationChanged += OnLocationChanged;
         }
         catch (Exception ex)
@@ -279,8 +280,8 @@
         {
             Settings = await WorkstationService.GetSettingsAsync();
             Username = UserSession.Username;
-            JlItems = await PackingService.GetJlItems(Jl, Settings.PackingLocation);
-            CurrentJl = await PackingService.GetJlInfoByCode(Jl, Settings.PackingLocation);
+            JlItems = await PackingService.GetJlItems(Jl, Settings.PackingLevel);
+            CurrentJl = await PackingService.GetJlInfoByCode(Jl, Settings.PackingLevel);
             Country = JlItems.FirstOrDefault()!.Country;
         }
         catch (Exception ex)
@@ -325,16 +326,19 @@
         {
             CreatePackageRequest packageRequest = new CreatePackageRequest
             {
-                RouteId = CurrentJl.RouteId,
                 ClientAddressId = CurrentJl.ClientAddressId,
                 ClientId = CurrentJl.ClientId,
+                Username = UserSession.Username,
+                Courier = CurrentJl.Courier,
+                PackageWarehouse = Settings.PackingWarehouse,
+                PackingLevel = Settings.PackingLevel,
+                StationNumber = Settings.StationNumber
             };
 
-            var result = await PackingService.CreatePackage(packageRequest);
-            if (result.DocumentRef > 0 && result.DocumentId > 0)
+            var packageId = await PackingService.CreatePackage(packageRequest);
+            if (packageId > 0)
             {
-                PackingDocumentId = result.DocumentId;
-                PackingDocumentRef = result.DocumentRef;
+                PackageId = packageId;
             }
             else
             {
@@ -352,6 +356,15 @@
         StateHasChanged();
     }
 
+    private void ShowPackingRequirements()
+    {
+        if (!string.IsNullOrEmpty(CurrentJl.PackingRequirements))
+        {
+            CurrentPasswordPurpose = PasswordPurpose.PackingRequirementAction;
+            PackingRequirementsModal.Show("Wytyczne do pakowania", CurrentJl.PackingRequirements);
+        }
+    }
+
     private void OpenProductModal(JlItemDto item)
     {
         SelectedItem = item;
@@ -366,7 +379,7 @@
 
             AddPackedPositionRequest request = new AddPackedPositionRequest
             {
-                PackingDocumentId = PackingDocumentId,
+                PackingDocumentId = PackageId,
                 SourceDocumentId = SelectedItem.DocumentId,
                 SourceDocumentType = SelectedItem.DocumentType,
                 PositionNumber = SelectedItem.PositionNumber,
@@ -452,7 +465,7 @@
 
             RemovePackedPositionRequest request = new RemovePackedPositionRequest
             {
-                PackingDocumentId = PackingDocumentId,
+                PackingDocumentId = PackageId,
                 SourceDocumentId = SelectedPackedItem.DocumentId,
                 SourceDocumentType = SelectedPackedItem.DocumentType,
                 PositionNumber = SelectedPackedItem.PositionNumber,
@@ -553,8 +566,6 @@
         }
     }
 
-
-
     private async Task HandleCodeInput(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
@@ -613,7 +624,7 @@
             await PackingService.RemoveJlRealization(CurrentJl.Name);
             ClosePackageRequest closePackageRequest = new()
             {
-                DocumentRef = PackingDocumentRef,
+                DocumentId = PackageId,
                 Status = DocumentStatus.Delete
             };
             await PackingService.ClosePackage(closePackageRequest);
@@ -628,8 +639,6 @@
 
     private async Task HandlePasswordConfirm(string password)
     {
-        ShowPasswordModal = false;
-
         bool valid = await AuthService.ValidatePasswordAsync(password);
         if (!valid)
         {
@@ -641,17 +650,26 @@
         switch (CurrentPasswordPurpose)
         {
             case PasswordPurpose.ManagerAction:
+                await ManagerPasswordModal.Close();
                 ManagerModal.OpenModal();
+                break;
+            case PasswordPurpose.PackingRequirementAction:
+                await PackingRequirementsModal.Close();
                 break;
         }
 
         CurrentPasswordPurpose = PasswordPurpose.None;
     }
 
-    private void OnManagerButtonClick()
+    private void HandlePasswordCancel()
+    {
+        Navigation.NavigateTo("/kontrola-pakowania");
+    }
+
+    private async Task OnManagerButtonClick()
     {
         CurrentPasswordPurpose = PasswordPurpose.ManagerAction;
-        ShowPasswordModal = true;
+        await ManagerPasswordModal.Show();
         StateHasChanged();
     }
 
@@ -692,7 +710,7 @@
                     {
                         UpdatePackageCourierRequest updateRequest = new UpdatePackageCourierRequest
                             {
-                                PackageId = PackingDocumentId,
+                                PackageId = PackageId,
                                 Courier = selectedCourier.Value
                             };
 
@@ -742,7 +760,9 @@
                     await Task.Delay(6000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
                 }
                 break;
-            case 8: /* Zmień magazyn */ break;
+            case 8: /* Zmień magazyn */
+                await ChangePackingWarehouseModal.Show();
+                break;
         }
     }
 
@@ -772,10 +792,9 @@
         {
             ClosePackageRequest closeRequest = new ClosePackageRequest
             {
-                DocumentRef = PackingDocumentRef,
-                DocumentId = PackingDocumentId,
+                DocumentId = PackageId,
                 InternalBarcode = internalBarcode,
-                Status = DocumentStatus.Confirm
+                Status = DocumentStatus.Ready 
             };
 
             var success = await PackingService.ClosePackage(closeRequest);
@@ -807,7 +826,7 @@
             // Shipment
             ShipmentRequest shipmentRequest = new ShipmentRequest
             {
-                PackageId = PackingDocumentId,
+                PackageId = PackageId,
                 Courier = CurrentJl.Courier,
             };
 

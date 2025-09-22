@@ -1,16 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace KontrolaPakowania.Shared.Enums
 {
-    public enum DocumentStatus
+    public enum PackingWarehouse
     {
-        InProgress = 1,
-        Ready = 3,
-        Cancel = 6,
-        Delete = -1,
+        [Description("Magazyn A")]
+        Magazyn_A,
+
+        [Description("Magazyn B")]
+        Magazyn_B
     }
 }

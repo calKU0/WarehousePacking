@@ -1,6 +1,4 @@
 ﻿using KontrolaPakowania.API.Data;
-using KontrolaPakowania.API.Services.ErpXl;
-using KontrolaPakowania.API.Services.Exceptions;
 using KontrolaPakowania.API.Services.Packing;
 using KontrolaPakowania.API.Settings;
 using KontrolaPakowania.Shared.DTOs;
@@ -20,7 +18,6 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
     public class PackingServiceIntegrationTests
     {
         private readonly IPackingService _service;
-        private readonly IErpXlClient _erpXlClient;
 
         public PackingServiceIntegrationTests()
         {
@@ -29,26 +26,21 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
                 .Build();
 
             var services = new ServiceCollection();
-            services.Configure<XlApiSettings>(config.GetSection("XlApiSettings"));
-            services.AddSingleton<IErpXlClient, ErpXlClient>();
             services.AddSingleton<IConfiguration>(config);
             services.AddScoped<IDbExecutor, DapperDbExecutor>();
             services.AddScoped<IPackingService, PackingService>();
 
             var provider = services.BuildServiceProvider();
-            _erpXlClient = provider.GetRequiredService<IErpXlClient>();
             _service = provider.GetRequiredService<IPackingService>();
-
-            _erpXlClient.Login();
         }
 
         #region JL Tests
 
         [Theory]
-        [InlineData(PackingLocation.Góra)]
-        [InlineData(PackingLocation.Dół)]
+        [InlineData(PackingLevel.Góra)]
+        [InlineData(PackingLevel.Dół)]
         [Trait("Category", "Integration")]
-        public async Task GetJlListAsync_ReturnsData(PackingLocation location)
+        public async Task GetJlListAsync_ReturnsData(PackingLevel location)
         {
             var items = await _service.GetJlListAsync(location);
 
@@ -57,10 +49,10 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
         }
 
         [Theory]
-        [InlineData(PackingLocation.Góra)]
-        [InlineData(PackingLocation.Dół)]
+        [InlineData(PackingLevel.Góra)]
+        [InlineData(PackingLevel.Dół)]
         [Trait("Category", "Integration")]
-        public async Task GetJlInfoAsync_AllColumnsAreNotNullOrEmpty(PackingLocation location)
+        public async Task GetJlInfoAsync_AllColumnsAreNotNullOrEmpty(PackingLevel location)
         {
             // 1. Get a real JL from GetJlListAsync
             var jlList = await _service.GetJlListAsync(location);
@@ -79,7 +71,6 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             Assert.False(string.IsNullOrEmpty(jlInfo.Barcode), "Barcode should not be null or empty");
             Assert.False(string.IsNullOrEmpty(jlInfo.Name), "Name should not be null or empty");
             Assert.True(jlInfo.Status >= 0, "Status should be non-negative");
-            Assert.True(jlInfo.RouteId >= 0, "RouteId should be non-negative");
             Assert.True(jlInfo.Weight > 0, "Weight should be greater than 0");
             Assert.True(jlInfo.Priority >= 0, "Priority should be non-negative");
             Assert.False(string.IsNullOrEmpty(jlInfo.ClientName), "ClientName should not be null or empty");
@@ -90,10 +81,10 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
         }
 
         [Theory]
-        [InlineData(PackingLocation.Góra)]
-        [InlineData(PackingLocation.Dół)]
+        [InlineData(PackingLevel.Góra)]
+        [InlineData(PackingLevel.Dół)]
         [Trait("Category", "Integration")]
-        public async Task GetJlItemsAsync_AllColumnsAreNotNullOrEmpty(PackingLocation location)
+        public async Task GetJlItemsAsync_AllColumnsAreNotNullOrEmpty(PackingLevel location)
         {
             // 1. Get a real JL from GetJlListAsync
             var jlList = await _service.GetJlListAsync(location);
@@ -120,7 +111,6 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
                 Assert.True(item.JlQuantity > 0, "JlQuantity should be > 0");
                 Assert.False(string.IsNullOrEmpty(item.Unit), "Unit should not be null or empty");
                 Assert.True(item.Weight > 0, "Weight should be greater than 0");
-                Assert.True(item.Volume > 0, "Volume should be greater than 0");
                 Assert.False(string.IsNullOrEmpty(item.Country), "Country should not be null or empty");
                 Assert.False(string.IsNullOrEmpty(item.JlCode), "JlCode should not be null or empty");
                 Assert.False(string.IsNullOrEmpty(item.ProductType), "ProductType should not be null or empty");
@@ -166,28 +156,34 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
         #region Packing Tests
 
         [Theory]
-        [InlineData(DocumentStatus.Bufor)]
+        [InlineData(DocumentStatus.InProgress)]
         [InlineData(DocumentStatus.Delete)]
         [Trait("Category", "Integration")]
-        public async Task OpenAndClosePackage_Works_WithDifferentStatuses(DocumentStatus status)
+        public async Task OpenAndClosePackage_Works_WithDifferentStatusesAndAttributes(DocumentStatus status)
         {
             // Arrange
             var openRequest = new CreatePackageRequest
             {
-                RouteId = TestConstants.RouteId,
+                Courier = Courier.DPD,
+                Username = TestConstants.Username,
                 ClientAddressId = TestConstants.ClientAddressId,
                 ClientId = TestConstants.ClientId,
+                PackageWarehouse = PackingWarehouse.Magazyn_A,
+                PackingLevel = PackingLevel.Góra,
+                StationNumber = "9999"
             };
-            var package = _service.CreatePackage(openRequest);
+            int packageId = await _service.CreatePackage(openRequest);
+            bool attributesResult = await _service.AddPackageAttributes(packageId, openRequest.PackageWarehouse, openRequest.PackingLevel, openRequest.StationNumber);
 
-            Assert.True(package.DocumentRef > 0);
-            Assert.True(package.DocumentId > 0);
+            Assert.True(packageId > 0);
+            Assert.True(attributesResult);
 
             // Act
             var closeRequest = new ClosePackageRequest
             {
-                DocumentRef = package.DocumentRef,
-                Status = status
+                DocumentId = packageId,
+                Status = status,
+                InternalBarcode = await _service.GenerateInternalBarcode("9999"),
             };
 
             var result = await _service.ClosePackage(closeRequest);
@@ -196,54 +192,30 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             Assert.True(result);
         }
 
-        [Fact]
-        [Trait("Category", "Integration")]
-        public async Task ClosePackage_WithConfirmStatusWithoutProducts_ShouldThrowException()
-        {
-            // Arrange
-            var openRequest = new CreatePackageRequest
-            {
-                RouteId = TestConstants.RouteId,
-                ClientAddressId = TestConstants.ClientAddressId,
-                ClientId = TestConstants.ClientId,
-            };
-            var package = _service.CreatePackage(openRequest);
-
-            Assert.True(package.DocumentRef > 0);
-            Assert.True(package.DocumentId > 0);
-
-            var closeRequest = new ClosePackageRequest
-            {
-                DocumentRef = package.DocumentRef,
-                DocumentId = package.DocumentId,
-                InternalBarcode = await _service.GenerateInternalBarcode("9999"),
-                Status = DocumentStatus.Confirm
-            };
-
-            // Act & Assert
-            var ex = await Assert.ThrowsAsync<XlApiException>(async () =>
-                await _service.ClosePackage(closeRequest));
-
-            Assert.Contains("Nie udało się zamknąć paczki", ex.Message);
-            Assert.NotEqual(0, ex.ErrorCode);
-        }
-
         [Fact, Trait("Category", "Integration")]
-        public async Task AddPackedPosition_Works()
+        public async Task AddPackedPositionWithAttributes_Works()
         {
             // 1. Open package
             var openRequest = new CreatePackageRequest
             {
-                RouteId = TestConstants.RouteId,
+                Courier = Courier.DPD,
+                Username = TestConstants.Username,
                 ClientAddressId = TestConstants.ClientAddressId,
                 ClientId = TestConstants.ClientId,
+                PackageWarehouse = PackingWarehouse.Magazyn_A,
+                PackingLevel = PackingLevel.Góra,
+                StationNumber = "9999"
             };
-            var package = _service.CreatePackage(openRequest);
+            int packageId = await _service.CreatePackage(openRequest);
+            bool attributesResult = await _service.AddPackageAttributes(packageId, openRequest.PackageWarehouse, openRequest.PackingLevel, openRequest.StationNumber);
+
+            Assert.True(packageId > 0);
+            Assert.True(attributesResult);
 
             // 2.1. Add document position
             var addRequest1 = new AddPackedPositionRequest
             {
-                PackingDocumentId = package.DocumentId,
+                PackingDocumentId = packageId,
                 SourceDocumentId = TestConstants.SourceDocumentId,
                 SourceDocumentType = TestConstants.SourceDocumentType,
                 PositionNumber = 1,
@@ -258,7 +230,7 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             // 2.2. Add second document position
             var addRequest2 = new AddPackedPositionRequest
             {
-                PackingDocumentId = package.DocumentId,
+                PackingDocumentId = packageId,
                 SourceDocumentId = TestConstants.SourceDocumentId,
                 SourceDocumentType = TestConstants.SourceDocumentType,
                 PositionNumber = 2,
@@ -273,10 +245,9 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             // 3. Close package
             var closeRequest = new ClosePackageRequest
             {
-                DocumentRef = package.DocumentRef,
-                DocumentId = package.DocumentId,
+                DocumentId = packageId,
                 InternalBarcode = await _service.GenerateInternalBarcode("9999"),
-                Status = DocumentStatus.Confirm
+                Status = DocumentStatus.Ready,
             };
 
             var closeResult = await _service.ClosePackage(closeRequest);
@@ -289,16 +260,17 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             // 1. Open package
             var openRequest = new CreatePackageRequest
             {
-                RouteId = TestConstants.RouteId,
+                Courier = Courier.DPD,
+                Username = TestConstants.Username,
                 ClientAddressId = TestConstants.ClientAddressId,
                 ClientId = TestConstants.ClientId,
             };
-            var package = _service.CreatePackage(openRequest);
+            int packageId = await _service.CreatePackage(openRequest);
 
             // 2. Add document position
             var addRequest = new AddPackedPositionRequest
             {
-                PackingDocumentId = package.DocumentId,
+                PackingDocumentId = packageId,
                 SourceDocumentId = TestConstants.SourceDocumentId,
                 SourceDocumentType = TestConstants.SourceDocumentType,
                 PositionNumber = 1,
@@ -313,7 +285,7 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             // 3. Remove document position
             var removeRequest = new RemovePackedPositionRequest
             {
-                PackingDocumentId = package.DocumentId,
+                PackingDocumentId = packageId,
                 SourceDocumentId = TestConstants.SourceDocumentId,
                 SourceDocumentType = TestConstants.SourceDocumentType,
                 PositionNumber = 1,
@@ -328,10 +300,9 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             // 4. Close package
             var closeRequest = new ClosePackageRequest
             {
-                DocumentRef = package.DocumentRef,
-                DocumentId = package.DocumentId,
+                DocumentId = packageId,
                 InternalBarcode = await _service.GenerateInternalBarcode("9999"),
-                Status = DocumentStatus.Bufor
+                Status = DocumentStatus.Delete,
             };
             var closeResult = await _service.ClosePackage(closeRequest);
             Assert.True(closeResult);
@@ -367,6 +338,33 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests
             Assert.False(string.IsNullOrWhiteSpace(result));
             Assert.True(result.Length == 13);
             Assert.Matches(@"^\d+$", result); // result is numeric
+        }
+
+        [Fact, Trait("Category", "Integration")]
+        public async Task GetPackageWarehouse_ReturnsMagazynA()
+        {
+            // Arrange
+            string barcode = TestConstants.PackageBarcode;
+
+            // Act
+            var result = await _service.GetPackageWarehouse(barcode);
+
+            // Assert
+            Assert.True(result is PackingWarehouse.Magazyn_A);
+        }
+
+        [Fact, Trait("Category", "Integration")]
+        public async Task UpdatePackageWarehouse_Works()
+        {
+            // Arrange
+            string barcode = TestConstants.PackageBarcode;
+            PackingWarehouse warehouse = PackingWarehouse.Magazyn_B;
+
+            // Act
+            var result = await _service.UpdatePackageWarehouse(barcode, warehouse);
+
+            // Assert
+            Assert.True(result);
         }
 
         #endregion Packing Tests

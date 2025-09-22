@@ -3,6 +3,7 @@
 @inject NavigationManager Navigation
 @inject AuthService AuthService
 @inject WorkstationService WorkstationService
+@inject IJSRuntime JSRuntime
 @layout NoNavLayout
 
 <div class="login-container d-flex justify-content-center align-items-center min-vh-100">
@@ -21,17 +22,22 @@
         else
         {
             <EditForm Model="loginDto" OnValidSubmit="HandleLogin">
-                <DataAnnotationsValidator />
-                <ValidationSummary />
-
                 <div class="mb-3">
                     <label class="form-label">Nazwa użytkownika</label>
-                    <InputText class="form-control form-control-lg" @bind-Value="loginDto.Username" placeholder="Wprowadź nazwę użytkownika" />
+<input @ref="UsernameInput"
+       class="form-control form-control-lg"
+       @bind="loginDto.Username"
+       @onkeydown="HandleUsernameKeyDown"
+       placeholder="Wprowadź nazwę użytkownika" />
+
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Hasło</label>
-                    <InputText type="password" class="form-control form-control-lg" @bind-Value="loginDto.Password" placeholder="Wprowadź hasło" />
+                    <input @ref="PasswordInput"
+                           class="form-control form-control-lg"
+                           @bind="loginDto.Password"
+                           placeholder="Wprowadź hasło" />
                 </div>
 
                 <div class="d-grid">
@@ -50,11 +56,37 @@
     private LoginDto loginDto = new();
     private Toast ToastError = new ();
     private WorkstationSettings Settings = new();
+    private ElementReference UsernameInput;
+    private ElementReference PasswordInput;
+    private string scannedUsername = "";
+
 
     protected override async Task OnInitializedAsync()
     {
         await UserSession.InitializeAsync();
         Settings = await WorkstationService.GetSettingsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", UsernameInput);
+        }
+    }
+
+    private void OnUsernameInput(ChangeEventArgs e)
+    {
+        scannedUsername = e.Value?.ToString() ?? "";
+    }
+
+    private async Task HandleUsernameKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            // Move focus to password when Enter is pressed
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", PasswordInput);
+        }
     }
 
     private async Task HandleLogin()

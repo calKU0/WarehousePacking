@@ -14,7 +14,7 @@ namespace KontrolaPakowania.Server.Services
             _dbClient = httpFactory.CreateClient("Database");
         }
 
-        public async Task<List<JlDto>> GetJlList(PackingLocation packingLocation)
+        public async Task<List<JlDto>> GetJlList(PackingLevel packingLocation)
         {
             var response = await _dbClient.GetAsync($"api/packing/jl-list?location={packingLocation}");
             response.EnsureSuccessStatusCode();
@@ -23,7 +23,7 @@ namespace KontrolaPakowania.Server.Services
             return jlList!;
         }
 
-        public async Task<JlDto> GetJlInfoByCode(string jlCode, PackingLocation packingLocation)
+        public async Task<JlDto> GetJlInfoByCode(string jlCode, PackingLevel packingLocation)
         {
             var response = await _dbClient.GetAsync($"api/packing/jl-info?jl={jlCode}&location={packingLocation}");
             response.EnsureSuccessStatusCode();
@@ -32,7 +32,7 @@ namespace KontrolaPakowania.Server.Services
             return jlInfo;
         }
 
-        public async Task<List<JlItemDto>> GetJlItems(string jlCode, PackingLocation packingLocation)
+        public async Task<List<JlItemDto>> GetJlItems(string jlCode, PackingLevel packingLocation)
         {
             var response = await _dbClient.GetAsync($"api/packing/jl-items?jl={jlCode}&location={packingLocation}");
             response.EnsureSuccessStatusCode();
@@ -86,13 +86,13 @@ namespace KontrolaPakowania.Server.Services
             return success;
         }
 
-        public async Task<CreatePackageResponse> CreatePackage(CreatePackageRequest request)
+        public async Task<int> CreatePackage(CreatePackageRequest request)
         {
             var response = await _dbClient.PostAsJsonAsync($"api/packing/create-package", request);
             response.EnsureSuccessStatusCode();
 
-            var result = await response.Content.ReadFromJsonAsync<CreatePackageResponse>();
-            return result!;
+            int docuemntId = await response.Content.ReadFromJsonAsync<int>();
+            return docuemntId;
         }
 
         public async Task<bool> AddPackedPosition(AddPackedPositionRequest request)
@@ -137,6 +137,24 @@ namespace KontrolaPakowania.Server.Services
             response.EnsureSuccessStatusCode();
 
             return await response.Content.ReadFromJsonAsync<string>() ?? string.Empty;
+        }
+
+        public async Task<PackingWarehouse> GetPackageWarehouse(string barcode)
+        {
+            var response = await _dbClient.GetAsync($"api/packing/get-package-warehouse?barcode={barcode}");
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<PackingWarehouse>();
+        }
+
+        public async Task<bool> UpdatePackageWarehouse(string barcode, PackingWarehouse warehouse)
+        {
+            var url = $"api/packing/update-package-warehouse?barcode={barcode}";
+            var content = JsonContent.Create(warehouse);
+            var response = await _dbClient.PatchAsync(url, content);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<bool>();
         }
     }
 }

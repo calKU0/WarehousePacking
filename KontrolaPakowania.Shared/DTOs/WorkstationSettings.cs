@@ -11,7 +11,8 @@ namespace KontrolaPakowania.Shared.DTOs
     {
         public string PrinterLabel { get; set; } = "";
         public string PrinterInvoice { get; set; } = "";
-        public PackingLocation PackingLocation { get; set; } = PackingLocation.Góra;
+        public PackingWarehouse PackingWarehouse { get; set; }
+        public PackingLevel PackingLevel { get; set; }
         public string StationNumber { get; set; } = "";
     }
 }

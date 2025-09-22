@@ -1,10 +1,9 @@
 ﻿using KontrolaPakowania.API.Data;
 using KontrolaPakowania.API.Data.Enums;
-using KontrolaPakowania.API.Services.ErpXl;
-using KontrolaPakowania.API.Services.Exceptions;
 using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
+using KontrolaPakowania.Shared.Helpers;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using System.Data;
@@ -14,15 +13,13 @@ namespace KontrolaPakowania.API.Tests.PackingServiceTests;
 
 public class PackingServiceUnitTests
 {
-    private readonly Mock<IErpXlClient> _erpXlClientMock;
     private readonly Mock<IDbExecutor> _dbExecutorMock;
     private readonly PackingService _service;
 
     public PackingServiceUnitTests()
     {
-        _erpXlClientMock = new Mock<IErpXlClient>();
         _dbExecutorMock = new Mock<IDbExecutor>();
-        _service = new PackingService(_dbExecutorMock.Object, _erpXlClientMock.Object);
+        _service = new PackingService(_dbExecutorMock.Object);
     }
 
     #region Jl Tests
@@ -56,7 +53,7 @@ public class PackingServiceUnitTests
               .ReturnsAsync(fakeData);
 
         // Act
-        var result = await _service.GetJlListAsync(PackingLocation.Góra);
+        var result = await _service.GetJlListAsync(PackingLevel.Góra);
 
         // Assert
         Assert.Single(result);
@@ -101,7 +98,7 @@ public class PackingServiceUnitTests
               .ReturnsAsync(fakeData);
 
         // Act
-        var result = await _service.GetJlInfoByCodeAsync("KS-001-001-001", PackingLocation.Dół);
+        var result = await _service.GetJlInfoByCodeAsync("KS-001-001-001", PackingLevel.Dół);
 
         // Assert
 
@@ -149,7 +146,7 @@ public class PackingServiceUnitTests
               .ReturnsAsync(fakeData);
 
         // Act
-        var result = await _service.GetJlItemsAsync("JL001", PackingLocation.Góra);
+        var result = await _service.GetJlItemsAsync("JL001", PackingLevel.Góra);
 
         // Assert
         Assert.Single(result);
@@ -283,19 +280,31 @@ public class PackingServiceUnitTests
     #region Packing Tests
 
     [Fact, Trait("Category", "Unit")]
-    public void OpenPackage_ReturnsPackageId()
+    public async Task OpenPackage_ReturnsPackageId()
     {
         // Arrange
-        var request = new CreatePackageRequest { RouteId = 10 };
-        var response = new CreatePackageResponse { DocumentId = 1, DocumentRef = 2 };
-        _erpXlClientMock.Setup(x => x.CreatePackage(request)).Returns(response);
+        var request = new CreatePackageRequest
+        {
+            Courier = Courier.DPD,
+            Username = "Test",
+            ClientAddressId = 1,
+            ClientId = 2,
+        };
+        int response = 100;
+
+        _dbExecutorMock
+            .Setup(db => db.QuerySingleOrDefaultAsync<int>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                CommandType.StoredProcedure,
+                Connection.ERPConnection))
+            .ReturnsAsync(100);
 
         // Act
-        var result = _service.CreatePackage(request);
+        var result = await _service.CreatePackage(request);
 
         // Assert
         Assert.Equal(response, result);
-        _erpXlClientMock.Verify(x => x.CreatePackage(request), Times.Once);
     }
 
     [Fact, Trait("Category", "Unit")]
@@ -313,8 +322,8 @@ public class PackingServiceUnitTests
 
         _dbExecutorMock
             .Setup(db => db.QuerySingleOrDefaultAsync<int>(
-                "kp.AddPackedPosition",
-                It.IsAny<object>(), // tutaj nie dopasowujemy szczegółowych właściwości
+                It.IsAny<string>(),
+                It.IsAny<object>(),
                 CommandType.StoredProcedure,
                 Connection.ERPConnection))
             .ReturnsAsync(1);
@@ -345,7 +354,7 @@ public class PackingServiceUnitTests
 
         _dbExecutorMock
             .Setup(db => db.QuerySingleOrDefaultAsync<int>(
-                "kp.RemovePackedPosition",
+                It.IsAny<string>(),
                 It.IsAny<object>(),
                 CommandType.StoredProcedure,
                 Connection.ERPConnection))
@@ -357,7 +366,7 @@ public class PackingServiceUnitTests
         // Assert
         Assert.True(result);
         _dbExecutorMock.Verify(db => db.QuerySingleOrDefaultAsync<int>(
-            "kp.RemovePackedPosition",
+                It.IsAny<string>(),
             It.IsAny<object>(),
             CommandType.StoredProcedure,
             Connection.ERPConnection), Times.Once);
@@ -368,27 +377,22 @@ public class PackingServiceUnitTests
     {
         var request = new ClosePackageRequest
         {
-            DocumentRef = 999,
             DocumentId = 999,
             InternalBarcode = "1111111111111",
-            Status = DocumentStatus.Bufor
+            Status = DocumentStatus.InProgress
         };
-        _erpXlClientMock.Setup(x => x.ClosePackage(request)).Returns(true);
+
+        _dbExecutorMock
+            .Setup(db => db.QuerySingleOrDefaultAsync<int>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                CommandType.StoredProcedure,
+                Connection.ERPConnection))
+            .ReturnsAsync(1);
 
         var result = await _service.ClosePackage(request);
 
         Assert.True(result);
-        _erpXlClientMock.Verify(x => x.ClosePackage(request), Times.Once);
-    }
-
-    [Fact, Trait("Category", "Unit")]
-    public void OpenPackage_WhenApiThrows_ShouldPropagateException()
-    {
-        var request = new CreatePackageRequest { RouteId = 10 };
-        _erpXlClientMock.Setup(x => x.CreatePackage(request))
-            .Throws(new XlApiException(101, "XL error"));
-
-        Assert.Throws<XlApiException>(() => _service.CreatePackage(request));
     }
 
     [Fact, Trait("Category", "Unit")]
@@ -404,7 +408,7 @@ public class PackingServiceUnitTests
         // 1. Mock GetCourierRouteId
         _dbExecutorMock
             .Setup(db => db.QuerySingleOrDefaultAsync<int>(
-                "kp.GetCourierRouteId",
+                It.IsAny<string>(),
                 It.IsAny<object?>(),
                 CommandType.StoredProcedure,
                 Connection.ERPConnection))
@@ -413,7 +417,7 @@ public class PackingServiceUnitTests
         // 2. Mock UpdatePackageCourier
         _dbExecutorMock
             .Setup(db => db.QuerySingleOrDefaultAsync<int>(
-                "kp.UpdatePackageCourier",
+                It.IsAny<string>(),
                 It.IsAny<object?>(),
                 CommandType.StoredProcedure,
                 Connection.ERPConnection))
@@ -427,13 +431,13 @@ public class PackingServiceUnitTests
 
         // Verify both SPs were called
         _dbExecutorMock.Verify(db => db.QuerySingleOrDefaultAsync<int>(
-            "kp.GetCourierRouteId",
+            It.IsAny<string>(),
             It.IsAny<object?>(),
             CommandType.StoredProcedure,
             Connection.ERPConnection), Times.Once);
 
         _dbExecutorMock.Verify(db => db.QuerySingleOrDefaultAsync<int>(
-            "kp.UpdatePackageCourier",
+            It.IsAny<string>(),
             It.IsAny<object?>(),
             CommandType.StoredProcedure,
             Connection.ERPConnection), Times.Once);
@@ -451,7 +455,7 @@ public class PackingServiceUnitTests
 
         _dbExecutorMock
             .Setup(db => db.QuerySingleOrDefaultAsync<int>(
-                "kp.GetCourierRouteId",
+                It.IsAny<string>(),
                 It.IsAny<object?>(),
                 CommandType.StoredProcedure,
                 Connection.ERPConnection))
@@ -459,7 +463,7 @@ public class PackingServiceUnitTests
 
         _dbExecutorMock
             .Setup(db => db.QuerySingleOrDefaultAsync<int>(
-                "kp.UpdatePackageCourier",
+                It.IsAny<string>(),
                 It.IsAny<object?>(),
                 CommandType.StoredProcedure,
                 Connection.ERPConnection))
@@ -480,7 +484,7 @@ public class PackingServiceUnitTests
         string dbResult = "3009999000000";
 
         _dbExecutorMock.Setup(d => d.QuerySingleOrDefaultAsync<string>(
-                "kp.GenerateInternalBarcode",
+                It.IsAny<string>(),
                 It.IsAny<object>(),
                 CommandType.StoredProcedure,
                 Connection.ERPConnection))
@@ -491,6 +495,71 @@ public class PackingServiceUnitTests
 
         // Assert
         Assert.Equal(dbResult, result);
+    }
+
+    [Fact, Trait("Category", "Unit")]
+    public async Task GetPackageWarehouse_ReturnsExpectedWarehouse()
+    {
+        // Arrange
+        string barcode = "12312412";
+        PackingWarehouse warehouse = PackingWarehouse.Magazyn_B;
+
+        _dbExecutorMock.Setup(d => d.QuerySingleOrDefaultAsync<string>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                CommandType.StoredProcedure,
+                Connection.ERPConnection))
+            .ReturnsAsync(warehouse.GetDescription());
+
+        // Act
+        var result = await _service.GetPackageWarehouse(barcode);
+
+        // Assert
+        Assert.Equal(warehouse, result);
+    }
+
+    [Fact, Trait("Category", "Unit")]
+    public async Task UpdatePackageWarehouse_ReturnsTrue()
+    {
+        // Arrange
+        string barcode = "12312412";
+        PackingWarehouse warehouse = PackingWarehouse.Magazyn_B;
+
+        _dbExecutorMock.Setup(d => d.QuerySingleOrDefaultAsync<int>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                CommandType.StoredProcedure,
+                Connection.ERPConnection))
+            .ReturnsAsync(1);
+
+        // Act
+        var result = await _service.UpdatePackageWarehouse(barcode, warehouse);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact, Trait("Category", "Unit")]
+    public async Task AddPackageAttributes_ReturnsTrue()
+    {
+        // Arrange
+        int packgeId = 1;
+        string stationNumber = "9999";
+        PackingWarehouse warehouse = PackingWarehouse.Magazyn_A;
+        PackingLevel level = PackingLevel.Góra;
+
+        _dbExecutorMock.Setup(d => d.QuerySingleOrDefaultAsync<int>(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                CommandType.StoredProcedure,
+                Connection.ERPConnection))
+            .ReturnsAsync(1);
+
+        // Act
+        var result = await _service.AddPackageAttributes(packgeId, warehouse, level, stationNumber);
+
+        // Assert
+        Assert.True(result);
     }
 
     #endregion Packing Tests

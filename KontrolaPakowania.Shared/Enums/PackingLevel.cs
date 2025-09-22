@@ -6,11 +6,9 @@ using System.Threading.Tasks;
 
 namespace KontrolaPakowania.Shared.Enums
 {
-    public enum DocumentStatus
+    public enum PackingLevel
     {
-        InProgress = 1,
-        Ready = 3,
-        Cancel = 6,
-        Delete = -1,
+        Góra,
+        Dół
     }
 }

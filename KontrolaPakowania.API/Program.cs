@@ -5,7 +5,6 @@ using KontrolaPakowania.API.Services.Shipment.DPD;
 using KontrolaPakowania.API.Services.Shipment.Fedex;
 using KontrolaPakowania.API.Services.Shipment.GLS;
 using KontrolaPakowania.API.Services.Shipment.Mapping;
-using KontrolaPakowania.API.Services.ErpXl;
 using KontrolaPakowania.API.Services.Packing;
 using KontrolaPakowania.API.Settings;
 using Microsoft.Extensions.Options;
@@ -61,8 +60,6 @@ builder.Services.AddScoped<IGlsClientWrapper, GlsClientWrapper>();
 builder.Services.AddScoped<GlsService>();
 builder.Services.AddScoped<CourierFactory>();
 builder.Services.AddScoped<IShipmentService, ShipmentService>();
-builder.Services.AddSingleton<IErpXlClient, ErpXlClient>();
-builder.Services.AddHostedService<ErpXlHostedService>();
 
 var app = builder.Build();
 

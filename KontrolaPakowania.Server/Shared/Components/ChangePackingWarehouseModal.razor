@@ -1,0 +1,111 @@
+﻿@using System.ComponentModel
+@using KontrolaPakowania.Shared.Enums
+@using KontrolaPakowania.Shared.Helpers 
+@inject PackingService PackingService
+@inject IJSRuntime JSRuntime
+
+@if (IsVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content p-3">
+                <div class="modal-header">
+                    <h5 class="modal-title">Zmień magazyn składowania</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Textbox -->
+                    <div class="mb-3">
+                        <label class="form-label">Kod wewnętrzny:</label>
+                        <input class="form-control"
+                               @bind="InputText"
+                               @ref="InputRef"
+                               @onkeydown="OnEnterKey" />
+                    </div>
+
+                    @if (ShowSelect)
+                    {
+                        <!-- Enum select -->
+                        <div class="mb-3">
+                            <label class="form-label">Magazyn składowania:</label>
+                            <select class="form-select" @bind="SelectedWarehouse">
+                                @foreach (var warehouse in Enum.GetValues(typeof(PackingWarehouse)).Cast<PackingWarehouse>())
+                                {
+                                    <option value="@warehouse">@warehouse.GetDescription()</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                </div>
+
+                <div class="modal-footer d-flex flex-column gap-2">
+                    @if (ShowSelect)
+                    {
+                        <button class="btn btn-primary tall-btn w-100" @onclick="Save">Zapisz</button>
+                    }
+                    <button class="btn btn-secondary tall-btn w-100" @onclick="Close">Wyjdź</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+<Toast @ref="ToastError" Title="Error" Color="danger" />
+
+@code {
+    private bool IsVisible { get; set; }
+    private string InputText { get; set; } = string.Empty;
+    private bool ShowSelect { get; set; }
+    private PackingWarehouse SelectedWarehouse { get; set; }
+    private Toast ToastError = new();
+    private ElementReference InputRef;
+
+    public async Task Show()
+    {
+        IsVisible = true;
+        ShowSelect = false;
+        InputText = string.Empty;
+        await InvokeAsync(StateHasChanged);
+        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", InputRef);
+    }
+
+    private async Task OnEnterKey(KeyboardEventArgs e)
+    {
+        try
+        {
+            if (e.Key == "Enter")
+            {
+                var inputValue = await JSRuntime.InvokeAsync<string>("blazorFocus.getValue", InputRef);
+                PackingWarehouse warehouse = await PackingService.GetPackageWarehouse(InputText);
+                SelectedWarehouse = warehouse;
+                ShowSelect = true;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception ex)
+        {
+            await ToastError.Show($"Błąd przy pobieraniu magazynu składowania dla podanego kodu kreskowego: {ex.Message}");
+            await Task.Delay(7000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            await PackingService.UpdatePackageWarehouse(InputText, SelectedWarehouse);
+            Close();
+        }
+        catch (Exception ex)
+        {
+            await ToastError.Show($"Błąd przy aktualizacji magazynu składowania dla podanego kodu kreskowego: {ex.Message}");
+            await Task.Delay(7000).ContinueWith(_ => InvokeAsync(() => ToastError.Hide()));
+        }
+    }
+
+    private void Close()
+    {
+        IsVisible = false;
+        StateHasChanged();
+    }
+}

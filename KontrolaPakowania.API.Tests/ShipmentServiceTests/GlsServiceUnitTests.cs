@@ -1,7 +1,6 @@
 ﻿using Azure;
 using KontrolaPakowania.API.Data;
 using KontrolaPakowania.API.Data.Enums;
-using KontrolaPakowania.API.Services.ErpXl;
 using KontrolaPakowania.API.Services.Shipment.GLS;
 using KontrolaPakowania.API.Services.Shipment.Mapping;
 using KontrolaPakowania.API.Settings;

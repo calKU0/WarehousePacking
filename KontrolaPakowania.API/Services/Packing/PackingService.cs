@@ -3,11 +3,11 @@ using Dapper;
 using KontrolaPakowania.API.Data;
 using KontrolaPakowania.API.Data.Enums;
 using KontrolaPakowania.API.Services;
-using KontrolaPakowania.API.Services.ErpXl;
 using KontrolaPakowania.API.Services.Packing;
 using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
+using KontrolaPakowania.Shared.Helpers;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using System.Data;
@@ -17,20 +17,18 @@ using System.Reflection.Emit;
 public class PackingService : IPackingService
 {
     private readonly IDbExecutor _db;
-    private readonly IErpXlClient _erpXlClient;
 
-    public PackingService(IDbExecutor db, IErpXlClient erpXlClient)
+    public PackingService(IDbExecutor db)
     {
-        _erpXlClient = erpXlClient;
         _db = db;
     }
 
-    public async Task<IEnumerable<JlDto>> GetJlListAsync(PackingLocation location)
+    public async Task<IEnumerable<JlDto>> GetJlListAsync(PackingLevel location)
     {
         var procedure = location switch
         {
-            PackingLocation.Góra => "kp.GetPackingListTop",
-            PackingLocation.Dół => "kp.GetPackingListBottom",
+            PackingLevel.Góra => "kp.GetPackingListTop",
+            PackingLevel.Dół => "kp.GetPackingListBottom",
             _ => throw new ArgumentOutOfRangeException(nameof(location), "Invalid packing location")
         };
 
@@ -44,12 +42,12 @@ public class PackingService : IPackingService
         return jlList;
     }
 
-    public async Task<JlDto> GetJlInfoByCodeAsync(string jl, PackingLocation location)
+    public async Task<JlDto> GetJlInfoByCodeAsync(string jl, PackingLevel location)
     {
         var procedure = location switch
         {
-            PackingLocation.Góra => "kp.GetPackingListInfoTop",
-            PackingLocation.Dół => "kp.GetPackingListInfoBottom",
+            PackingLevel.Góra => "kp.GetPackingListInfoTop",
+            PackingLevel.Dół => "kp.GetPackingListInfoBottom",
             _ => throw new ArgumentOutOfRangeException(nameof(location))
         };
 
@@ -72,12 +70,12 @@ public class PackingService : IPackingService
         return jlDto;
     }
 
-    public async Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl, PackingLocation location)
+    public async Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl, PackingLevel location)
     {
         var procedure = location switch
         {
-            PackingLocation.Góra => "kp.GetPackingItemsTop",
-            PackingLocation.Dół => "kp.GetPackingItemsBottom",
+            PackingLevel.Góra => "kp.GetPackingItemsTop",
+            PackingLevel.Dół => "kp.GetPackingItemsBottom",
             _ => throw new ArgumentOutOfRangeException(nameof(location))
         };
 
@@ -117,9 +115,11 @@ public class PackingService : IPackingService
         return result > 0;
     }
 
-    public CreatePackageResponse CreatePackage(CreatePackageRequest request)
+    public async Task<int> CreatePackage(CreatePackageRequest request)
     {
-        return _erpXlClient.CreatePackage(request);
+        const string procedure = "kp.CreatePackageDocument";
+        string courier = request.Courier.ToString();
+        return await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.Username, courier, request.ClientId, request.ClientAddressId }, CommandType.StoredProcedure, Connection.ERPConnection);
     }
 
     public async Task<bool> AddPackedPosition(AddPackedPositionRequest request)
@@ -138,22 +138,17 @@ public class PackingService : IPackingService
 
     public async Task<bool> ClosePackage(ClosePackageRequest request)
     {
-        if (!string.IsNullOrEmpty(request.InternalBarcode))
-        {
-            const string procedure = "kp.UpdateInternalBarcode";
-            var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.InternalBarcode, request.DocumentId }, CommandType.StoredProcedure, Connection.ERPConnection);
-        }
-        return _erpXlClient.ClosePackage(request);
+        int status = (int)request.Status;
+        const string procedure = "kp.ClosePackageDocument";
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.InternalBarcode, request.DocumentId, status }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return result > 0;
     }
 
     public async Task<bool> UpdatePackageCourier(UpdatePackageCourierRequest request)
     {
-        const string routeProcedure = "kp.GetCourierRouteId";
         string courier = request.Courier.ToString();
-        var routeId = await _db.QuerySingleOrDefaultAsync<int>(routeProcedure, new { courier }, CommandType.StoredProcedure, Connection.ERPConnection);
-
         const string updateProcedure = "kp.UpdatePackageCourier";
-        var result = await _db.QuerySingleOrDefaultAsync<int>(updateProcedure, new { request.PackageId, routeId }, CommandType.StoredProcedure, Connection.ERPConnection);
+        var result = await _db.QuerySingleOrDefaultAsync<int>(updateProcedure, new { request.PackageId, courier }, CommandType.StoredProcedure, Connection.ERPConnection);
         return result > 0;
     }
 
@@ -162,5 +157,29 @@ public class PackingService : IPackingService
         const string procedure = "kp.GenerateInternalBarcode";
         var result = await _db.QuerySingleOrDefaultAsync<string>(procedure, new { stationNumber }, CommandType.StoredProcedure, Connection.ERPConnection);
         return result;
+    }
+
+    public async Task<bool> AddPackageAttributes(int packageId, PackingWarehouse warehouse, PackingLevel level, string stationNumber)
+    {
+        const string procedure = "kp.AddPackageAttributes";
+        var warehouseDesc = warehouse.GetDescription();
+        var levelDesc = level.GetDescription();
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { packageId, warehouse = warehouseDesc, level = levelDesc, stationNumber }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return result > 0;
+    }
+
+    public async Task<PackingWarehouse> GetPackageWarehouse(string barcode)
+    {
+        const string procedure = "kp.GetPackageWarehouse";
+        var result = await _db.QuerySingleOrDefaultAsync<string>(procedure, new { barcode }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return EnumExtensions.ToEnumByDescription<PackingWarehouse>(result);
+    }
+
+    public async Task<bool> UpdatePackageWarehouse(string barcode, PackingWarehouse warehouse)
+    {
+        const string procedure = "kp.UpdatePackageWarehouse";
+        var warehouseDesc = warehouse.GetDescription();
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { barcode, warehouse = warehouseDesc }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return result > 0;
     }
 }

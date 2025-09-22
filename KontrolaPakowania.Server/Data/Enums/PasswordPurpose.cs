@@ -10,7 +10,7 @@ namespace KontrolaPakowania.Server.Data.Enums
     {
         None,
         JlNotReadyAction,
-        MessageToJlAction,
+        PackingRequirementAction,
         ManagerAction
     }
 }

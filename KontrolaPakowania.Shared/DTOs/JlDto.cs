@@ -18,7 +18,6 @@ namespace KontrolaPakowania.Shared.DTOs
         public Courier Courier { get; set; } = Courier.Unknown;
         public string LogoCourier { get; set; } = string.Empty;
         public CourierServices CourierServices { get; set; } = new();
-        public int RouteId { get; set; }
         public int Priority { get; set; }
         public int Sorting { get; set; }
         public bool OutsideEU { get; set; } = false;
@@ -26,6 +25,7 @@ namespace KontrolaPakowania.Shared.DTOs
         public int ClientAddressId { get; set; }
         public string ClientName { get; set; } = string.Empty;
         public bool PackageClosed { get; set; }
+        public string PackingRequirements { get; set; } = string.Empty;
 
         public void InitCourierFromName()
         {
@@ -39,7 +39,7 @@ namespace KontrolaPakowania.Shared.DTOs
                 var c when c.Contains("gls") => Courier.GLS,
                 var c when c.Contains("odbiór własny") => Courier.Personal_Collection,
                 var c when c.Contains("hellmann") => Courier.Hellmann,
-                var c when c.Contains("shenker") => Courier.Shenker,
+                var c when c.Contains("shenker") => Courier.Schenker,
                 _ => Courier.Unknown
             };
         }

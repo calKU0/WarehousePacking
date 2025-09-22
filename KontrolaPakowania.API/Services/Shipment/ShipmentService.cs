@@ -25,7 +25,7 @@ namespace KontrolaPakowania.API.Services.Shipment
 
         public async Task<bool> AddErpAttributes(int documentId, PackageInfo packageInfo)
         {
-            const string procedure = "kp.AddShipmentAtributes";
+            const string procedure = "kp.AddShipmentAttributes";
 
             string ROD = packageInfo.Services.ROD ? "TAK" : "NIE";
             string POD = packageInfo.Services.POD ? "TAK" : "NIE";

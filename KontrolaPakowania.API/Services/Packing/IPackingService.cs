@@ -6,13 +6,13 @@ namespace KontrolaPakowania.API.Services.Packing
 {
     public interface IPackingService
     {
-        Task<IEnumerable<JlDto>> GetJlListAsync(PackingLocation location);
+        Task<IEnumerable<JlDto>> GetJlListAsync(PackingLevel location);
 
-        Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl, PackingLocation location);
+        Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl, PackingLevel location);
 
         Task<IEnumerable<JlItemDto>> GetPackingJlItemsAsync(string barcode);
 
-        Task<JlDto> GetJlInfoByCodeAsync(string jl, PackingLocation location);
+        Task<JlDto> GetJlInfoByCodeAsync(string jl, PackingLevel location);
 
         Task<bool> AddJlRealization(JlInProgressDto jl);
 
@@ -22,7 +22,9 @@ namespace KontrolaPakowania.API.Services.Packing
 
         Task<bool> ReleaseJl(string jl);
 
-        CreatePackageResponse CreatePackage(CreatePackageRequest request);
+        Task<int> CreatePackage(CreatePackageRequest request);
+
+        Task<bool> AddPackageAttributes(int packageId, PackingWarehouse warehouse, PackingLevel level, string stationNumber);
 
         Task<bool> AddPackedPosition(AddPackedPositionRequest request);
 
@@ -33,5 +35,9 @@ namespace KontrolaPakowania.API.Services.Packing
         Task<bool> UpdatePackageCourier(UpdatePackageCourierRequest request);
 
         Task<string> GenerateInternalBarcode(string stationNumber);
+
+        Task<PackingWarehouse> GetPackageWarehouse(string barcode);
+
+        Task<bool> UpdatePackageWarehouse(string barcode, PackingWarehouse warehouse);
     }
 }

@@ -1,6 +1,5 @@
 ﻿using KontrolaPakowania.API.Data;
 using KontrolaPakowania.API.Data.Enums;
-using KontrolaPakowania.API.Services.ErpXl;
 using KontrolaPakowania.API.Services.Shipment;
 using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;

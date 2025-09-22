@@ -3,6 +3,7 @@
 
 @using KontrolaPakowania.Shared.DTOs.Requests
 @using KontrolaPakowania.Shared.Enums
+@using KontrolaPakowania.Shared.Helpers
 @inject PackingService PackingService
 @inject WorkstationService WorkstationService
 @inject NavigationManager Navigation
@@ -55,7 +56,7 @@
                             <tr class="@rowClass clickable-row" ondblclick="@(() => OnRowDoubleClick(item))">
                                 <td>@item.Name</td>
                                 <td>@item.Weight.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)</td>
-                                <td>@item.Courier</td>
+                                <td>@item.Courier.GetDescription()</td>
                                 <td>
                                     @if (item.OutsideEU)
                                     {
@@ -99,22 +100,17 @@
     </div>
 </div>
 
-@if (ShowPasswordModal)
-{
-    <PasswordModal Title="Wpisz hasło"
-                   OnConfirm="HandlePasswordConfirm"
-                   OnClose="() => ShowPasswordModal = false" />
-}
 
+<PasswordModal @ref="PasswordModal" OnConfirm="HandlePasswordConfirm" />
 <LoggedOperatorsModal @ref="LoggedOperatorsModal" />
 <JlInProgressModal @ref="JlInProgressModal" />
+<ChangePackingWarehouseModal @ref="ChangePackingWarehouseModal" />
 <PackingJlItemsModal @ref="PackingJlItemsModal" />
 <TextBoxModal @ref="TextBoxModal" />
 
 <Toast @ref="ToastError" Title="Error" Color="danger" />
 
 @code  {
-    private bool ShowPasswordModal = false;
     private List<JlDto>? JlList;
     private string Kuweta { get; set; } = string.Empty;
     private System.Threading.Timer? _timer;
@@ -123,10 +119,12 @@
     private JlDto? SelectedJl;
     private WorkstationSettings? Settings;
 
+    private PasswordModal PasswordModal = new();
     private ManagerControlModal ManagerModal = new();
     private TextBoxModal TextBoxModal = new();
     private LoggedOperatorsModal LoggedOperatorsModal = new();
     private JlInProgressModal JlInProgressModal = new();
+    private ChangePackingWarehouseModal ChangePackingWarehouseModal = new();
     private PackingJlItemsModal PackingJlItemsModal = new();
 
     private int JlReadyToPackCount { get; set; } = 0;
@@ -160,7 +158,7 @@
         {
             Settings = await WorkstationService.GetSettingsAsync();
 
-            JlList = await PackingService.GetJlList(Settings.PackingLocation);
+            JlList = await PackingService.GetJlList(Settings.PackingLevel);
 
             // Calculate count
             var jlReadyToPack = JlList.Where(jl => jl.Status == 1).ToList();
@@ -190,7 +188,7 @@
         if (jl.Status != 1)
         {
             CurrentPasswordPurpose = PasswordPurpose.JlNotReadyAction;
-            ShowPasswordModal = true;
+            PasswordModal.Show();
             await InvokeAsync(StateHasChanged);
         }
         else
@@ -202,8 +200,6 @@
     // Single password confirm handler
     private async Task HandlePasswordConfirm(string password)
     {
-        ShowPasswordModal = false;
-
         bool valid = await AuthService.ValidatePasswordAsync(password);
         if (!valid)
         {
@@ -212,7 +208,7 @@
             await ToastError.Hide();
             return;
         }
-
+        await PasswordModal.Close();
         switch (CurrentPasswordPurpose)
         {
             case PasswordPurpose.JlNotReadyAction:
@@ -230,7 +226,7 @@
     private void OnManagerButtonClick()
     {
         CurrentPasswordPurpose = PasswordPurpose.ManagerAction;
-        ShowPasswordModal = true;
+        PasswordModal.Show();
         StateHasChanged();
     }
 
@@ -264,7 +260,9 @@
                     }
                 }
                 break;
-            case 8: /* Zmień magazyn */ break;
+            case 8: /* Zmień magazyn */
+                await ChangePackingWarehouseModal.Show();
+                break;
         }
     }
 

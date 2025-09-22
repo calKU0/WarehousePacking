@@ -9,7 +9,6 @@ namespace KontrolaPakowania.Shared.DTOs.Requests
 {
     public class ClosePackageRequest
     {
-        public int DocumentRef { get; set; }
         public int DocumentId { get; set; }
         public string InternalBarcode { get; set; } = string.Empty;
         public DocumentStatus Status { get; set; }
