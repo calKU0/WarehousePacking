@@ -2,8 +2,8 @@
 {
     public class CrystalReportsOptions
     {
-        public string ReportsPath { get; set; } = string.Empty;
         public CrystalDbOptions Database { get; set; } = new();
+        public Dictionary<string, string> Reports { get; set; } = new();
     }
 
     public class CrystalDbOptions

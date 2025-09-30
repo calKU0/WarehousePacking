@@ -7,7 +7,6 @@
 @inject WorkstationService WorkstationService
 @inject ClientPrinterService ClientPrinterService
 @inject IJSRuntime JSRuntime
-@inherits ProtectedPageBase
 
 <div class="container-fluid package-send position-relative">
     <!-- Barcode Input Full Width -->
@@ -30,43 +29,43 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Akronim</label>
-                    <InputText @bind-Value="Package.RecipientName" class="form-control" disabled="@(!ManualEdit)" />
+                    <InputText @bind-Value="Package.RecipientName" class="form-control" disabled="@(!ManualEdit)" autocomplete="off" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Nazwa</label>
-                    <InputText @bind-Value="Package.RecipientName" class="form-control" disabled="@(!ManualEdit)" />
+                    <InputText @bind-Value="Package.RecipientName" class="form-control" disabled="@(!ManualEdit)" autocomplete="off" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Ulica</label>
-                    <InputText @bind-Value="Package.RecipientStreet" class="form-control" disabled="@(!ManualEdit)" />
+                    <InputText @bind-Value="Package.RecipientStreet" class="form-control" disabled="@(!ManualEdit)" autocomplete="off" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Kod Pocztowy</label>
-                    <InputText @bind-Value="Package.RecipientPostalCode" class="form-control" disabled="@(!ManualEdit)" />
+                    <InputText @bind-Value="Package.RecipientPostalCode" class="form-control" disabled="@(!ManualEdit)" autocomplete="off" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Miasto</label>
-                    <InputText @bind-Value="Package.RecipientCity" class="form-control" disabled="@(!ManualEdit)" />
+                    <InputText @bind-Value="Package.RecipientCity" class="form-control" disabled="@(!ManualEdit)" autocomplete="off" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Kraj</label>
-                    <InputText @bind-Value="Package.RecipientCountry" class="form-control" disabled="@(!ManualEdit)" />
+                    <InputText @bind-Value="Package.RecipientCountry" class="form-control" disabled="@(!ManualEdit)" autocomplete="off" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Telefon</label>
-                    <InputText @bind-Value="Package.RecipientPhone" class="form-control" disabled="@(!ManualEdit)" />
+                    <InputText @bind-Value="Package.RecipientPhone" class="form-control" disabled="@(!ManualEdit)" autocomplete="off" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Mail</label>
-                    <InputText @bind-Value="Package.RecipientEmail" type="email" class="form-control" disabled="@(!ManualEdit)" />
+                    <InputText @bind-Value="Package.RecipientEmail" type="email" class="form-control" disabled="@(!ManualEdit)" autocomplete="off" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Pobranie</label>
-                    <InputNumber @bind-Value="Package.ShipmentServices.CODAmount" class="form-control" disabled="@(!ManualEdit)" />
+                    <InputNumber @bind-Value="Package.ShipmentServices.CODAmount" class="form-control" disabled="@(!ManualEdit)" autocomplete="off" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Waga (kg)</label>
-                    <InputNumber @bind-Value="Package.Weight" step="0.01" class="form-control" disabled="@(!ManualEdit)" />
+                    <InputNumber @bind-Value="Package.Weight" step="0.01" class="form-control" disabled="@(!ManualEdit)" autocomplete="off" />
                 </div>
             </div>
 
@@ -103,15 +102,13 @@
                 </div>
             </div>
 
-
-
             <!-- Buttons Full Width Row -->
             <div class="row g-2 mb-4">
                 <div class="col-md-6 d-grid">
-                    <button class="btn btn-success tall-btn" @onclick="SendPackage">Wyślij paczkę</button>
+                    <button class="btn btn-success tall-btn" disabled="@(Package.Id == 0)" @onclick="SendPackage">Wyślij paczkę</button>
                 </div>
                 <div class="col-md-6 d-grid">
-                    <button class="btn btn-secondary tall-btn" @onclick="ClearData">Wyczyść</button>
+                    <button class="btn btn-secondary tall-btn" disabled="@(Package.Id == 0)" @onclick="ClearData">Wyczyść</button>
                 </div>
             </div>
         </div>
@@ -179,7 +176,7 @@
                     <button class="btn btn-outline-primary">Zamknij Trase DPD</button>
                     <button class="btn btn-outline-success">Zamknij Trase GLS</button>
                     <button class="btn btn-outline-danger mb-3">Zamknij Trase Fedex</button>
-                    <button class="btn btn-info">Wyślij mail do opiekuna</button>
+                    <button class="btn btn-info" disabled="@(Package.Id == 0)" @onclick=SendEmail>Wyślij mail do opiekuna</button>
                 </div>
             </div>
         </div>
@@ -187,11 +184,12 @@
 </div>
 
 <Toast @ref="Toast" />
+<EmailModal @ref="EmailModal" />
 <ShipmentModal @ref="ShipmentModal" />
 <ConfirmDialog @ref="ConfirmDialog" OnCancelClicked="HideConfirm" OnConfirmClicked="ConfirmDelete" />
 
 @code {
-    private string Barcode { get; set; }
+    private string Barcode { get; set; } = string.Empty;
     private PackageData Package { get; set; } = new();
     private WorkstationSettings Settings = new();
     private bool ManualEdit { get; set; }
@@ -200,6 +198,7 @@
     private ShipmentModal ShipmentModal = new();
     private ConfirmDialog ConfirmDialog = new();
     private Toast Toast = new();
+    private EmailModal EmailModal = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -233,13 +232,14 @@
     {
         try
         {
-            Package = await ShipmentService.GetShipmentDataByBarcode(Barcode);
-            if (Package == null)
+            var response = await ShipmentService.GetShipmentDataByBarcode(Barcode);
+            if (response == null)
             {
                 Toast.Show("Brak paczki!", $"Nie znalaziono paczki o podanym kodzie kreskowym w systmie");
                 return;
             }
 
+            Package = response;
             if (Package.WysNumber != 0)
             {
                 ConfirmDialog.Show("Usuń przesyłke", "Przesyłka do tej paczki została wygenerowana. Czy chcesz ją usunąć?");
@@ -269,7 +269,11 @@
                 {
                     var labelContent = response.LabelBase64;
                     await ClientPrinterService.PrintAsync(Settings.PrinterLabel, response.LabelType.ToString(), labelContent);
-                    ShipmentModal.Show(response.TrackingNumber, response.LabelBase64, response.LabelType, Settings.PrinterLabel);
+                    ShipmentModal.Show(response.TrackingNumber, response.LabelBase64, response.LabelType, Settings.PrinterLabel, Package.HasInvoice);
+                    if (Package.HasInvoice)
+                    {
+                        await ClientPrinterService.PrintCrystalAsync(Settings.PrinterInvoice, Package.RecipientCountry != "PL" ? "InvoiceEN" : "InvoicePL", new Dictionary<string, string> { { "DocumentId", Package.InvoiceId.ToString() } });
+                    }
                 }
                 else
                 {
@@ -280,7 +284,6 @@
             else
             {
                 var msg = string.IsNullOrWhiteSpace(response?.ErrorMessage) ? "Nie udało się wygenerować przesyłki!" : response.ErrorMessage;
-
                 Toast.Show("Błąd!", msg);
             }
         }
@@ -327,5 +330,10 @@
             await ClearData();
             await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", InputRef);
         }
+    }
+
+    private void SendEmail()
+    {
+        EmailModal.ShowModal(Package.RecipientName, Package.PackageName, Package.InvoiceName, Package.Representative, Package.RepresentativeEmail);
     }
 }

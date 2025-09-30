@@ -1,5 +1,6 @@
 using FedexServiceReference;
 using KontrolaPakowania.API.Data;
+using KontrolaPakowania.API.Services;
 using KontrolaPakowania.API.Services.Auth;
 using KontrolaPakowania.API.Services.Packing;
 using KontrolaPakowania.API.Services.Shipment;
@@ -28,6 +29,7 @@ builder.Services.AddSwaggerGen();
 // =====================
 builder.Services.Configure<XlApiSettings>(builder.Configuration.GetSection("XlApiSettings"));
 builder.Services.Configure<CourierSettings>(builder.Configuration.GetSection("CourierApis"));
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
 
 // =====================
 // HttpClients
@@ -45,7 +47,7 @@ builder.Services.AddHttpClient<DpdService>((sp, client) =>
 });
 
 // FedEx REST client
-builder.Services.AddHttpClient("FedexRestClient", (sp, client) =>
+builder.Services.AddHttpClient<FedexRestStrategy>((sp, client) =>
 {
     var settings = sp.GetRequiredService<IOptions<CourierSettings>>().Value.Fedex.Rest;
     client.BaseAddress = new Uri(settings.BaseUrl);
@@ -71,23 +73,13 @@ builder.Services.AddScoped<IGlsClientWrapper, GlsClientWrapper>();
 builder.Services.AddScoped<GlsService>();
 builder.Services.AddScoped<CourierFactory>();
 builder.Services.AddScoped<IShipmentService, ShipmentService>();
-
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IFedexTokenService, FedexTokenService>();
 builder.Services.AddScoped<IklServiceClient>();
 builder.Services.AddScoped<IFedexClientWrapper, FedexClientWrapper>();
 builder.Services.AddScoped<FedexService>();
 builder.Services.AddScoped<ICourierService>(sp => sp.GetRequiredService<FedexService>());
 builder.Services.AddScoped<FedexSoapStrategy>();
-builder.Services.AddScoped<FedexRestStrategy>(sp =>
-{
-    var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var client = clientFactory.CreateClient("FedexRestClient");
-    var tokenService = sp.GetRequiredService<IFedexTokenService>();
-    var mapper = sp.GetRequiredService<IParcelMapper<FedexShipmentRequest>>();
-    var courierSettings = sp.GetRequiredService<IOptions<CourierSettings>>();
-
-    return new FedexRestStrategy(client, tokenService, mapper, courierSettings);
-});
 
 // =====================
 // Build app

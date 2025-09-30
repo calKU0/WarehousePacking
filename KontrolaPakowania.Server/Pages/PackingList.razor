@@ -117,7 +117,6 @@
     private System.Threading.Timer? _timer;
     private ElementReference kuwetaInputRef;
     private Toast Toast = new();
-    private JlDto? SelectedJl;
     private WorkstationSettings Settings = new();
 
     private PasswordModal PasswordModal = new();
@@ -179,11 +178,11 @@
     private async Task RefreshData()
     {
         await LoadData();
+        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", kuwetaInputRef);
     }
 
     private async Task OnRowDoubleClick(JlDto jl)
     {
-        SelectedJl = jl;
         if (Settings.PackingLevel == PackingLevel.Dół)
         {
             // Check for other JLs with the same client address
@@ -230,10 +229,6 @@
         await PasswordModal.Hide();
         switch (CurrentPasswordPurpose)
         {
-            case PasswordPurpose.JlNotReadyAction:
-                Navigation.NavigateTo($"/kontrola-pakowania/{SelectedJl.Name}");
-                break;
-
             case PasswordPurpose.ManagerAction:
                 ManagerModal.OpenModal();
                 break;
@@ -282,6 +277,7 @@
                 await ChangePackingWarehouseModal.Show();
                 break;
         }
+        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", kuwetaInputRef);
     }
 
     public void Dispose()

@@ -39,6 +39,7 @@ builder.Services.AddScoped<PackingService>();
 builder.Services.AddScoped<UserSessionService>();
 builder.Services.AddScoped<ShipmentService>();
 builder.Services.AddScoped<ClientPrinterService>();
+builder.Services.AddScoped<EmailService>();
 
 var app = builder.Build();
 

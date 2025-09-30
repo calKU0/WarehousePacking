@@ -401,6 +401,8 @@
 
     private async Task ShowPackingRequirements()
     {
+        // TO DO
+        // Focus after closing
         if (!string.IsNullOrEmpty(CurrentJl.PackingRequirements))
         {
             CurrentPasswordPurpose = PasswordPurpose.PackingRequirementAction;
@@ -652,9 +654,10 @@
         ConfirmDialog.Show("Wyjście z kuwety", "Czy napewno chcesz wyjść z kuwety?");
     }
 
-    private void HideConfirm()
+    private async Task HideConfirm()
     {
         ConfirmDialog.Hide();
+        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", itemInputRef);
     }
 
     private async void ConfirmClose()
@@ -730,11 +733,11 @@
             case 4: /* Kurier */
                 try
                 {
-                    // if (CurrentJl.Country != "PL")
-                    // {
-                    //     Toast.Show("Błąd!", "Nie można zmienić kuriera na export!");
-                    //     return;
-                    // }
+                    if (CurrentJl.Country != "PL")
+                    {
+                        Toast.Show("Błąd!", "Nie można zmienić kuriera na export!");
+                        return;
+                    }
 
                     if (CurrentJl.ShipmentServices.HasAnyService())
                     {
@@ -796,6 +799,7 @@
                 await ChangePackingWarehouseModal.Show();
                 break;
         }
+        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElementRef", itemInputRef);
     }
 
     private Task Bufor()
@@ -885,7 +889,11 @@
                 {
                     var labelContent = response.LabelBase64;
                     await ClientPrinterService.PrintAsync(Settings.PrinterLabel, response.LabelType.ToString(), labelContent);
-                    ShipmentModal.Show(response.TrackingNumber, response.LabelBase64, response.LabelType, Settings.PrinterLabel);
+                    ShipmentModal.Show(response.TrackingNumber, response.LabelBase64, response.LabelType, Settings.PrinterLabel, package.HasInvoice);
+                    if (package.HasInvoice)
+                    {
+                        await ClientPrinterService.PrintCrystalAsync(Settings.PrinterInvoice, package.RecipientCountry != "PL" ? "InvoiceEN" : "InvoicePL", new Dictionary<string, string> { { "DocumentId", package.InvoiceId.ToString() } });
+                    }
                 }
                 else
                 {
@@ -913,29 +921,36 @@
 
     private async Task HandleInternalBarcode()
     {
-        FinishPackingModal.Hide();
-
-        string internalBarcode = await TextBoxModal.Show("Numer wewnętrzny", "Wprowadź numer wewnętrzny", "Kod kreskowy");
-        if (string.IsNullOrEmpty(internalBarcode)) return;
-
-        Dimensions dimensions = new();
-        if (Settings.PackingLevel == PackingLevel.Dół && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
+        try
         {
-            dimensions = await DimensionsModal.Show();
+            FinishPackingModal.Hide();
+
+            string internalBarcode = await TextBoxModal.Show("Numer wewnętrzny", "Wprowadź numer wewnętrzny", "Kod kreskowy");
+            if (string.IsNullOrEmpty(internalBarcode)) return;
+
+            Dimensions dimensions = new();
+            if (Settings.PackingLevel == PackingLevel.Dół && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
+            {
+                dimensions = await DimensionsModal.Show();
+            }
+
+            await ClosePackage(internalBarcode, dimensions);
+            await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", internalBarcode } });
+
+            switch (_currentPackingFlow)
+            {
+                case PackingFlow.FinishPacking:
+                    Navigation.NavigateTo("/kontrola-pakowania");
+                    break;
+                case PackingFlow.NextPackage:
+                    PackedItems.Clear();
+                    StateHasChanged();
+                    break;
+            }
         }
-
-        await ClosePackage(internalBarcode, dimensions);
-        await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, internalBarcode);
-
-        switch (_currentPackingFlow)
+        catch (Exception ex)
         {
-            case PackingFlow.FinishPacking:
-                Navigation.NavigateTo("/kontrola-pakowania");
-                break;
-            case PackingFlow.NextPackage:
-                PackedItems.Clear();
-                StateHasChanged();
-                break;
+            Toast.Show("Błąd!", $"Błąd przy próbie finalizacji pakowania: {ex.Message}");
         }
     }
 

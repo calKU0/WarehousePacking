@@ -242,8 +242,20 @@ namespace KontrolaPakowania.API.Controllers
         {
             try
             {
-                bool success = await _packingService.ClosePackage(request);
-                return Ok(success);
+                int result = await _packingService.ClosePackage(request);
+
+                switch (result)
+                {
+                    case 1:
+                        return Ok();
+
+                    case -1:
+                        return Conflict("Paczka z tym kodem wewnętrznym już istnieje w systemie!");
+
+                    case 0:
+                    default:
+                        return BadRequest("Nie udało się zamknąć paczki w ERP.");
+                }
             }
             catch (ArgumentException ex)
             {

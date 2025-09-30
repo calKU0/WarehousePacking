@@ -143,12 +143,12 @@ public class PackingService : IPackingService
         return result > 0;
     }
 
-    public async Task<bool> ClosePackage(ClosePackageRequest request)
+    public async Task<int> ClosePackage(ClosePackageRequest request)
     {
         int status = (int)request.Status;
         const string procedure = "kp.ClosePackageDocument";
         var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.InternalBarcode, request.DocumentId, request.Height, request.Width, request.Length, status }, CommandType.StoredProcedure, Connection.ERPConnection);
-        return result > 0;
+        return result;
     }
 
     public async Task<bool> UpdatePackageCourier(UpdatePackageCourierRequest request)

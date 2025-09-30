@@ -32,7 +32,7 @@ namespace KontrolaPakowania.API.Services.Packing
 
         Task<bool> RemovePackedPosition(RemovePackedPositionRequest request);
 
-        Task<bool> ClosePackage(ClosePackageRequest request);
+        Task<int> ClosePackage(ClosePackageRequest request);
 
         Task<bool> UpdatePackageCourier(UpdatePackageCourierRequest request);
 

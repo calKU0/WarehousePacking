@@ -11,6 +11,7 @@ namespace KontrolaPakowania.Shared.DTOs
     public class PackageData
     {
         public int Id { get; set; }
+        public int InvoiceId { get; set; }
         private Courier courier;
 
         public Courier Courier
@@ -29,6 +30,8 @@ namespace KontrolaPakowania.Shared.DTOs
         public string CourierName { get; set; } = string.Empty;
         public string CourierLogo { get; set; } = string.Empty;
         public PackageType PackageType { get; set; }
+        public string InvoiceName { get; set; } = string.Empty;
+        public string PackageName { get; set; } = string.Empty;
         public string RecipientName { get; set; } = string.Empty;
         public string RecipientCity { get; set; } = string.Empty;
         public string RecipientStreet { get; set; } = string.Empty;
@@ -40,6 +43,8 @@ namespace KontrolaPakowania.Shared.DTOs
         public string SenderBankAccount { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string References { get; set; } = string.Empty;
+        public string Representative { get; set; } = string.Empty;
+        public string RepresentativeEmail { get; set; } = string.Empty;
         public int PackageQuantity { get; set; } = 1;
         public decimal Insurance { get; set; }
         public decimal Weight { get; set; }
@@ -48,6 +53,7 @@ namespace KontrolaPakowania.Shared.DTOs
         public decimal Height { get; set; }
         public int WysNumber { get; set; }
         public int WysType { get; set; }
+        public bool HasInvoice { get; set; }
         public ShipmentServices ShipmentServices { get; set; } = new ShipmentServices();
 
         private void InitCourierLogo()

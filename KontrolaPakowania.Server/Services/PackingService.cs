@@ -1,6 +1,7 @@
 ﻿using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
+using System.Net;
 using System.Net.Http.Json;
 
 namespace KontrolaPakowania.Server.Services
@@ -125,10 +126,26 @@ namespace KontrolaPakowania.Server.Services
         public async Task<bool> ClosePackage(ClosePackageRequest request)
         {
             var response = await _dbClient.PostAsJsonAsync($"api/packing/close-package", request);
-            response.EnsureSuccessStatusCode();
 
-            bool success = await response.Content.ReadFromJsonAsync<bool>();
-            return success;
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+
+            if (response.StatusCode == HttpStatusCode.Conflict)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
         }
 
         public async Task<bool> UpdatePackageCourier(UpdatePackageCourierRequest request)

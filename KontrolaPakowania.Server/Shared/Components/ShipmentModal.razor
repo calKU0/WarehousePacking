@@ -14,6 +14,10 @@
                 </div>
                 <div class="modal-body text-center">
                     <p>Numer przesyłki: <strong>@TrackingNumber</strong></p>
+                    @if (HasInvoice)
+                    {
+                        <p class="text-success fw-bold">Wydrukowano fakturę. Dołącz do paczki.</p>
+                    }
                 </div>
                 <div class="modal-footer container-fluid border-0">
                     <div class="row w-100">
@@ -41,6 +45,7 @@
     public string LabelBase64 { get; set; } = string.Empty;
     public string Printer { get; set; } = string.Empty;
     public PrintDataType LabelType { get; set; }
+    public bool HasInvoice { get; set; }
     [Parameter] public EventCallback OnOk { get; set; }
 
     private async Task OnOkClicked()
@@ -59,12 +64,13 @@
         }
     }
 
-    public void Show(string trackingNumber, string labelBase64, PrintDataType labelType, string printer)
+    public void Show(string trackingNumber, string labelBase64, PrintDataType labelType, string printer, bool hasInvoice)
     {
         TrackingNumber = trackingNumber;
         LabelBase64 = labelBase64;
         LabelType = labelType;
         Printer = printer;
+        HasInvoice = hasInvoice;
         IsVisible = true;
         StateHasChanged();
     }

@@ -1,4 +1,5 @@
-﻿using KontrolaPakowania.API.Services.Shipment;
+﻿using KontrolaPakowania.API.Services;
+using KontrolaPakowania.API.Services.Shipment;
 using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
@@ -13,11 +14,13 @@ namespace KontrolaPakowania.API.Controllers
     {
         private readonly CourierFactory _courierFactory;
         private readonly IShipmentService _shipmentService;
+        private readonly IEmailService _emailService;
 
-        public ShipmentsController(CourierFactory courierFactory, IShipmentService shipmentService)
+        public ShipmentsController(CourierFactory courierFactory, IShipmentService shipmentService, IEmailService emailService)
         {
             _courierFactory = courierFactory;
             _shipmentService = shipmentService;
+            _emailService = emailService;
         }
 
         [HttpGet("shipment-data")]
@@ -49,7 +52,10 @@ namespace KontrolaPakowania.API.Controllers
                 var courier = _courierFactory.GetCourier(package.Courier);
                 var result = await courier.SendPackageAsync(package);
                 if (!result.Success)
-                    return BadRequest(result.ErrorMessage);
+                {
+                    await _emailService.SendPackageFailureEmail(package, result.ErrorMessage);
+                    return BadRequest($"{result.ErrorMessage}. Email z błędem został wysłany do opiekuna klienta, którym jest {package.Representative}");
+                }
 
                 var createDocResult = await _shipmentService.CreateErpShipmentDocument(result);
                 if (createDocResult <= 0)
