@@ -12,7 +12,7 @@
 
     <PackingHeader JlItems="JlItems"
                 CurrentJl="CurrentJl"
-                Username="UserSession.Username"
+                Username="@UserSession.Username"
                 OnManagerClick="HandleManagerClick"
                 OnManagerRequestPassword="OnManagerButtonClick" />
 
@@ -65,6 +65,17 @@
 <Toast @ref="Toast" />
 
 @code {
-
-     
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await base.OnInitializedAsync();
+            await CreatePackage();
+            await LoadCourierConfiguration();
+        }
+        catch (Exception ex)
+        {
+            Toast.Show("Błąd!", $"Błąd przy inicjalizacji: {ex.Message}");
+        }
+    }
 }

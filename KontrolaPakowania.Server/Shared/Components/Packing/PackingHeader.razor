@@ -1,8 +1,9 @@
 ﻿@using KontrolaPakowania.Server.Shared.Components.Modals
 @using KontrolaPakowania.Shared.Enums
+@using KontrolaPakowania.Shared.Helpers
 
 <div class="d-flex align-items-center mb-3 header-row w-100">
-    @if (JlItems != null && JlItems.Any() && CurrentJl.Country != "PL")
+    @if (JlItems != null && JlItems.Any() && CurrentJl.Country != "PL" && CurrentJl.ClientName != "MIX")
     {
         <div class="header-image-placeholder me-2">
             <img src="images/exp.jpg" alt="Export" />
@@ -12,7 +13,7 @@
     @if (CurrentJl != null && CurrentJl.Courier != Courier.Unknown)
     {
         <div class="header-image-placeholder me-3">
-            <img src="CurrentJl.LogoCourier" alt="@CurrentJl.LogoCourier" />
+            <img src="@Utils.GetCourierSrc(CurrentJl.LogoCourier)" alt="@CurrentJl.LogoCourier" />
         </div>
     }
 

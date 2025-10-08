@@ -1,4 +1,6 @@
-﻿using System;
+﻿using KontrolaPakowania.Shared.Enums;
+using KontrolaPakowania.Shared.Helpers;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,6 +12,7 @@ namespace KontrolaPakowania.Shared.DTOs
 {
     public class JlItemDto
     {
+        public string JlCode { get; set; } = string.Empty;
         public int ItemErpId { get; set; }
         public int ItemWmsId { get; set; }
         public int ErpPositionNumber { get; set; }
@@ -23,10 +26,35 @@ namespace KontrolaPakowania.Shared.DTOs
         public decimal ItemVolume { get; set; }
         public string SupplierCode { get; set; } = string.Empty;
         public string ClientErpId { get; set; } = string.Empty;
-        public string ClientErpAddressId { get; set; } = string.Empty;
+        public int ClientAddressId { get; set; }
+        public int ClientAddressType { get; set; }
+
         public string ClientName { get; set; } = string.Empty;
         public string DestinationCountry { get; set; } = string.Empty;
-        public string Courier { get; set; } = string.Empty;
+
+        [JsonPropertyName("courier")]
+        public string CourierName { get; set; } = string.Empty;
+
+        private Courier courier;
+
+        [JsonPropertyName("courierenum")]
+        public Courier Courier
+        {
+            get => courier;
+            set
+            {
+                if (courier != value)
+                {
+                    courier = value;
+                    InitCourierLogo();
+                }
+            }
+        }
+
+        public string LogoCourier { get; set; } = string.Empty;
+
+        public ShipmentServices ShipmentServices { get; set; } = new();
+
         public int BatchId { get; set; }
         public string BatchNumber { get; set; } = string.Empty;
         public string TermValidity { get; set; } = string.Empty;
@@ -63,6 +91,23 @@ namespace KontrolaPakowania.Shared.DTOs
             var documentId = parts.Length > 0 ? Convert.ToInt32(parts[0]) : 0;
             var documentType = parts.Length > 1 ? Convert.ToInt32(parts[1]) : 0;
             return (documentId, documentType);
+        }
+
+        private void InitCourierLogo()
+        {
+            var suffixes = new List<string>();
+
+            foreach (var prop in typeof(ShipmentServices).GetProperties())
+            {
+                if (prop.PropertyType == typeof(bool) && (bool)prop.GetValue(ShipmentServices))
+                {
+                    suffixes.Add(prop.Name); // Or map to user-friendly names
+                }
+            }
+
+            LogoCourier = suffixes.Any()
+                ? $"{Courier.GetDescription()}-{string.Join(", ", suffixes)}"
+                : Courier.GetDescription();
         }
     }
 }

@@ -352,5 +352,26 @@ namespace KontrolaPakowania.API.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpPost("pack-wms-stock")]
+        public async Task<IActionResult> PackWmsStock([FromBody] List<WmsPackStockRequest> items)
+        {
+            try
+            {
+                var result = await _packingService.PackWmsStock(items);
+                if (result.Desc == "OK")
+                    return Ok(result);
+                else
+                    return BadRequest(result.Desc);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }

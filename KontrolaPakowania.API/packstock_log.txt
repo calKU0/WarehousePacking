@@ -1,0 +1,10 @@
+
+[2025-10-08 09:27:33] REQUEST:
+{"whsSource":"6","proces":"PCK","items":[{"locSourceNr":null,"locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"KK-261","luDestNr":"44680029218","luDestTypeSymbol":"PACZKA","itemNr":"001485.02","batchId":null,"itemQty":"3"}]}
+[2025-10-08 09:27:33] RESPONSE:
+{"status":"1","desc":"OK"}
+
+[2025-10-08 09:29:56] REQUEST:
+{"whsSource":"6","proces":"PCK","items":[{"locSourceNr":null,"locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"KK-261","luDestNr":"44680029219","luDestTypeSymbol":"PACZKA","itemNr":"001485.02","batchId":null,"itemQty":"3"}]}
+[2025-10-08 09:29:56] RESPONSE:
+{"status":"1","desc":"OK"}

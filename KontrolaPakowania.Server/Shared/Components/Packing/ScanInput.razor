@@ -1,10 +1,11 @@
 ﻿<div class="mb-3 flex-shrink-0">
-    <input type="text" @ref="inputRef" @onkeydown="OnKeyDown" class="form-control form-control-lg" placeholder="Skanuj kod..." />
+    <input type="text" @ref="inputRef" @onkeydown="OnKeyDown" class="form-control form-control-lg" placeholder="Skanuj kod..." disabled="@Disabled" />
 </div>
 
 @code {
     private ElementReference inputRef;
     [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
+    [Parameter] public bool Disabled { get; set; } = false;
 
     // Focus input
     public async Task FocusAsync()

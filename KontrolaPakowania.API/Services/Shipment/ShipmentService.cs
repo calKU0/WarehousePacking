@@ -50,7 +50,7 @@ namespace KontrolaPakowania.API.Services.Shipment
 
         public async Task<PackageData?> GetShipmentDataByBarcode(string barcode)
         {
-            const string procedure = "kp.GetPackageInfo";
+            const string procedure = "kp.GetPackageData";
 
             var result = await _db.QuerySingleOrDefaultAsync<PackageData, ShipmentServices>(
                 procedure,

@@ -2,6 +2,7 @@
 using Dapper;
 using KontrolaPakowania.API.Data;
 using KontrolaPakowania.API.Data.Enums;
+using KontrolaPakowania.API.Integrations.Couriers.Fedex.DTOs;
 using KontrolaPakowania.API.Integrations.Wms;
 using KontrolaPakowania.API.Services;
 using KontrolaPakowania.API.Services.Packing;
@@ -39,7 +40,18 @@ public class PackingService : IPackingService
             {
                 client.Courier = CourierHelper.GetCourierFromName(client.CourierName);
 
-                // Optionally determine shipment services
+                if (int.TryParse(client.ClientErpId, out var clientId) && jl.Clients.Count() == 1)
+                {
+                    var jlItems = await _wmsApi.GetJlItemsAsync(jl.JlCode);
+                    var details = await GetClientDetailsFromErpAsync(jlItems.FirstOrDefault().DocumentId, jlItems.FirstOrDefault().DocumentType);
+                    if (details != null)
+                    {
+                        client.ClientAddressId = details.AddressId;
+                        client.ClientAddressType = details.AddressType;
+                        client.ClientName = details.Name;
+                    }
+                }
+
                 var courierLower = client.CourierName.ToLower();
                 client.ShipmentServices = new ShipmentServices
                 {
@@ -51,7 +63,6 @@ public class PackingService : IPackingService
                 };
             }
         }
-
         // Map to flattened JlData
         return jlList.ToJlData();
     }
@@ -59,9 +70,35 @@ public class PackingService : IPackingService
     public async Task<JlData?> GetJlInfoByCodeAsync(string jlCode, PackingLevel location)
     {
         var jlList = await _wmsApi.GetJlListAsync();
-
         // Find the JL by code
         var jlDto = jlList.FirstOrDefault(x => x.JlCode.Equals(jlCode, StringComparison.OrdinalIgnoreCase));
+        foreach (var client in jlDto.Clients)
+        {
+            client.Courier = CourierHelper.GetCourierFromName(client.CourierName);
+
+            if (int.TryParse(client.ClientErpId, out var clientId) && jlDto.Clients.Count() == 1)
+            {
+                var jlItems = await _wmsApi.GetJlItemsAsync(jlDto.JlCode);
+                var details = await GetClientDetailsFromErpAsync(jlItems.FirstOrDefault().DocumentId, jlItems.FirstOrDefault().DocumentType);
+                if (details != null)
+                {
+                    client.ClientAddressId = details.AddressId;
+                    client.ClientAddressType = details.AddressType;
+                    client.ClientName = details.Name;
+                }
+            }
+
+            var courierLower = client.CourierName.ToLower();
+            client.ShipmentServices = new ShipmentServices
+            {
+                D12 = courierLower.Contains("12"),
+                D10 = courierLower.Contains("10"),
+                Saturday = courierLower.Contains("sobota"),
+                PZ = courierLower.Contains("zwrotna"),
+                Dropshipping = courierLower.Contains("dropshipping")
+            };
+        }
+
         if (jlDto == null)
             return null;
 
@@ -70,7 +107,30 @@ public class PackingService : IPackingService
 
     public async Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl, PackingLevel location)
     {
-        return await _wmsApi.GetJlItemsAsync(jl);
+        var jlItems = await _wmsApi.GetJlItemsAsync(jl);
+        var details = await GetClientDetailsFromErpAsync(jlItems.FirstOrDefault().DocumentId, jlItems.FirstOrDefault().DocumentType);
+        foreach (var item in jlItems)
+        {
+            item.Courier = CourierHelper.GetCourierFromName(item.CourierName);
+            if (details != null)
+            {
+                item.ClientAddressId = details.AddressId;
+                item.ClientAddressType = details.AddressType;
+                item.ClientName = details.Name;
+            }
+            item.JlCode = jl;
+            // Optionally determine shipment services
+            var courierLower = item.CourierName.ToLower();
+            item.ShipmentServices = new ShipmentServices
+            {
+                D12 = courierLower.Contains("12"),
+                D10 = courierLower.Contains("10"),
+                Saturday = courierLower.Contains("sobota"),
+                PZ = courierLower.Contains("zwrotna"),
+                Dropshipping = courierLower.Contains("dropshipping")
+            };
+        }
+        return jlItems;
     }
 
     public async Task<IEnumerable<JlItemDto>> GetPackingJlItemsAsync(string barcode)
@@ -180,5 +240,75 @@ public class PackingService : IPackingService
         var warehouseDesc = warehouse.GetDescription();
         var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { barcode, warehouse = warehouseDesc }, CommandType.StoredProcedure, Connection.ERPConnection);
         return result > 0;
+    }
+
+    private async Task<ClientDetails> GetClientDetailsFromErpAsync(int documentId, int documentType)
+    {
+        const string procedure = "kp.GetClientDetails";
+
+        return await _db.QuerySingleOrDefaultAsync<ClientDetails>(procedure, new { documentId, documentType }, CommandType.StoredProcedure, Connection.ERPConnection);
+    }
+
+    public async Task<PackWMSResponse> PackWmsStock(List<WmsPackStockRequest> items)
+    {
+        if (items == null || !items.Any())
+            return new PackWMSResponse { Status = "-1", Desc = "No items to process." };
+
+        // --- 1️ Calculate total weight per JL ---
+        var jlWeights = items
+            .GroupBy(i => i.JlCode)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Weight));
+
+        // --- 2️ Group items by courier ---
+        var courierGroups = items.GroupBy(i => i.Courier);
+
+        var allPackItems = new List<PackStockItems>();
+
+        // --- 3️ Process each courier group ---
+        foreach (var courierGroup in courierGroups)
+        {
+            var courier = courierGroup.Key;
+
+            // 🔹 Call the stored procedure ONCE per courier
+            string packageDestination = await GetPackageDestination(courier.ToString());
+            if (string.IsNullOrEmpty(packageDestination))
+                packageDestination = "Zrzuty-rolotok-1-5-1"; // fallback
+
+            // 🔹 Build PackStockItems for this courier group
+            foreach (var v in courierGroup)
+            {
+                var totalWeight = jlWeights[v.JlCode];
+                var luDestType = totalWeight > 120 ? "PALETA" : "PACZKA";
+
+                allPackItems.Add(new PackStockItems
+                {
+                    LocDestNr = packageDestination,
+                    LuSourceNr = v.JlCode,
+                    LuDestNr = v.PackageCode,
+                    LuDestTypeSymbol = luDestType,
+                    ItemNr = v.ItemCode,
+                    ItemQty = v.Quantity.ToString()
+                });
+            }
+        }
+
+        // --- 4️ Create the main WMS request ---
+        var request = new PackStockRequest
+        {
+            WhsSource = "6",
+            Proces = "PCK",
+            Items = allPackItems
+        };
+
+        // --- 5️ Call the WMS API ---
+        var response = await _wmsApi.PackStock(request);
+        return response;
+    }
+
+    private async Task<string> GetPackageDestination(string courier)
+    {
+        const string procedure = "kp.GetPackageDestination";
+        var result = await _db.QuerySingleOrDefaultAsync<string>(procedure, new { courier }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return result;
     }
 }

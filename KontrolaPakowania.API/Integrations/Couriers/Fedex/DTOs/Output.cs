@@ -1,11 +1,9 @@
-using System.Collections.Generic;
-
-namespace KontrolaPakowania.API.Integrations.Couriers.Fedex.DTOs
+﻿namespace KontrolaPakowania.API.Integrations.Couriers.Fedex.DTOs
 {
     public class Output
     {
-        public List<TransactionShipment> TransactionShipments { get; set; }
-        public List<Alert> Alerts { get; set; }
-        public string JobId { get; set; }
+        public List<TransactionShipment>? TransactionShipments { get; set; }
+        public List<Alert>? Alerts { get; set; }
+        public string? JobId { get; set; }
     }
 }

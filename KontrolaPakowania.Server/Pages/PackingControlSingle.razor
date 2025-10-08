@@ -1,16 +1,229 @@
 ﻿@using KontrolaPakowania.Server.Services
 @using KontrolaPakowania.Shared.DTOs.Requests
 @using KontrolaPakowania.Shared.Enums
+@using KontrolaPakowania.Shared.Helpers
 
 @page "/kontrola-pakowania/{jl}/single"
 @layout NoNavLayout
 @inherits PackingPageBase
 
 <div class="container-fluid d-flex flex-column vh-100 p-3 pack-control">
-    <div class="d-flex align-items-center mb-3 header-row w-100">
+    <PackingHeader JlItems="JlItems"
+                   CurrentJl="CurrentJl"
+                   Username="@UserSession.Username"
+                   OnManagerClick="HandleManagerClick"
+                   OnManagerRequestPassword="OnManagerButtonClick" />
 
-    </div>
+    <ScanInput @ref="ScanInputComponent" OnKeyDown="HandleCodeInput" Disabled="@MovedProduct" />
+
+    <PackingTables JlItems="JlItems"
+                   PackedItems="PackedItems"
+                   SelectedPackedItem="SelectedPackedItem"
+                   HighlightedRows="HighlightedRows"
+                   OnRowDoubleClick="OpenProductModal"
+                   OnPackedItemSelect="SelectPackedItem"
+                   CourierConfiguration="CourierConfiguration" 
+                   Disabled="@MovedProduct" />
+
+    <PackingButtons NextPackage="NextPackage"
+                    Bufor="Bufor"
+                    UnpackItem="UnpackItem"
+                    Close="Close"
+                    FinishPacking="FinishPacking"
+                    PackedItems="PackedItems"
+                    Settings="Settings" />
+
+    @if (ShowProductModal && SelectedItem != null)
+    {
+        <ProductSelectModal Product="SelectedItem"
+                            OnConfirm="PackItem"
+                            OnClose="() => ShowProductModal = false" />
+    }
+
+    <PasswordModal @ref=PackingRequirementsModal OnConfirm="HandlePasswordConfirm" OnCancel="HandlePasswordCancel" />
+    <PasswordModal @ref=ManagerPasswordModal OnConfirm="HandlePasswordConfirm" />
+    <ConfirmDialog @ref="ConfirmDialog" OnCancelClicked="HideConfirm" OnConfirmClicked="ConfirmClose" />
+    <CourierModal @ref="CourierModal" />
+    <LoggedOperatorsModal @ref="LoggedOperatorsModal" />
+    <JlInProgressModal @ref="JlInProgressModal" />
+    <PackingJlItemsModal @ref="PackingJlItemsModal" />
+    <ChangePackingWarehouseModal @ref="ChangePackingWarehouseModal" />
+    <TextBoxModal @ref="TextBoxModal" />
+
+    <FinishPackingModal @ref="FinishPackingModal"
+                        Courier="CurrentJl.Courier"
+                        CourierSrc="@CurrentJl.LogoCourier"
+                        OnCourierLabel="HandleCourierLabel"
+                        OnInternalBarcode="HandleInternalBarcode" />
+
+    <DimensionsModal @ref="DimensionsModal" />
+    <ShipmentModal @ref="ShipmentModal" OnOk="HandleShipmentOkClick" />
+
+    <Toast @ref="Toast" />
 </div>
 
 @code {
+    private bool MovedProduct { get; set; } = false;
+
+    public void FillJlData(JlItemDto item)
+    {
+        CurrentJl.Courier = item.Courier;
+        CurrentJl.CourierName = item.CourierName;
+        CurrentJl.LogoCourier = item.LogoCourier;
+        CurrentJl.ShipmentServices = item.ShipmentServices;
+
+        CurrentJl.Country = item.DestinationCountry;
+
+        CurrentJl.ClientAddressId = item.ClientAddressId;
+        CurrentJl.ClientAddressType = item.ClientAddressType;
+        CurrentJl.ClientName = item.ClientName;
+        CurrentJl.ClientId = Convert.ToInt32(item.ClientErpId);
+        StateHasChanged();
+    }
+
+    public void ClearJlData()
+    {
+        CurrentJl.Courier = Courier.Unknown;
+        CurrentJl.CourierName = "MIX";
+        CurrentJl.LogoCourier = string.Empty;
+        CurrentJl.ShipmentServices = new();
+
+        CurrentJl.Country = string.Empty;
+
+        CurrentJl.ClientAddressId = 0;
+        CurrentJl.ClientAddressType = 0;
+        CurrentJl.ClientName = string.Empty;
+        CurrentJl.ClientId = 0;
+        CurrentJl.PackageClosed = false;
+        PackageId = 0;
+        StateHasChanged();
+    }
+
+    protected override async Task PackItem(decimal qty)
+    {
+        try
+        {
+            if (SelectedItem == null || JlItems == null) return;
+            FillJlData(SelectedItem);
+            await LoadCourierConfiguration();
+            await CreatePackage();
+            bool moved = await MoveItemToPacked(SelectedItem, qty);
+            if (!moved) 
+            {
+                ClearJlData();
+                ClosePackageRequest closePackageRequest = new()
+                {
+                    DocumentId = PackageId,
+                    Status = DocumentStatus.Delete
+                };
+                await PackingService.ClosePackage(closePackageRequest);
+                return;
+            }
+
+            MovedProduct = true;
+            FinishPacking();
+        }
+        catch (Exception ex)
+        {
+            Toast.Show("Błąd!", $"Błąd przy próbie spakowania towaru: {ex.Message}");
+        }
+        finally
+        {
+            ShowProductModal = false;
+            SelectedItem = null;
+            await ScanInputComponent.FocusAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    protected override async Task UnpackItem()
+    {
+        if (SelectedPackedItem == null) return;
+
+        var request = new RemovePackedPositionRequest
+        {
+            PackingDocumentId = PackageId,
+            SourceDocumentId = SelectedPackedItem.DocumentId,
+            SourceDocumentType = SelectedPackedItem.DocumentType,
+            PositionNumber = SelectedPackedItem.ErpPositionNumber,
+            Quantity = SelectedPackedItem.JlQuantity,
+            Weight = SelectedPackedItem.ItemWeight,
+            Volume = SelectedPackedItem.ItemVolume
+        };
+
+        var success = await PackingService.RemovePackedPosition(request);
+        if (!success)
+        {
+            Toast.Show("Błąd!", "Nie udało się usunąć spakowanej pozycji.");
+            return;
+        }
+
+        var existingLeft = JlItems.FirstOrDefault(j => j.ItemCode == SelectedPackedItem.ItemCode);
+        if (existingLeft != null) existingLeft.JlQuantity += SelectedPackedItem.JlQuantity;
+        else JlItems.Add(SelectedPackedItem);
+
+        PackedItems.Remove(SelectedPackedItem);
+        HighlightedRows.Remove(SelectedPackedItem.ItemCode);
+        SelectedPackedItem = null;
+
+        MovedProduct = false;
+        ClearJlData();
+    }
+
+    protected override async Task HandleShipmentOkClick()
+    {
+        switch (_currentPackingFlow)
+        {
+            case PackingFlow.FinishPacking:
+                PackedItems.Clear();
+                MovedProduct = false;
+                ClearJlData();
+                CourierConfiguration = new();
+                break;
+        }
+
+        if (!JlItems.Any())
+        {
+            Navigation.NavigateTo("/kontrola-pakowania");
+        }
+    }
+
+    protected override async Task HandleInternalBarcode()
+    {
+        try
+        {
+            FinishPackingModal.Hide();
+
+            string internalBarcode = await TextBoxModal.Show("Numer wewnętrzny", "Wprowadź numer wewnętrzny", "Kod kreskowy");
+            if (string.IsNullOrEmpty(internalBarcode)) return;
+
+            Dimensions dimensions = new();
+            if (Settings.PackingLevel == PackingLevel.Dół && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
+            {
+                dimensions = await DimensionsModal.Show();
+            }
+
+            await ClosePackage(internalBarcode, dimensions);
+            await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", internalBarcode } });
+
+            switch (_currentPackingFlow)
+            {
+                case PackingFlow.FinishPacking:
+                    PackedItems.Clear();
+                    MovedProduct = false;
+                    ClearJlData();
+                    CourierConfiguration = new();
+                    break;
+            }
+
+            if (!JlItems.Any())
+            {
+                Navigation.NavigateTo("/kontrola-pakowania");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.Show("Błąd!", $"Błąd przy próbie finalizacji pakowania: {ex.Message}");
+        }
+    }
 }

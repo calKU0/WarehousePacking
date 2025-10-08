@@ -16,7 +16,7 @@ namespace KontrolaPakowania.Shared.DTOs
 
         private Courier courier;
 
-        [JsonIgnore]
+        [JsonPropertyName("courierenum")]
         public Courier Courier
         {
             get => courier;
@@ -30,20 +30,22 @@ namespace KontrolaPakowania.Shared.DTOs
             }
         }
 
-        [JsonIgnore]
         public string LogoCourier { get; set; } = string.Empty;
 
         public string ClientErpId { get; set; } = string.Empty;
-        public int? ClientErpAddressId { get; set; }
+
+        public int ClientAddressId { get; set; }
+
+        public int ClientAddressType { get; set; }
+
+        public string ClientName { get; set; } = string.Empty;
+
         public string DestinationCountry { get; set; } = string.Empty;
 
-        [JsonIgnore]
         public ShipmentServices ShipmentServices { get; set; } = new();
 
-        [JsonIgnore]
         public bool PackageClosed { get; set; }
 
-        [JsonIgnore]
         public string PackingRequirements { get; set; } = string.Empty;
 
         private void InitCourierLogo()

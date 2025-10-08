@@ -27,9 +27,9 @@ namespace KontrolaPakowania.API.Services.Packing.Mapping
                         ShipmentServices = client.ShipmentServices,
                         Country = client.DestinationCountry,
                         ClientId = int.TryParse(client.ClientErpId, out var cid) ? cid : 0,
-                        ClientAddressId = client.ClientErpAddressId ?? 0,
-                        ClientAddressType = 0,
-                        ClientName = client.ClientErpId, // TODO: fetch client name from ERP if needed
+                        ClientAddressId = client.ClientAddressId,
+                        ClientAddressType = client.ClientAddressType,
+                        ClientName = client.ClientName,
                         PackageClosed = client.PackageClosed,
                         PackingRequirements = client.PackingRequirements
                     };
@@ -94,9 +94,9 @@ namespace KontrolaPakowania.API.Services.Packing.Mapping
                     ShipmentServices = client.ShipmentServices,
                     Country = client.DestinationCountry,
                     ClientId = int.TryParse(client.ClientErpId, out var cid) ? cid : 0,
-                    ClientAddressId = client.ClientErpAddressId ?? 0,
-                    ClientAddressType = 0, // map if available
-                    ClientName = client.ClientErpId, // or proper name
+                    ClientAddressId = client.ClientAddressId,
+                    ClientAddressType = client.ClientAddressType,
+                    ClientName = client.ClientName,
                     PackageClosed = client.PackageClosed,
                     PackingRequirements = client.PackingRequirements
                 };

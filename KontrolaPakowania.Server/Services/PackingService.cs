@@ -78,6 +78,32 @@ namespace KontrolaPakowania.Server.Services
             return success;
         }
 
+        public async Task<bool> PackWmsStock(List<WmsPackStockRequest> items)
+        {
+            var response = await _dbClient.PostAsJsonAsync($"api/packing/pack-wms-stock", items);
+            response.EnsureSuccessStatusCode();
+
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+
+            if (response.StatusCode == HttpStatusCode.Conflict)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
+
         public async Task<bool> ReleaseJl(string jlCode)
         {
             var response = await _dbClient.DeleteAsync($"api/packing/release-jl?jl={jlCode}");

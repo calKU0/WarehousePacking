@@ -6,7 +6,6 @@ namespace KontrolaPakowania.API.Integrations.Couriers.Fedex.DTOs
     public class Commodity
     {
         public UnitPrice? UnitPrice { get; set; }
-        public List<AdditionalMeasure>? AdditionalMeasures { get; set; }
         public int? NumberOfPieces { get; set; }
         public int? Quantity { get; set; }
         public string? QuantityUnits { get; set; }
@@ -21,6 +20,5 @@ namespace KontrolaPakowania.API.Integrations.Couriers.Fedex.DTOs
         public DateTime? ExportLicenseExpirationDate { get; set; }
         public string? PartNumber { get; set; }
         public string? Purpose { get; set; }
-        public UsmcaDetail? UsmcaDetail { get; set; }
     }
 }

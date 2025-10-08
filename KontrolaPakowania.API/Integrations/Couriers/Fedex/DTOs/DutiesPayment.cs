@@ -1,9 +1,8 @@
-namespace KontrolaPakowania.API.Integrations.Couriers.Fedex.DTOs
+﻿namespace KontrolaPakowania.API.Integrations.Couriers.Fedex.DTOs
 {
     public class DutiesPayment
     {
-        public Payor Payor { get; set; }
-        public BillingDetails BillingDetails { get; set; }
-        public string PaymentType { get; set; }
+        public Payor? Payor { get; set; }
+        public string? PaymentType { get; set; }
     }
 }

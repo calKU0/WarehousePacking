@@ -2,7 +2,7 @@ namespace KontrolaPakowania.API.Integrations.Couriers.Fedex.DTOs
 {
     public class LabelSpecification
     {
-        public string LabelStockType { get; set; }
-        public string ImageType { get; set; }
+        public string? LabelStockType { get; set; }
+        public string? ImageType { get; set; }
     }
 }

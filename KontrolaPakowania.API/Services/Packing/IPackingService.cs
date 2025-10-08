@@ -41,5 +41,7 @@ namespace KontrolaPakowania.API.Services.Packing
         Task<PackingWarehouse> GetPackageWarehouse(string barcode);
 
         Task<bool> UpdatePackageWarehouse(string barcode, PackingWarehouse warehouse);
+
+        Task<PackWMSResponse> PackWmsStock(List<WmsPackStockRequest> items);
     }
 }

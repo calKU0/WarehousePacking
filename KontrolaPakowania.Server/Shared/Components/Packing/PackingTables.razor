@@ -20,7 +20,7 @@
                             <th>Obraz</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="@(Disabled ? "disabled-table" : "")">
                         @if (JlItems == null)
                         {
                             <tr><td colspan="4" class="text-center">Ładowanie...</td></tr>
@@ -100,4 +100,5 @@
     [Parameter] public EventCallback<JlItemDto> OnRowDoubleClick { get; set; }
     [Parameter] public EventCallback<JlItemDto> OnPackedItemSelect { get; set; }
     [Parameter] public CourierConfiguration CourierConfiguration { get; set; }
+    [Parameter] public bool Disabled { get; set; } = false;
 }
