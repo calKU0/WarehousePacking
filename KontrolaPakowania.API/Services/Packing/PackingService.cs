@@ -204,52 +204,29 @@ public class PackingService : IPackingService
         return await _db.QuerySingleOrDefaultAsync<ClientDetails>(procedure, new { documentId, documentType }, CommandType.StoredProcedure, Connection.ERPConnection);
     }
 
-    public async Task<PackWMSResponse> PackWmsStock(List<WmsPackStockRequest> items)
+    public async Task<PackWMSResponse> PackWmsStock(WmsPackStockRequest request)
     {
-        if (items == null || !items.Any())
+        if (request == null || !request.Items.Any())
             return new PackWMSResponse { Status = "-1", Desc = "No items to process." };
 
-        // --- 1️ Calculate total weight per JL ---
-        var jlWeights = items
-            .GroupBy(i => i.JlCode)
-            .ToDictionary(g => g.Key, g => g.Sum(i => i.Weight));
-
-        // --- 2️ Group items by courier ---
-        var courierGroups = items.GroupBy(i => i.Courier);
-
         var allPackItems = new List<PackStockItems>();
+        var luDestType = request.Weight > 120 ? "PALETA" : "PACZKA";
 
-        // --- 3️ Process each courier group ---
-        foreach (var courierGroup in courierGroups)
+        foreach (var item in request.Items)
         {
-            var courier = courierGroup.Key;
-
-            // 🔹 Call the stored procedure ONCE per courier
-            string packageDestination = await GetPackageDestination(courier.ToString());
-            if (string.IsNullOrEmpty(packageDestination))
-                packageDestination = "Zrzuty-rolotok-1-5-1"; // fallback
-
-            // 🔹 Build PackStockItems for this courier group
-            foreach (var v in courierGroup)
+            allPackItems.Add(new PackStockItems
             {
-                var totalWeight = jlWeights[v.JlCode];
-                var luDestType = totalWeight > 120 ? "PALETA" : "PACZKA";
-
-                allPackItems.Add(new PackStockItems
-                {
-                    LocSourceNr = v.LocationCode,
-                    LocDestNr = packageDestination,
-                    LuSourceNr = v.JlCode,
-                    LuDestNr = v.PackageCode,
-                    LuDestTypeSymbol = luDestType,
-                    ItemNr = v.ItemCode,
-                    ItemQty = v.Quantity.ToString()
-                });
-            }
+                LocSourceNr = request.LocationCode,
+                LocDestNr = "PACK-1-1-1",
+                LuSourceNr = request.JlCode,
+                LuDestNr = request.PackageCode,
+                LuDestTypeSymbol = luDestType,
+                ItemNr = item.ItemCode,
+                ItemQty = item.Quantity.ToString()
+            });
         }
 
-        // --- 4️ Create the main WMS request ---
-        var request = new PackStockRequest
+        var requestWms = new PackStockRequest
         {
             WhsSource = "6",
             Proces = "PCK",
@@ -257,7 +234,29 @@ public class PackingService : IPackingService
         };
 
         // --- 5️ Call the WMS API ---
-        var response = await _wmsApi.PackStock(request);
+        var response = await _wmsApi.PackStock(requestWms);
+        return response;
+    }
+
+    public async Task<PackWMSResponse> CloseWmsPackage(string packageCode, string courier)
+    {
+        var packageDestination = await GetPackageDestination(courier);
+        var request = new CloseLuRequest
+        {
+            WhsSource = "6",
+            Proces = "PCK",
+            DestStatusLuId = "14",
+            Items = new List<CloseLuItems>
+            {
+                new CloseLuItems
+                {
+                    LuNr = packageCode,
+                    LocDestNr = packageDestination
+                }
+            }
+        };
+
+        var response = await _wmsApi.CloseJl(request);
         return response;
     }
 

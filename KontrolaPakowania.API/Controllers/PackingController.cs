@@ -354,15 +354,19 @@ namespace KontrolaPakowania.API.Controllers
         }
 
         [HttpPost("pack-wms-stock")]
-        public async Task<IActionResult> PackWmsStock([FromBody] List<WmsPackStockRequest> items)
+        public async Task<IActionResult> PackWmsStock([FromBody] WmsPackStockRequest request)
         {
             try
             {
-                var result = await _packingService.PackWmsStock(items);
-                if (result.Status == "1")
-                    return Ok(result);
-                else
-                    return BadRequest(result.Desc);
+                var packResult = await _packingService.PackWmsStock(request);
+                if (packResult.Status != "1")
+                    return BadRequest(packResult.Desc);
+
+                var closeResult = await _packingService.CloseWmsPackage(request.PackageCode, request.Courier);
+                if (packResult.Status != "1")
+                    return BadRequest(closeResult.Desc);
+
+                return Ok();
             }
             catch (ArgumentException ex)
             {

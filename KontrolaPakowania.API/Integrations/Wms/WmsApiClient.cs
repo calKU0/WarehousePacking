@@ -40,12 +40,40 @@ namespace KontrolaPakowania.API.Integrations.Wms
 
         public async Task<PackWMSResponse> PackStock(PackStockRequest request, CancellationToken cancellationToken = default)
         {
-            var response = await _httpClient.PostAsJsonAsync("wms-int-api/companies/62/integrations/own/service?integrationName=packStock", request, _jsonOptions, cancellationToken);
+            var logFile = "pack.txt";
+            var url = "wms-int-api/companies/62/integrations/own/service?integrationName=packStock";
 
-            response.EnsureSuccessStatusCode();
-            var data = await response.Content.ReadFromJsonAsync<PackWMSResponse>(_jsonOptions, cancellationToken);
+            try
+            {
+                // Serialize the request to JSON for logging
+                var requestJson = JsonSerializer.Serialize(request, _jsonOptions);
+                await File.AppendAllTextAsync(logFile,
+                    $"[{DateTime.UtcNow:O}] Sending Request to {url}\n{requestJson}\n\n",
+                    cancellationToken);
 
-            return data ?? new PackWMSResponse();
+                // Send the request
+                var response = await _httpClient.PostAsJsonAsync(url, request, _jsonOptions, cancellationToken);
+                var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                // Log the raw response
+                await File.AppendAllTextAsync(logFile,
+                    $"[{DateTime.UtcNow:O}] Received Response ({(int)response.StatusCode})\n{responseBody}\n\n",
+                    cancellationToken);
+
+                // Throw if not success
+                response.EnsureSuccessStatusCode();
+
+                // Deserialize and return
+                var data = JsonSerializer.Deserialize<PackWMSResponse>(responseBody, _jsonOptions);
+                return data ?? new PackWMSResponse();
+            }
+            catch (Exception ex)
+            {
+                await File.AppendAllTextAsync(logFile,
+                    $"[{DateTime.UtcNow:O}] ERROR: {ex}\n\n",
+                    cancellationToken);
+                throw;
+            }
         }
 
         public async Task<PackWMSResponse> CloseJl(CloseLuRequest request, CancellationToken cancellationToken = default)

@@ -8,7 +8,7 @@
     justify-content: center;
     align-items: center;
     background: rgba(0,0,0,0.3);
-    z-index: 1050;
+    z-index: 200000 !important;
     visibility: hidden;
     opacity: 0;
     transition: opacity 0.3s;
@@ -30,6 +30,7 @@
     color: white;
     text-align: center;
     position: relative;
+    z-index: 200001 !important;
     pointer-events: auto; /* <- allow clicks on container and button */
 }
 

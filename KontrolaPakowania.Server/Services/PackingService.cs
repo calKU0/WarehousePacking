@@ -78,9 +78,9 @@ namespace KontrolaPakowania.Server.Services
             return success;
         }
 
-        public async Task<bool> PackWmsStock(List<WmsPackStockRequest> items)
+        public async Task<bool> PackWmsStock(WmsPackStockRequest request)
         {
-            var response = await _dbClient.PostAsJsonAsync($"api/packing/pack-wms-stock", items);
+            var response = await _dbClient.PostAsJsonAsync($"api/packing/pack-wms-stock", request);
             response.EnsureSuccessStatusCode();
 
             if (response.IsSuccessStatusCode)

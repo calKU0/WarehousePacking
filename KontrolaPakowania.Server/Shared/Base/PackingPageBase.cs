@@ -55,7 +55,6 @@ namespace KontrolaPakowania.Server.Shared.Base
         protected FinishPackingModal FinishPackingModal = new();
         protected ShipmentModal ShipmentModal = new();
         protected ScanInput ScanInputComponent = new();
-        protected List<JlItemDto> CumulativePackedItems = new();
 
         protected bool ShowProductModal = false;
         protected PasswordPurpose CurrentPasswordPurpose = PasswordPurpose.None;
@@ -271,6 +270,7 @@ namespace KontrolaPakowania.Server.Shared.Base
                         SupplierCode = item.SupplierCode,
                         DocumentQuantity = item.DocumentQuantity,
                         JlQuantity = qty,
+                        JlCode = item.JlCode,
                         ItemWeight = item.ItemWeight,
                         ItemImage = item.ItemImage,
                         ItemType = item.ItemType,
@@ -284,14 +284,6 @@ namespace KontrolaPakowania.Server.Shared.Base
                 item.JlQuantity -= qty;
                 if (item.JlQuantity <= 0) JlItems.Remove(item);
             }
-
-            // --- ✅ Add to cumulative using the PackedItems object ---
-            var existingCumulative = CumulativePackedItems.FirstOrDefault(c => c.ItemCode == packedItem.ItemCode && c.JlCode == CurrentJl.Name);
-
-            if (existingCumulative != null)
-                existingCumulative.JlQuantity += qty;
-            else
-                CumulativePackedItems.Add(packedItem);
 
             return true;
         }
@@ -339,17 +331,6 @@ namespace KontrolaPakowania.Server.Shared.Base
             // --- Remove from PackedItems ---
             PackedItems.Remove(SelectedPackedItem);
             HighlightedRows.Remove(SelectedPackedItem.ItemCode);
-
-            // --- Update cumulative ledger ---
-            var cumulativeEntry = CumulativePackedItems.FirstOrDefault(c => c.ItemCode == SelectedPackedItem.ItemCode && c.JlCode == SelectedPackedItem.JlCode);
-
-            if (cumulativeEntry != null)
-            {
-                cumulativeEntry.JlQuantity -= SelectedPackedItem.JlQuantity;
-
-                if (cumulativeEntry.JlQuantity <= 0)
-                    CumulativePackedItems.Remove(cumulativeEntry);
-            }
 
             SelectedPackedItem = null;
         }
@@ -447,18 +428,24 @@ namespace KontrolaPakowania.Server.Shared.Base
         {
             try
             {
-                if (CumulativePackedItems == null || !CumulativePackedItems.Any())
+                if (PackedItems == null || !PackedItems.Any())
                     return;
 
-                var packStockRequest = CumulativePackedItems.Select(i => new WmsPackStockRequest
+                var PackedWmsItems = PackedItems.Select(i => new WMSPackStockItemsRequest
                 {
-                    LocationCode = CurrentJl.LocationCode,
                     ItemCode = i.ItemCode,
                     Quantity = i.JlQuantity,
-                    JlCode = i.JlCode,
-                    PackageCode = packageCode,
-                    Courier = courier
                 }).ToList();
+
+                var packStockRequest = new WmsPackStockRequest
+                {
+                    LocationCode = CurrentJl.LocationCode,
+                    PackageCode = packageCode,
+                    Courier = courier,
+                    JlCode = CurrentJl.Name,
+                    Weight = PackedItems.Sum(i => i.ItemWeight * i.JlQuantity),
+                    Items = PackedWmsItems
+                };
 
                 await PackingService.PackWmsStock(packStockRequest);
             }
@@ -648,12 +635,15 @@ namespace KontrolaPakowania.Server.Shared.Base
             {
                 ConfirmDialog.Hide();
                 await PackingService.RemoveJlRealization(CurrentJl.Name);
-                ClosePackageRequest closePackageRequest = new()
+                if (PackageId > 0)
                 {
-                    DocumentId = PackageId,
-                    Status = DocumentStatus.Delete
-                };
-                await PackingService.ClosePackage(closePackageRequest);
+                    ClosePackageRequest closePackageRequest = new()
+                    {
+                        DocumentId = PackageId,
+                        Status = DocumentStatus.Delete
+                    };
+                    await PackingService.ClosePackage(closePackageRequest);
+                }
                 Navigation.NavigateTo("/kontrola-pakowania");
             }
             catch (Exception ex)

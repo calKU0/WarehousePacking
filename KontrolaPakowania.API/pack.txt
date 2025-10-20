@@ -1,15 +1,76 @@
+[2025-10-20T11:46:54.8706112Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029237","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
 
-==== PACK STOCK LOG ====
-Timestamp: 2025-10-17T12:56:37.9942092Z
-URL: wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-Method: POST
+[2025-10-20T11:46:55.2121544Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
 
--- REQUEST BODY --
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"KK-002","luDestNr":"44680029232","luDestTypeSymbol":"PACZKA","itemNr":"181055C1.01","batchId":null,"itemQty":"2"}]}
+[2025-10-20T11:49:53.5295942Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029238","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
 
--- RESPONSE STATUS --
-200 OK
+[2025-10-20T11:49:53.7530064Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
 
--- RESPONSE BODY --
-{"status":"-1","desc":"Wystąpił błąd: Podana ilość jest za duża, nie rozliczono 2 z 2  ->> OK"}
-========================
+[2025-10-20T11:52:29.8999800Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029239","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
+
+[2025-10-20T11:52:30.1330161Z] ERROR: System.Net.Http.HttpRequestException: An error occurred while sending the request.
+ ---> System.Net.Http.HttpIOException: The response ended prematurely. (ResponseEnded)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.DiagnosticsHandler.SendAsyncCore(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at Microsoft.Extensions.Http.Logging.LoggingHttpMessageHandler.<SendCoreAsync>g__Core|5_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
+   at Microsoft.Extensions.Http.Logging.LoggingScopeHttpMessageHandler.<SendCoreAsync>g__Core|5_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at KontrolaPakowania.API.Integrations.Wms.WmsApiClient.PackStock(PackStockRequest request, CancellationToken cancellationToken) in C:\Users\Krzys\Desktop\Projects\KontrolaPakowania\KontrolaPakowania.API\Integrations\Wms\WmsApiClient.cs:line 55
+
+[2025-10-20T11:54:31.8768211Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029240","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
+
+[2025-10-20T11:54:31.9797938Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
+
+[2025-10-20T11:58:44.3419170Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029241","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
+
+[2025-10-20T11:58:44.6309951Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
+
+[2025-10-20T12:01:02.6106086Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029242","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
+
+[2025-10-20T12:01:03.1158182Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
+
+[2025-10-20T12:01:32.7610158Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029254","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
+
+[2025-10-20T12:01:33.0802755Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
+
+[2025-10-20T12:02:35.0178246Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029255","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"2"}]}
+
+[2025-10-20T12:02:35.3944580Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
+
+[2025-10-20T12:03:08.4110023Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029256","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
+
+[2025-10-20T12:03:08.6706984Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
+
+[2025-10-20T12:04:39.0946776Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"KK-001","luDestNr":"44680029257","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
+
+[2025-10-20T12:04:39.4156485Z] Received Response (200)
+{"status":"1","desc":"OK"}
+
+[2025-10-20T13:28:29.1787912Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"PACK-1-1-1","luSourceNr":"KK-001","luDestNr":"44680029258","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"3"}]}
+
+[2025-10-20T13:28:29.5207458Z] Received Response (200)
+{"status":"1","desc":"OK"}
+

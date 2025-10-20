@@ -9,12 +9,17 @@ namespace KontrolaPakowania.Shared.DTOs.Requests
 {
     public class WmsPackStockRequest
     {
-        public string ItemCode { get; set; } = string.Empty;
         public string LocationCode { get; set; } = string.Empty;
-        public decimal Quantity { get; set; }
-        public string JlCode { get; set; } = string.Empty;
-        public decimal Weight { get; set; }
         public string PackageCode { get; set; } = string.Empty;
         public string Courier { get; set; } = string.Empty;
+        public string JlCode { get; set; } = string.Empty;
+        public decimal Weight { get; set; }
+        public List<WMSPackStockItemsRequest> Items { get; set; } = new();
+    }
+
+    public class WMSPackStockItemsRequest
+    {
+        public string ItemCode { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
     }
 }
