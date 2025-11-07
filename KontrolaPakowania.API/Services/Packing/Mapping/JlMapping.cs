@@ -33,6 +33,7 @@ namespace KontrolaPakowania.API.Services.Packing.Mapping
                         AddressStreet = client.AddressStreet,
                         AddressPostalCode = client.AddressPostalCode,
                         AddressCountry = client.AddressCountry,
+                        ClientSymbol = client.ClientSymbol,
                         ClientName = client.ClientName,
                         PackageClosed = client.PackageClosed,
                         PackingRequirements = client.PackingRequirements
@@ -58,6 +59,7 @@ namespace KontrolaPakowania.API.Services.Packing.Mapping
                         AddressStreet = string.Empty,
                         AddressPostalCode = string.Empty,
                         AddressCountry = string.Empty,
+                        ClientSymbol = "MIX",
                         ClientName = "MIX",
                         PackingRequirements = string.Empty,
                     };
@@ -108,6 +110,7 @@ namespace KontrolaPakowania.API.Services.Packing.Mapping
                     AddressStreet = client.AddressStreet,
                     AddressPostalCode = client.AddressPostalCode,
                     AddressCountry = client.AddressCountry,
+                    ClientSymbol = client.ClientSymbol,
                     ClientName = client.ClientName,
                     PackageClosed = client.PackageClosed,
                     PackingRequirements = client.PackingRequirements
@@ -134,6 +137,7 @@ namespace KontrolaPakowania.API.Services.Packing.Mapping
                 AddressStreet = string.Empty,
                 AddressPostalCode = string.Empty,
                 AddressCountry = string.Empty,
+                ClientSymbol = "MIX",
                 ClientName = "MIX",
                 PackageClosed = false,
                 PackingRequirements = string.Empty

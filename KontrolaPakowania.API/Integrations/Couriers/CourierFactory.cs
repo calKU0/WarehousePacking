@@ -1,4 +1,5 @@
 ﻿using KontrolaPakowania.API.Integrations.Couriers.DPD;
+using KontrolaPakowania.API.Integrations.Couriers.DPD_Romania;
 using KontrolaPakowania.API.Integrations.Couriers.Fedex;
 using KontrolaPakowania.API.Integrations.Couriers.GLS;
 using KontrolaPakowania.Shared.Enums;
@@ -21,6 +22,7 @@ namespace KontrolaPakowania.API.Integrations.Couriers
                 Courier.DPD => _serviceProvider.GetRequiredService<DpdService>(),
                 Courier.GLS => _serviceProvider.GetRequiredService<GlsService>(),
                 Courier.Fedex => _serviceProvider.GetRequiredService<FedexService>(),
+                Courier.DPD_Romania => _serviceProvider.GetRequiredService<DpdRomaniaService>(),
                 _ => throw new NotSupportedException($"Kurier {courier.GetDescription()} nie jest wspierany")
             };
     }

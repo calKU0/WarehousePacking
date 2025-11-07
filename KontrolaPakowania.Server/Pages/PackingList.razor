@@ -66,7 +66,7 @@
                                         <span class="badge bg-success">Nie</span>
                                     }
                                 </td>
-                                <td>@item.ClientName</td>
+                                <td>@item.ClientSymbol</td>
                             </tr>
                         }
                     </tbody>
@@ -162,7 +162,7 @@
             var jlReadyToPack = JlList.ToList();
 
             JlReadyToPackCount = jlReadyToPack.Count;
-            AddressesCount = jlReadyToPack.Where(jl => string.IsNullOrEmpty(jl.AddressName)).Select(jl => jl.AddressName).Distinct().Count();
+            AddressesCount = jlReadyToPack.Where(jl => !string.IsNullOrEmpty(jl.AddressName)).Select(jl => jl.AddressName).Distinct().Count();
         }
         catch (Exception ex)
         {

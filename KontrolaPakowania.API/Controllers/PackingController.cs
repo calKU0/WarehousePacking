@@ -89,6 +89,40 @@ namespace KontrolaPakowania.API.Controllers
             }
         }
 
+        [HttpGet("jlList-in-progress")]
+        public async Task<IActionResult> GetJlListInProgress()
+        {
+            _logger.Information("Request: GetJlListInProgress");
+            try
+            {
+                var list = await _packingService.GetJlListInProgress();
+                _logger.Information("GetJlListInProgress succeeded with {Count} items", list.Count());
+                return Ok(list);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error in GetJlListInProgress");
+                return HandleException(ex);
+            }
+        }
+
+        [HttpGet("is-jl-in-progress")]
+        public async Task<IActionResult> IsJlInProgress([FromQuery] string jl)
+        {
+            _logger.Information("Request: IsJlInProgress for JL {JlCode}", jl);
+            try
+            {
+                var inProgress = await _packingService.IsJlInProgress(jl);
+                _logger.Information("IsJlInProgress returned {InProgress} for JL {JlCode} ", jl, inProgress);
+                return Ok(inProgress);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error in IsJlInProgress for JL {JlCode}", jl);
+                return HandleException(ex);
+            }
+        }
+
         [HttpPost("add-jl-realization")]
         public async Task<IActionResult> AddJlRealization([FromBody] JlInProgressDto jl)
         {
@@ -102,23 +136,6 @@ namespace KontrolaPakowania.API.Controllers
             catch (Exception ex)
             {
                 _logger.Error(ex, "Error in AddJlRealization for JL {JlCode}", jl.Name);
-                return HandleException(ex);
-            }
-        }
-
-        [HttpGet("jl-in-progress")]
-        public async Task<IActionResult> GetJlListInProgress()
-        {
-            _logger.Information("Request: GetJlListInProgress");
-            try
-            {
-                var list = await _packingService.GetJlListInProgress();
-                _logger.Information("GetJlListInProgress succeeded with {Count} items", list.Count());
-                return Ok(list);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex, "Error in GetJlListInProgress");
                 return HandleException(ex);
             }
         }

@@ -14,9 +14,11 @@ namespace KontrolaPakowania.API.Services.Packing
 
         Task<IEnumerable<JlItemDto>> GetPackingJlItemsAsync(string barcode);
 
-        Task<bool> AddJlRealization(JlInProgressDto jl);
-
         Task<IEnumerable<JlInProgressDto>> GetJlListInProgress();
+
+        Task<bool> IsJlInProgress(string jl);
+
+        Task<bool> AddJlRealization(JlInProgressDto jl);
 
         Task<bool> RemoveJlRealization(string jl);
 

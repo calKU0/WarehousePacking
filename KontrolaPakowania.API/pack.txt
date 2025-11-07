@@ -74,3 +74,45 @@
 [2025-10-20T13:28:29.5207458Z] Received Response (200)
 {"status":"1","desc":"OK"}
 
+[2025-11-07T09:33:38.6902977Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-170","luDestNr":"0000832823764Q","luDestTypeSymbol":"PACZKA","itemNr":"011780.04","batchId":null,"itemQty":"3,0"}]}
+
+[2025-11-07T09:33:38.9562038Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: invalid input syntax for type numeric: \"3,0\" ->> OK"}
+
+[2025-11-07T09:34:00.8456083Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-170","luDestNr":"0000832823929Q","luDestTypeSymbol":"PACZKA","itemNr":"011780.04","batchId":null,"itemQty":"3,0"}]}
+
+[2025-11-07T09:34:01.2230939Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: invalid input syntax for type numeric: \"3,0\" ->> OK"}
+
+[2025-11-07T09:36:11.0507623Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-170","luDestNr":"0000832825574Q","luDestTypeSymbol":"PACZKA","itemNr":"011780.04","batchId":null,"itemQty":"3.0"}]}
+
+[2025-11-07T09:36:11.3320508Z] Received Response (200)
+{"status":"1","desc":"OK"}
+
+[2025-11-07T09:36:27.0658220Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-170","luDestNr":"0000832825707Q","luDestTypeSymbol":"PACZKA","itemNr":"236510.01","batchId":null,"itemQty":"10"}]}
+
+[2025-11-07T09:36:27.3843510Z] Received Response (200)
+{"status":"1","desc":"OK"}
+
+[2025-11-07T09:54:19.0318030Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-170","luDestNr":"0000832835486Q","luDestTypeSymbol":"PACZKA","itemNr":"236510.01","batchId":null,"itemQty":"10.0"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-170","luDestNr":"0000832835486Q","luDestTypeSymbol":"PACZKA","itemNr":"D28283060.01","batchId":null,"itemQty":"10"}]}
+
+[2025-11-07T09:54:19.4150066Z] Received Response (200)
+{"status":"1","desc":"OK"}
+
+[2025-11-07T13:49:00.4105804Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-127","luDestNr":"44680029259","luDestTypeSymbol":"PACZKA","itemNr":"610272.31","batchId":null,"itemQty":"5.0"}]}
+
+[2025-11-07T13:49:00.6623456Z] Received Response (200)
+{"status":"1","desc":"OK"}
+
+[2025-11-07T13:57:42.4702050Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-127","luDestNr":"44680029260","luDestTypeSymbol":"PACZKA","itemNr":"617309.0","batchId":null,"itemQty":"3"}]}
+
+[2025-11-07T13:57:42.7988534Z] Received Response (200)
+{"status":"1","desc":"OK"}
+

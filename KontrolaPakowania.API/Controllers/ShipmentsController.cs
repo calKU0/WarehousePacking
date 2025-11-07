@@ -65,9 +65,18 @@ namespace KontrolaPakowania.API.Controllers
 
                 if (!result.Success)
                 {
-                    _logger.Warning("CreateShipment failed for package {PackageCode}: {ErrorMessage}", package.PackageName, result.ErrorMessage);
+                    _logger.Error("CreateShipment failed for package {PackageCode}: {ErrorMessage}", package.PackageName, result.ErrorMessage);
 
-                    await _emailService.SendPackageFailureEmail(package, result.ErrorMessage);
+                    try
+                    {
+                        await _emailService.SendPackageFailureEmail(package, result.ErrorMessage);
+                    }
+                    catch (Exception emailEx)
+                    {
+                        _logger.Error(emailEx, "Failed to send failure email for package {PackageCode} to representative {Representative}", package.PackageName, package.Representative);
+                        return BadRequest($"{result.ErrorMessage}. Email z błędem NIE został wysłany do opiekuna klienta, którym jest {package.Representative}, ponieważ doszło do błędu poczty!");
+                    }
+
                     return BadRequest($"{result.ErrorMessage}. Email z błędem został wysłany do opiekuna klienta, którym jest {package.Representative}");
                 }
 

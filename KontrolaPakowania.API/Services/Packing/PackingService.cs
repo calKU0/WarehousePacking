@@ -32,9 +32,9 @@ public class PackingService : IPackingService
     public async Task<IEnumerable<JlData>> GetJlListAsync(PackingLevel location)
     {
         var jlList = await _wmsApi.GetJlListAsync();
-
+        var jlToPack = jlList.Where(x => x.Status == 12);
         // Map string courier to enum
-        foreach (var jl in jlList)
+        foreach (var jl in jlToPack)
         {
             foreach (var client in jl.Clients)
             {
@@ -52,7 +52,7 @@ public class PackingService : IPackingService
             }
         }
         // Map to flattened JlData
-        return jlList.ToJlData();
+        return jlToPack.ToJlData();
     }
 
     public async Task<JlData?> GetJlInfoByCodeAsync(string jlCode, PackingLevel location)
@@ -95,17 +95,24 @@ public class PackingService : IPackingService
         return await _db.QueryAsync<JlItemDto>(procedure, new { barcode }, CommandType.StoredProcedure, Connection.ERPConnection);
     }
 
+    public async Task<IEnumerable<JlInProgressDto>> GetJlListInProgress()
+    {
+        const string procedure = "kp.GetJlListInProgress";
+        return await _db.QueryAsync<JlInProgressDto>(procedure, commandType: CommandType.StoredProcedure, connection: Connection.ERPConnection);
+    }
+
+    public async Task<bool> IsJlInProgress(string jl)
+    {
+        const string procedure = "kp.IsJlInProgress";
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { jl }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return result > 0 ? true : false;
+    }
+
     public async Task<bool> AddJlRealization(JlInProgressDto jl)
     {
         const string procedure = "kp.AddJlRealization";
         var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { jl.Name, jl.User, jl.StationNumber, jl.Courier, jl.ClientName }, CommandType.StoredProcedure, Connection.ERPConnection);
         return result > 0;
-    }
-
-    public async Task<IEnumerable<JlInProgressDto>> GetJlListInProgress()
-    {
-        const string procedure = "kp.GetJlListInProgress";
-        return await _db.QueryAsync<JlInProgressDto>(procedure, commandType: CommandType.StoredProcedure, connection: Connection.ERPConnection);
     }
 
     public async Task<bool> RemoveJlRealization(string jl)
@@ -165,7 +172,7 @@ public class PackingService : IPackingService
         {
             string courier = request.Courier.GetDescription();
             const string updateProcedure = "kp.UpdatePackageCourier";
-            var result = await _db.QuerySingleOrDefaultAsync<int>(updateProcedure, new { request.PackageId, courier }, CommandType.StoredProcedure, Connection.ERPConnection);
+            var result = await _db.QuerySingleOrDefaultAsync<int>(updateProcedure, new { request.PackageId, courier, request.DocumentId }, CommandType.StoredProcedure, Connection.ERPConnection);
             return result > 0;
         }
         catch (SqlException ex) when (ex.Number == 50001)
@@ -230,7 +237,7 @@ public class PackingService : IPackingService
                 LuDestNr = request.PackageCode,
                 LuDestTypeSymbol = luDestType,
                 ItemNr = item.ItemCode,
-                ItemQty = item.Quantity.ToString()
+                ItemQty = item.Quantity.ToString().Replace(",", "."),
             });
         }
 

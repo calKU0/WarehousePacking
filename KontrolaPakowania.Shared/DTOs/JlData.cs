@@ -23,11 +23,8 @@ namespace KontrolaPakowania.Shared.DTOs
             get => courier;
             set
             {
-                if (courier != value)
-                {
-                    courier = value;
-                    InitCourierLogo();
-                }
+                courier = value;
+                InitCourierLogo();
             }
         }
 
@@ -39,6 +36,7 @@ namespace KontrolaPakowania.Shared.DTOs
         public string LocationCode { get; set; } = string.Empty;
         public bool OutsideEU { get; set; } = false;
         public int ClientId { get; set; }
+        public string ClientSymbol { get; set; } = string.Empty;
         public string ClientName { get; set; } = string.Empty;
         public string AddressName { get; set; } = string.Empty;
         public string AddressCity { get; set; } = string.Empty;
@@ -46,6 +44,7 @@ namespace KontrolaPakowania.Shared.DTOs
         public string AddressPostalCode { get; set; } = string.Empty;
         public string AddressCountry { get; set; } = string.Empty;
         public bool PackageClosed { get; set; }
+        public string InternalBarcode { get; set; } = string.Empty;
         public string PackingRequirements { get; set; } = string.Empty;
 
         private void InitCourierLogo()

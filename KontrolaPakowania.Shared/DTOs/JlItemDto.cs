@@ -33,6 +33,7 @@ namespace KontrolaPakowania.Shared.DTOs
         public string AddressCountry { get; set; } = string.Empty;
 
         public string ClientName { get; set; } = string.Empty;
+        public string ClientSymbol { get; set; } = string.Empty;
         public string DestinationCountry { get; set; } = string.Empty;
 
         [JsonPropertyName("courier")]

@@ -51,6 +51,33 @@ namespace KontrolaPakowania.Server.Services
             return jlItems!;
         }
 
+        public async Task<bool> IsJlInProgress(string jlCode)
+        {
+            var response = await _dbClient.GetAsync($"api/packing/is-jl-in-progress?jl={jlCode}");
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<bool>();
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
+
+        public async Task<List<JlInProgressDto>> GetJlListInProgress()
+        {
+            var response = await _dbClient.GetAsync($"api/packing/jlList-in-progress");
+            response.EnsureSuccessStatusCode();
+
+            var jlList = await response.Content.ReadFromJsonAsync<List<JlInProgressDto>>();
+            return jlList!;
+        }
+
         public async Task<bool> AddJlRealization(JlInProgressDto jl)
         {
             var response = await _dbClient.PostAsJsonAsync($"api/packing/add-jl-realization", jl);
@@ -58,15 +85,6 @@ namespace KontrolaPakowania.Server.Services
 
             bool success = await response.Content.ReadFromJsonAsync<bool>();
             return success;
-        }
-
-        public async Task<List<JlInProgressDto>> GetJlListInProgress()
-        {
-            var response = await _dbClient.GetAsync($"api/packing/jl-in-progress");
-            response.EnsureSuccessStatusCode();
-
-            var jlList = await response.Content.ReadFromJsonAsync<List<JlInProgressDto>>();
-            return jlList!;
         }
 
         public async Task<bool> RemoveJlRealization(string jlCode)

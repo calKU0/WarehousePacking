@@ -28,7 +28,7 @@
     <div class="d-flex align-items-center ms-auto">
         @if (CurrentJl != null)
         {
-            <h4 class="me-3">Klient: @CurrentJl.ClientName</h4>
+            <h4 class="me-3">Klient: @CurrentJl.ClientSymbol</h4>
         }
         <ManagerControlModal OnButtonClick="OnManagerClick"
                              OnRequestPassword="OnManagerRequestPassword"
@@ -43,5 +43,5 @@
     [Parameter] public string Username { get; set; }
     [Parameter] public EventCallback<int> OnManagerClick { get; set; }
     [Parameter] public EventCallback OnManagerRequestPassword { get; set; }
-    private ManagerControlModal ManagerModal;
+    public ManagerControlModal? ManagerModal { get; private set; }
 }

@@ -78,7 +78,11 @@
         }
     }
 
-    public void OpenModal() => IsOpen = true;
+    public async void OpenModal()
+    {
+        IsOpen = true;
+        await InvokeAsync(StateHasChanged);
+    }
     private void CloseModal() => IsOpen = false;
 
     private async Task HandleClick(int value)

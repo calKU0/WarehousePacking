@@ -69,6 +69,8 @@ namespace KontrolaPakowania.Server.Shared.Base
             try
             {
                 await UserSession.InitializeAsync();
+                if (await CheckJlNotInProgress())
+                    return;
                 await LoadSettings();
                 LoadMergeJlsFromQuery();
                 await LoadJlData();
@@ -102,6 +104,27 @@ namespace KontrolaPakowania.Server.Shared.Base
             {
                 Toast.Show("Błąd!", $"Błąd przy pobieraniu ustawień stanowiska: {ex.Message}");
             }
+        }
+
+        protected virtual async Task<bool> CheckJlNotInProgress()
+        {
+            try
+            {
+                bool inProgress = await PackingService.IsJlInProgress(Jl);
+                if (inProgress)
+                {
+                    Toast.Show("Błąd!", "Kuweta jest już pakowana na innym stanowisku.");
+                    await Task.Delay(3000);
+                    Navigation.NavigateTo("/kontrola-pakowania");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Toast.Show("Błąd!", $"Błąd sprawdzaniu czy kuweta nie jest pakowana: {ex.Message}");
+            }
+
+            return false;
         }
 
         protected virtual async Task LoadJlData()
@@ -460,17 +483,19 @@ namespace KontrolaPakowania.Server.Shared.Base
             try
             {
                 FinishPackingModal.Hide();
-                string internalBarcode = await PackingService.GenerateInternalBarcode(Settings.StationNumber);
-                if (string.IsNullOrEmpty(internalBarcode))
+
+                if (string.IsNullOrEmpty(CurrentJl.InternalBarcode))
+                    CurrentJl.InternalBarcode = await PackingService.GenerateInternalBarcode(Settings.StationNumber);
+
+                if (string.IsNullOrEmpty(CurrentJl.InternalBarcode))
                 {
                     Toast.Show("Błąd!", "Nie udało się wygenerować numeru wewnętrznego. Spróbuj ponownie.");
                     return;
                 }
-
-                await ClosePackage(internalBarcode, new Dimensions());
+                await ClosePackage(CurrentJl.InternalBarcode, new Dimensions());
 
                 // Shipment
-                var package = await ShipmentService.GetShipmentDataByBarcode(internalBarcode);
+                var package = await ShipmentService.GetShipmentDataByBarcode(CurrentJl.InternalBarcode);
                 if (package is not null && package.TaxFree)
                 {
                     Toast.Show("Tax Free", "Paczka zawiera dokument Tax Free. Nadaj numer wewnętrzny.", ToastType.Info);
@@ -540,6 +565,7 @@ namespace KontrolaPakowania.Server.Shared.Base
                             UpdatePackageCourierRequest updateRequest = new UpdatePackageCourierRequest
                             {
                                 PackageId = PackageId,
+                                DocumentId = JlItems.FirstOrDefault()?.DocumentId,
                                 Courier = selectedCourier.Value
                             };
 
@@ -779,12 +805,11 @@ namespace KontrolaPakowania.Server.Shared.Base
         // ---------- Lifecycle & Cleanup ----------
         protected virtual async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
         {
-            var uri = Navigation.ToBaseRelativePath(Navigation.Uri); // removes domain
+            var uri = Navigation.ToBaseRelativePath(Navigation.Uri);
             if (!uri.StartsWith("kontrola-pakowania/", StringComparison.OrdinalIgnoreCase))
             {
-                await PackingService.RemoveJlRealization(CurrentJl.Name);
+                await PackingService.RemoveJlRealization(Jl);
             }
-            await PackingService.RemoveJlRealization(CurrentJl.Name);
         }
 
         public virtual void Dispose()

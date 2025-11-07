@@ -3,6 +3,7 @@ using KontrolaPakowania.API.Data;
 using KontrolaPakowania.API.Integrations.Couriers;
 using KontrolaPakowania.API.Integrations.Couriers.DPD;
 using KontrolaPakowania.API.Integrations.Couriers.DPD.DTOs;
+using KontrolaPakowania.API.Integrations.Couriers.DPD_Romania;
 using KontrolaPakowania.API.Integrations.Couriers.DPD_Romania.DTOs;
 using KontrolaPakowania.API.Integrations.Couriers.Fedex;
 using KontrolaPakowania.API.Integrations.Couriers.Fedex.DTOs;
@@ -84,7 +85,7 @@ builder.Services.AddHttpClient<DpdService>((sp, client) =>
 });
 
 // DPD-Romania REST client
-builder.Services.AddHttpClient<DpdService>((sp, client) =>
+builder.Services.AddHttpClient<DpdRomaniaService>((sp, client) =>
 {
     var settings = sp.GetRequiredService<IOptions<CourierSettings>>().Value.DPDRomania;
     client.BaseAddress = new Uri(settings.BaseUrl);

@@ -33,6 +33,7 @@ namespace KontrolaPakowania.Shared.DTOs
         public string LogoCourier { get; set; } = string.Empty;
 
         public string ClientErpId { get; set; } = string.Empty;
+        public string ClientSymbol { get; set; } = string.Empty;
         public string ClientName { get; set; } = string.Empty;
         public string AddressName { get; set; } = string.Empty;
         public string AddressCity { get; set; } = string.Empty;
