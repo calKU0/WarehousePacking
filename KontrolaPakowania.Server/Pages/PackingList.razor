@@ -106,7 +106,8 @@
 <ChangePackingWarehouseModal @ref="ChangePackingWarehouseModal" />
 <PackingJlItemsModal @ref="PackingJlItemsModal" />
 <TextBoxModal @ref="TextBoxModal" />
-@* <MergeJlsModal @ref="MergeJlsModal" /> *@
+<PackagesInBuforModal @ref="PackagesInBuforModal"/>
+<MergeJlsModal @ref="MergeJlsModal" />
 
 <Toast @ref="Toast"/>
 
@@ -126,6 +127,7 @@
     private ChangePackingWarehouseModal ChangePackingWarehouseModal = new();
     private PackingJlItemsModal PackingJlItemsModal = new();
     private MergeJlsModal MergeJlsModal = new();
+    private PackagesInBuforModal PackagesInBuforModal = new();
 
     private int JlReadyToPackCount { get; set; } = 0;
     private int AddressesCount { get; set; } = 0;
@@ -182,46 +184,79 @@
 
     private async Task OnRowDoubleClick(JlData jl)
     {
-        if (Settings.PackingLevel == PackingLevel.Dół)
+        if (Settings.PackingLevel != PackingLevel.Dół)
         {
-            // Check for other JLs with the same client address
-            var matchingJls = JlList
-                .Where(x => string.IsNullOrEmpty(x.AddressName) && x.AddressName == jl.AddressName && x.AddressCountry == jl.AddressCountry && x.AddressCity == jl.AddressCity && x.AddressStreet == jl.AddressStreet && x.Id != jl.Id)
-                .ToList();
-
-            if (matchingJls.Count > 0)
-            {
-                // Show modal letting user select which JLs to merge
-                var selectedIds = await MergeJlsModal.Show(matchingJls);
-
-                if (selectedIds.Any())
-                {
-                    // Navigate to base JL and pass selected JLs as query
-                    var query = string.Join(",", selectedIds);
-                    Navigation.NavigateTo($"/kontrola-pakowania/{jl.Name}?mergeNames={query}");
-                }
-                else
-                {
-                    Navigation.NavigateTo($"/kontrola-pakowania/{jl.Name}");
-                }
-            }
-            else
-            {
-                Navigation.NavigateTo($"/kontrola-pakowania/{jl.Name}");
-            }
-        }
-        else
-        {
+            // upper level logic
             if (jl.ClientName == "MIX")
-            {
                 Navigation.NavigateTo($"/kontrola-pakowania/{jl.Name}/single");
-            }
             else
-            {
                 Navigation.NavigateTo($"/kontrola-pakowania/{jl.Name}");
-            }
+
+            return;
         }
+
+        PackageSelectionResult? selectedPackage = null;
+        List<string> selectedMergeJls = new();
+
+        //
+        // 1️ BUFOR CHECK
+        //
+        var packagesInBufor = await PackingService.GetPackagesForClient(
+            jl.ClientId,
+            jl.AddressName,
+            jl.AddressCity,
+            jl.AddressStreet,
+            jl.AddressPostalCode,
+            jl.AddressCountry,
+            DocumentStatus.InProgress);
+
+        if (packagesInBufor?.Any() == true)
+        {
+            selectedPackage = await PackagesInBuforModal.Show(packagesInBufor);
+        }
+
+        //
+        // 2️ FIND OTHER JLs W/ SAME ADDRESS
+        //
+        var matchingJls = JlList
+            .Where(x =>
+                x.Id != jl.Id &&
+                x.AddressName == jl.AddressName &&
+                x.AddressCity == jl.AddressCity &&
+                x.AddressCountry == jl.AddressCountry &&
+                x.AddressStreet == jl.AddressStreet)
+            .ToList();
+
+        if (matchingJls.Any())
+        {
+            selectedMergeJls = await MergeJlsModal.Show(matchingJls);
+        }
+
+        //
+        // 3️ BUILD FINAL NAVIGATION URL ONCE
+        //
+        var url = $"/kontrola-pakowania/{jl.Name}";
+
+        List<string> queryParts = new();
+
+        if (selectedPackage is not null)
+        {
+            if (selectedPackage.PackageId.HasValue)
+                queryParts.Add($"packTo={selectedPackage.PackageId}");
+
+            if (!string.IsNullOrWhiteSpace(selectedPackage.InternalBarcode))
+                queryParts.Add($"barcode={selectedPackage.InternalBarcode}");
+        }
+
+        if (selectedMergeJls.Any())
+            queryParts.Add($"mergeNames={string.Join(",", selectedMergeJls)}");
+
+        if (queryParts.Any())
+            url += "?" + string.Join("&", queryParts);
+
+        Navigation.NavigateTo(url);
     }
+
 
     // Single password confirm handler
     private async Task HandlePasswordConfirm(string password)

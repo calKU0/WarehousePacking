@@ -27,9 +27,11 @@ namespace KontrolaPakowania.Shared.DTOs
             }
         }
 
+        public string InternalBarcode { get; set; } = string.Empty;
         public string CourierName { get; set; } = string.Empty;
         public string CourierLogo { get; set; } = string.Empty;
         public PackageType PackageType { get; set; }
+        public DocumentStatus Status { get; set; }
         public string InvoiceName { get; set; } = string.Empty;
         public string PackageName { get; set; } = string.Empty;
         public string RecipientName { get; set; } = string.Empty;

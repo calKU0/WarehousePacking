@@ -1,0 +1,110 @@
+﻿@if (IsVisible)
+{
+    <div class="modal-backdrop @(IsVisible ? "show" : "")">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h5 class="modal-title">Dopakuj towary do paczki</h5>
+                <button type="button" class="btn-close" @onclick="Close" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Klient posiada zabuforowane paczki/palety. Zeskanuj lub wybierz paczkę:</p>
+
+                <input class="form-control mb-3"
+                       value="@ScanInput"
+                       @oninput="OnScanInputChanged"
+                       placeholder="Zeskanuj kod kreskowy..." />
+
+                <table class="table table-hover table-tall">
+                    <thead>
+                        <tr>
+                            <th>Paczka</th>
+                            <th>Kurier</th>
+                            <th>Kod kreskowy wewnętrzny</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var package in AvaliablePackages)
+                        {
+                            <tr class="@(package.Id == SelectedPackage ? "table-primary" : "")"
+                                @ondblclick="() => OnRowDoubleClick(package)">
+                                <td>@package.PackageName</td>
+                                <td>@package.CourierName</td>
+                                <td>@package.InternalBarcode</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer d-flex w-100">
+                <button class="btn btn-secondary btn-lg tall-btn" style="flex: 3;" @onclick="Close">Utwórz nową paczkę (bez dopakowania)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private TaskCompletionSource<PackageSelectionResult?>? _tcs;
+
+    private bool IsVisible = false;
+    private List<PackageData> AvaliablePackages = new();
+    private int? SelectedPackage;
+    private string ScanInput = string.Empty;
+
+    public Task<PackageSelectionResult?> Show(List<PackageData> avaliablePackages)
+    {
+        AvaliablePackages = avaliablePackages;
+        ScanInput = string.Empty;
+
+        IsVisible = true;
+        StateHasChanged();
+
+        _tcs = new TaskCompletionSource<PackageSelectionResult?>();
+        return _tcs.Task;
+    }
+
+    private void OnScanInputChanged(ChangeEventArgs e)
+    {
+        ScanInput = e?.Value?.ToString() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(ScanInput))
+            return;
+
+        var pkg = AvaliablePackages
+            .FirstOrDefault(p => p.InternalBarcode.Equals(ScanInput, StringComparison.OrdinalIgnoreCase));
+
+        if (pkg != null)
+        {
+            SelectedPackage = pkg.Id;
+            Confirm();
+        }
+    }
+
+    private void OnRowDoubleClick(PackageData package)
+    {
+        SelectedPackage = package.Id;
+        Confirm();
+    }
+
+    private void Close()
+    {
+        IsVisible = false;
+        _tcs?.TrySetResult(null);
+        StateHasChanged();
+    }
+
+    private void Confirm()
+    {
+        var result = AvaliablePackages
+            .Where(x => x.Id == SelectedPackage)
+            .Select(x => new PackageSelectionResult
+            {
+                PackageId = x.Id,
+                InternalBarcode = x.InternalBarcode
+            })
+            .FirstOrDefault();
+
+        IsVisible = false;
+        _tcs?.TrySetResult(result);
+        StateHasChanged();
+    }
+}

@@ -157,6 +157,23 @@ namespace KontrolaPakowania.API.Controllers
             }
         }
 
+        [HttpGet("get-packages-for-client")]
+        public async Task<IActionResult> GetPackagesInBuforForClient([FromQuery] int clientId, [FromQuery] string addressName, [FromQuery] string addressCity, [FromQuery] string addressStreet, [FromQuery] string addressPostalCode, [FromQuery] string addressCountry, [FromQuery] DocumentStatus status)
+        {
+            _logger.Information("Request: GetPackagesInBuforForClient for ClientId {ClientId}", clientId);
+            try
+            {
+                var packages = await _packingService.GetPackagesForClient(clientId, addressName, addressCity, addressStreet, addressPostalCode, addressCountry, status);
+                _logger.Information("GetPackagesInBuforForClient succeeded for ClientId {ClientId} with {Count} packages", clientId, packages.Count());
+                return Ok(packages);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error in GetPackagesInBuforForClient for ClientId {ClientId}", clientId);
+                return HandleException(ex);
+            }
+        }
+
         [HttpDelete("release-jl")]
         public async Task<IActionResult> ReleaseJl([FromQuery] string jl)
         {

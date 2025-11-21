@@ -22,6 +22,12 @@
                     <button class="btn btn-success btn-lg flex-fill mx-1 tall-btn" @onclick="OnInternalBarcode">
                         Nadaj kod kreskowy wewnętrzny
                     </button>
+                    @if (PackingLevel == PackingLevel.Dół)
+                    {
+                        <button class="btn btn-warning btn-lg flex-fill mx-1 tall-btn" @onclick="OnBufor">
+                            Zabuforuj
+                        </button>
+                    }
                     <button class="btn btn-secondary btn-lg flex-fill mx-1 tall-btn" @onclick="Hide">
                         Anuluj
                     </button>
@@ -35,8 +41,10 @@
 @code {
     [Parameter] public Courier Courier { get; set; }
     [Parameter] public string CourierSrc { get; set; } = string.Empty;
+    [Parameter] public PackingLevel PackingLevel { get; set; }
     [Parameter] public EventCallback OnCourierLabel { get; set; }
     [Parameter] public EventCallback OnInternalBarcode { get; set; }
+    [Parameter] public EventCallback OnBufor { get; set; }
 
     protected bool IsVisible { get; set; }
 
@@ -50,21 +58,5 @@
     {
         IsVisible = false;
         StateHasChanged();
-    }
-
-    private async Task CourierLabelClicked()
-    {
-        if (OnCourierLabel.HasDelegate)
-            await OnCourierLabel.InvokeAsync();
-
-        Hide();
-    }
-
-    private async Task InternalBarcodeClicked()
-    {
-        if (OnInternalBarcode.HasDelegate)
-            await OnInternalBarcode.InvokeAsync();
-
-        Hide();
     }
 }

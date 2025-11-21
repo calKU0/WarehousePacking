@@ -3,12 +3,6 @@
     <div class="col-6 col-md">
         <button class="btn btn-warning w-100 h-100 py-4 fs-5" @onclick="NextPackage">Następna paczka</button>
     </div>
-    @if (Settings != null && Settings.PackingLevel == PackingLevel.Dół)
-    {
-        <div class="col-6 col-md">
-            <button class="btn btn-warning w-100 h-100 py-4 fs-5" @onclick="Bufor">Bufor</button>
-        </div>
-    }
     <div class="col-6 col-md">
         <button class="btn btn-danger w-100 h-100 py-4 fs-5" @onclick="UnpackItem">Usuń pozycję</button>
     </div>
@@ -22,7 +16,6 @@
 
 @code {
     [Parameter] public EventCallback NextPackage { get; set; }
-    [Parameter] public EventCallback Bufor { get; set; }
     [Parameter] public EventCallback UnpackItem { get; set; }
     [Parameter] public EventCallback Close { get; set; }
     [Parameter] public EventCallback FinishPacking { get; set; }

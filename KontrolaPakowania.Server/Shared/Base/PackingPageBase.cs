@@ -63,6 +63,7 @@ namespace KontrolaPakowania.Server.Shared.Base
         protected JlItemDto? SelectedPackedItem;
 
         protected PackingFlow _currentPackingFlow;
+        protected string InternalBarcodeTemp = string.Empty;
 
         protected override async Task OnInitializedAsync()
         {
@@ -132,6 +133,7 @@ namespace KontrolaPakowania.Server.Shared.Base
             try
             {
                 CurrentJl = await PackingService.GetJlInfoByCode(Jl, Settings.PackingLevel);
+                CurrentJl.InternalBarcode = InternalBarcodeTemp;
                 JlItems = await PackingService.GetJlItems(CurrentJl.Name, Settings.PackingLevel);
 
                 if (MergeJlsName.Any())
@@ -154,9 +156,24 @@ namespace KontrolaPakowania.Server.Shared.Base
         {
             var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
             var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+            // Read mergeNames
             if (query.TryGetValue("mergeNames", out var mergeNamesStr))
             {
-                MergeJlsName = mergeNamesStr.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+                MergeJlsName = mergeNamesStr.ToString()
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .ToList();
+            }
+
+            // Read packTo
+            if (query.TryGetValue("packTo", out var packToValue))
+            {
+                PackageId = Convert.ToInt32(packToValue);
+            }
+
+            if (query.TryGetValue("barcode", out var barcodeValue))
+            {
+                InternalBarcodeTemp = barcodeValue;
             }
         }
 
@@ -422,7 +439,7 @@ namespace KontrolaPakowania.Server.Shared.Base
             }
         }
 
-        protected virtual async Task ClosePackage(string internalBarcode, Dimensions dimensions)
+        protected virtual async Task ClosePackage(string internalBarcode, Dimensions dimensions, DocumentStatus status = DocumentStatus.Ready)
         {
             if (!CurrentJl.PackageClosed)
             {
@@ -433,7 +450,7 @@ namespace KontrolaPakowania.Server.Shared.Base
                     Height = dimensions.Height,
                     Width = dimensions.Width,
                     Length = dimensions.Length,
-                    Status = DocumentStatus.Ready
+                    Status = status
                 };
 
                 var success = await PackingService.ClosePackage(closeRequest);
@@ -701,13 +718,6 @@ namespace KontrolaPakowania.Server.Shared.Base
             StateHasChanged();
         }
 
-        protected virtual Task Bufor()
-        {
-            // TODO:
-            // Bufor
-            throw new NotImplementedException();
-        }
-
         protected virtual void NextPackage()
         {
             _currentPackingFlow = PackingFlow.NextPackage;
@@ -763,8 +773,12 @@ namespace KontrolaPakowania.Server.Shared.Base
             try
             {
                 FinishPackingModal.Hide();
+                string internalBarcode = string.Empty;
+                if (!string.IsNullOrEmpty(CurrentJl.InternalBarcode))
+                    internalBarcode = CurrentJl.InternalBarcode;
+                else
+                    internalBarcode = await TextBoxModal.Show("Numer wewnętrzny", "Wprowadź numer wewnętrzny", "Kod kreskowy");
 
-                string internalBarcode = await TextBoxModal.Show("Numer wewnętrzny", "Wprowadź numer wewnętrzny", "Kod kreskowy");
                 if (string.IsNullOrEmpty(internalBarcode)) return;
 
                 Dimensions dimensions = new();
@@ -795,12 +809,56 @@ namespace KontrolaPakowania.Server.Shared.Base
             }
         }
 
+        protected virtual async Task HandleBufor()
+        {
+            try
+            {
+                FinishPackingModal.Hide();
+
+                string internalBarcode = string.Empty;
+                if (!string.IsNullOrEmpty(CurrentJl.InternalBarcode))
+                    internalBarcode = CurrentJl.InternalBarcode;
+                else
+                    internalBarcode = await TextBoxModal.Show("Numer wewnętrzny", "Wprowadź numer wewnętrzny", "Kod kreskowy");
+
+                Dimensions dimensions = new();
+                if (Settings.PackingLevel == PackingLevel.Dół && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
+                {
+                    dimensions = await DimensionsModal.Show();
+                }
+
+                await CloseJlInWMS(CurrentJl.CourierName, internalBarcode);
+                await ClosePackage(internalBarcode, dimensions, DocumentStatus.InProgress);
+                await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", internalBarcode } });
+
+                switch (_currentPackingFlow)
+                {
+                    case PackingFlow.FinishPacking:
+                        Navigation.NavigateTo("/kontrola-pakowania");
+                        break;
+
+                    case PackingFlow.NextPackage:
+                        PackedItems.Clear();
+                        StateHasChanged();
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Toast.Show("Błąd!", $"Błąd przy próbie finalizacji pakowania: {ex.Message}");
+            }
+        }
+
         // ---------- Lifecycle & Cleanup ----------
         protected virtual async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
         {
             var uri = Navigation.ToBaseRelativePath(Navigation.Uri);
             if (!uri.StartsWith("kontrola-pakowania/", StringComparison.OrdinalIgnoreCase))
             {
+                foreach (var jl in MergeJlsName)
+                {
+                    await PackingService.RemoveJlRealization(jl);
+                }
                 await PackingService.RemoveJlRealization(Jl);
             }
         }

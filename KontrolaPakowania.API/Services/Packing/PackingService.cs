@@ -122,6 +122,12 @@ public class PackingService : IPackingService
         return result > 0;
     }
 
+    public async Task<IEnumerable<PackageData>> GetPackagesForClient(int clientId, string addressName, string addressCity, string addressStreet, string addressPostalCode, string addressCountry, DocumentStatus status)
+    {
+        const string procedure = "kp.GetPackagesForClient";
+        return await _db.QueryAsync<PackageData>(procedure, new { clientId, addressName, addressCity, addressStreet, addressPostalCode, addressCountry, status }, CommandType.StoredProcedure, Connection.ERPConnection);
+    }
+
     public async Task<bool> ReleaseJl(string jl)
     {
         const string procedure = "kp.ReleseJl";

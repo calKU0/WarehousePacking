@@ -158,3 +158,33 @@
 [2025-11-12T12:06:01.8316928Z] Received Response (200)
 {"status":"1","desc":"OK"}
 
+[2025-11-21T13:18:54.0248479Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-054","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31216.00","batchId":null,"itemQty":"1"}]}
+
+[2025-11-21T13:18:54.2804660Z] Received Response (200)
+{"status":"1","desc":"OK"}
+
+[2025-11-21T13:55:09.6937398Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"618186.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AH107066.02","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31215.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31217.00","batchId":null,"itemQty":"1"}]}
+
+[2025-11-21T13:55:09.8994659Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: duplicate key value violates unique constraint \"wms_logistic_unit_code_key\" ->> OK"}
+
+[2025-11-21T13:55:24.6071403Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"618186.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AH107066.02","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31215.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31217.00","batchId":null,"itemQty":"1"}]}
+
+[2025-11-21T13:55:24.8013305Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: duplicate key value violates unique constraint \"wms_logistic_unit_code_key\" ->> OK"}
+
+[2025-11-21T13:55:28.4456032Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"618186.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AH107066.02","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31215.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31217.00","batchId":null,"itemQty":"1"}]}
+
+[2025-11-21T13:55:28.5463668Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: duplicate key value violates unique constraint \"wms_logistic_unit_code_key\" ->> OK"}
+
+[2025-11-21T13:55:36.0649104Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"618186.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AH107066.02","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31215.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31217.00","batchId":null,"itemQty":"1"}]}
+
+[2025-11-21T13:55:36.2571953Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: duplicate key value violates unique constraint \"wms_logistic_unit_code_key\" ->> OK"}
+

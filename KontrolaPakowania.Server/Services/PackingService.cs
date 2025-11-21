@@ -121,6 +121,30 @@ namespace KontrolaPakowania.Server.Services
             throw new Exception(generic);
         }
 
+        public async Task<List<PackageData>?> GetPackagesForClient(int clientId, string addressName, string addressCity, string addressStreet, string addressPostalCode, string addressCountry, DocumentStatus status)
+        {
+            var response = await _dbClient.GetAsync($"api/packing/get-packages-for-client?clientId={clientId}&addressName={addressName}&addressCity={addressCity}&addressStreet={addressStreet}&addressPostalCode={addressPostalCode}&addressCountry={addressCountry}&status={status}");
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<List<PackageData>>();
+            }
+
+            if (response.StatusCode == HttpStatusCode.Conflict)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
+
         public async Task<bool> ReleaseJl(string jlCode)
         {
             var response = await _dbClient.DeleteAsync($"api/packing/release-jl?jl={jlCode}");

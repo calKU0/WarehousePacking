@@ -22,6 +22,8 @@ namespace KontrolaPakowania.API.Services.Packing
 
         Task<bool> RemoveJlRealization(string jl);
 
+        Task<IEnumerable<PackageData>> GetPackagesForClient(int clientId, string addressName, string addressCity, string addressStreet, string addressPostalCode, string addressCountry, DocumentStatus status);
+
         Task<bool> ReleaseJl(string jl);
 
         Task<CourierConfiguration> GetCourierConfiguration(string courierName, PackingLevel level, string country);

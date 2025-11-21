@@ -28,7 +28,6 @@
                 CourierConfiguration="CourierConfiguration" />
 
     <PackingButtons NextPackage="NextPackage"
-                    Bufor="Bufor"
                     UnpackItem="UnpackItem"
                     Close="Close"
                     FinishPacking="FinishPacking"
@@ -57,7 +56,9 @@
 <FinishPackingModal @ref="FinishPackingModal"
             Courier="CurrentJl.Courier"
             CourierSrc="@CurrentJl.LogoCourier"
+            PackingLevel="Settings.PackingLevel"
             OnCourierLabel="HandleCourierLabel"
+            OnBufor="HandleBufor"
             OnInternalBarcode="HandleInternalBarcode" />
 
 <DimensionsModal @ref="DimensionsModal"  />
@@ -72,7 +73,9 @@
         try
         {
             await base.OnInitializedAsync();
-            await CreatePackage();
+            if (PackageId == 0)
+                await CreatePackage();
+            
             await LoadCourierConfiguration();
         }
         catch (Exception ex)
@@ -80,6 +83,7 @@
             Toast.Show("Błąd!", $"Błąd przy inicjalizacji: {ex.Message}");
         }
     }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
