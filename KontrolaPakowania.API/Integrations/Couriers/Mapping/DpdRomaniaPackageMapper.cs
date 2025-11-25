@@ -19,7 +19,7 @@ namespace KontrolaPakowania.API.Integrations.Couriers.Mapping
             if (package == null)
                 throw new ArgumentNullException(nameof(package));
 
-            int countryId = package.RecipientCountry switch
+            int countryId = package.Recipient.Country switch
             {
                 "RO" => 642,
                 "BG" => 100,
@@ -28,7 +28,7 @@ namespace KontrolaPakowania.API.Integrations.Couriers.Mapping
             };
 
             // Determine service based on weight/country
-            int serviceId = GetServiceId(package.RecipientCountry, package.RecipientCity, package.Weight);
+            int serviceId = GetServiceId(package.Recipient.Country, package.Recipient.City, package.Weight);
 
             var shipment = new DpdRomaniaCreateShipmentRequest
             {
@@ -87,18 +87,18 @@ namespace KontrolaPakowania.API.Integrations.Couriers.Mapping
                 },
                 Recipient = new()
                 {
-                    Phone1 = new() { Number = FormatPhoneNumber(package.RecipientPhone) },
+                    Phone1 = new() { Number = FormatPhoneNumber(package.Recipient.Phone) },
                     PrivatePerson = true,
-                    ClientName = package.RecipientName,
-                    ContactName = package.RecipientName,
-                    Email = package.RecipientEmail,
+                    ClientName = package.Recipient.Name,
+                    ContactName = package.Recipient.Name,
+                    Email = package.Recipient.Email,
                     Address = new()
                     {
                         CountryId = countryId,
-                        PostCode = package.RecipientPostalCode,
-                        SiteName = package.RecipientCity,
+                        PostCode = package.Recipient.PostalCode,
+                        SiteName = package.Recipient.City,
                         StreetType = "str.",
-                        StreetName = package.RecipientStreet,
+                        StreetName = package.Recipient.Street,
                         StreetNo = " "
                     }
                 },

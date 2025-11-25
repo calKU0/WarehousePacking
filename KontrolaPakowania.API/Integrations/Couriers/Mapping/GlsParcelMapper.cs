@@ -9,13 +9,13 @@ namespace KontrolaPakowania.API.Integrations.Couriers.Mapping
         {
             return new cConsign
             {
-                rname1 = package.RecipientName,
-                rcountry = package.RecipientCountry,
-                rzipcode = package.RecipientPostalCode,
-                rcity = package.RecipientCity,
-                rstreet = package.RecipientStreet,
-                rphone = package.RecipientPhone,
-                rcontact = package.RecipientEmail,
+                rname1 = package.Recipient.Name,
+                rcountry = package.Recipient.Country,
+                rzipcode = package.Recipient.PostalCode,
+                rcity = package.Recipient.City,
+                rstreet = package.Recipient.Street,
+                rphone = package.Recipient.Phone,
+                rcontact = package.Recipient.Email,
                 notes = package.Description,
                 references = package.References,
                 quantity = package.PackageQuantity,

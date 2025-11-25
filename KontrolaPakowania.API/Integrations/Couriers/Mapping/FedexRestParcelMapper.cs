@@ -87,24 +87,24 @@ namespace KontrolaPakowania.API.Integrations.Couriers.Mapping
             return shipper;
         }
 
-        private List<Recipient> MapRecipents(PackageData package)
+        private List<Fedex.DTOs.Recipient> MapRecipents(PackageData package)
         {
-            List<Recipient> recipents = new()
+            List<Fedex.DTOs.Recipient> recipents = new()
             {
-                new Recipient
+                new Fedex.DTOs.Recipient
                 {
                     Address = new Address
                     {
-                        City = package.RecipientCity,
-                        PostalCode = package.RecipientPostalCode,
-                        CountryCode = package.RecipientCountry,
-                        StreetLines = new List<string> { package.RecipientStreet }
+                        City = package.Recipient.City,
+                        PostalCode = package.Recipient.PostalCode,
+                        CountryCode = package.Recipient.Country,
+                        StreetLines = new List<string> { package.Recipient.Street }
                     },
                     Contact = new Contact
                     {
-                        EmailAddress = package.RecipientEmail,
-                        PhoneNumber = package.RecipientPhone,
-                        CompanyName = package.RecipientName,
+                        EmailAddress = package.Recipient.Email,
+                        PhoneNumber = package.Recipient.Phone,
+                        CompanyName = package.Recipient.Name,
                     }
                 }
             };

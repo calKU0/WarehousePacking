@@ -7,6 +7,10 @@ namespace KontrolaPakowania.API.Services.Shipment
     {
         Task<PackageData?> GetShipmentDataByBarcode(string barcode);
 
+        Task<IEnumerable<Recipient>?> SearchAddress(string code);
+
+        Task<IEnumerable<SearchInvoiceResult>?> SearchInvoice(string code);
+
         Task<bool> DeleteErpShipmentDocument(int wysNumber, int wysType);
 
         Task<int> CreateErpShipmentDocument(ShipmentResponse shipment);

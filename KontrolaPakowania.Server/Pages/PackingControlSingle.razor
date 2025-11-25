@@ -26,7 +26,6 @@
                    Disabled="@MovedProduct" />
 
     <PackingButtons NextPackage="NextPackage"
-                    Bufor="Bufor"
                     UnpackItem="UnpackItem"
                     Close="Close"
                     FinishPacking="FinishPacking"
@@ -176,11 +175,12 @@
         ClearJlData();
     }
 
-    protected override async Task HandleShipmentOkClick()
+    protected override async Task HandleShipmentOkClick(string trackingNumber)
     {
         switch (_currentPackingFlow)
         {
             case PackingFlow.FinishPacking:
+                await CloseJlInWMS(CurrentJl.CourierName, trackingNumber, DocumentStatus.Ready);
                 PackedItems.Clear();
                 MovedProduct = false;
                 ClearJlData();
@@ -209,6 +209,7 @@
                 dimensions = await DimensionsModal.Show();
             }
 
+            await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, DocumentStatus.Ready);
             await ClosePackage(internalBarcode, dimensions);
             await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", internalBarcode } });
 

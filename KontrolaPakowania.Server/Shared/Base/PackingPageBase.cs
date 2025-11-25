@@ -464,7 +464,7 @@ namespace KontrolaPakowania.Server.Shared.Base
             }
         }
 
-        protected virtual async Task CloseJlInWMS(string courier, string packageCode)
+        protected virtual async Task CloseJlInWMS(string courier, string packageCode, DocumentStatus status)
         {
             if (PackedItems == null || !PackedItems.Any())
                 return;
@@ -482,71 +482,11 @@ namespace KontrolaPakowania.Server.Shared.Base
                 Courier = courier,
                 JlCode = CurrentJl.Name,
                 Weight = PackedItems.Sum(i => i.ItemWeight * i.JlQuantity),
+                Status = status,
                 Items = PackedWmsItems
             };
 
             await PackingService.PackWmsStock(packStockRequest);
-        }
-
-        protected virtual async Task HandleCourierLabel()
-        {
-            try
-            {
-                FinishPackingModal.Hide();
-
-                if (string.IsNullOrEmpty(CurrentJl.InternalBarcode))
-                    CurrentJl.InternalBarcode = await PackingService.GenerateInternalBarcode(Settings.StationNumber);
-
-                if (string.IsNullOrEmpty(CurrentJl.InternalBarcode))
-                {
-                    Toast.Show("Błąd!", "Nie udało się wygenerować numeru wewnętrznego. Spróbuj ponownie.");
-                    return;
-                }
-
-                await ClosePackage(CurrentJl.InternalBarcode, new Dimensions());
-
-                // Shipment
-                var package = await ShipmentService.GetShipmentDataByBarcode(CurrentJl.InternalBarcode);
-                if (package is not null && package.TaxFree)
-                {
-                    Toast.Show("Tax Free", "Paczka zawiera dokument Tax Free. Nadaj numer wewnętrzny.", ToastType.Info);
-                    return;
-                }
-                var response = await ShipmentService.SendPackage(package);
-
-                if (response?.PackageId > 0)
-                {
-                    if (!string.IsNullOrEmpty(response.LabelBase64))
-                    {
-                        var labelContent = response.LabelBase64;
-                        await CloseJlInWMS(CurrentJl.CourierName, response.TrackingNumber);
-                        await ClientPrinterService.PrintAsync(Settings.PrinterLabel, response.LabelType.ToString(), labelContent);
-                        ShipmentModal.Show(response.TrackingNumber, response.LabelBase64, response.LabelType, Settings.PrinterLabel, package.HasInvoice);
-                        if (package.HasInvoice)
-                        {
-                            await ClientPrinterService.PrintCrystalAsync(Settings.PrinterInvoice, package.RecipientCountry != "PL" ? "InvoiceEN" : "InvoicePL", new Dictionary<string, string> { { "DocumentId", package.InvoiceId.ToString() } });
-                        }
-                    }
-                    else
-                    {
-                        var msg = string.IsNullOrWhiteSpace(response.ErrorMessage) ? "Nie udało się wygenerować etykiety kurierskiej!" : response.ErrorMessage;
-
-                        Toast.Show("Błąd!", msg);
-                    }
-                }
-                else
-                {
-                    var msg = string.IsNullOrWhiteSpace(response?.ErrorMessage)
-                        ? "Nie udało się wygenerować przesyłki!"
-                        : response.ErrorMessage;
-
-                    Toast.Show("Błąd!", msg);
-                }
-            }
-            catch (Exception ex)
-            {
-                Toast.Show("Błąd!", $"Błąd przy próbie finalizacji pakowania: {ex.Message}");
-            }
         }
 
         protected virtual async Task HandleManagerClick(int returnClick)
@@ -752,8 +692,70 @@ namespace KontrolaPakowania.Server.Shared.Base
             }
         }
 
-        protected virtual async Task HandleShipmentOkClick()
+        protected virtual async Task HandleCourierLabel()
         {
+            try
+            {
+                FinishPackingModal.Hide();
+
+                if (string.IsNullOrEmpty(CurrentJl.InternalBarcode))
+                    CurrentJl.InternalBarcode = await PackingService.GenerateInternalBarcode(Settings.StationNumber);
+
+                if (string.IsNullOrEmpty(CurrentJl.InternalBarcode))
+                {
+                    Toast.Show("Błąd!", "Nie udało się wygenerować numeru wewnętrznego. Spróbuj ponownie.");
+                    return;
+                }
+
+                await ClosePackage(CurrentJl.InternalBarcode, new Dimensions());
+
+                // Shipment
+                var package = await ShipmentService.GetShipmentDataByBarcode(CurrentJl.InternalBarcode);
+                if (package is not null && package.TaxFree)
+                {
+                    Toast.Show("Tax Free", "Paczka zawiera dokument Tax Free. Nadaj numer wewnętrzny.", ToastType.Info);
+                    return;
+                }
+                var response = await ShipmentService.SendPackage(package);
+
+                if (response?.PackageId > 0)
+                {
+                    if (!string.IsNullOrEmpty(response.LabelBase64))
+                    {
+                        var labelContent = response.LabelBase64;
+                        await ClientPrinterService.PrintAsync(Settings.PrinterLabel, response.LabelType.ToString(), labelContent);
+                        ShipmentModal.Show(response.TrackingNumber, response.LabelBase64, response.LabelType, Settings.PrinterLabel, package.HasInvoice);
+                        if (package.HasInvoice)
+                        {
+                            await ClientPrinterService.PrintCrystalAsync(Settings.PrinterInvoice, package.Recipient.Country != "PL" ? "InvoiceEN" : "InvoicePL", new Dictionary<string, string> { { "DocumentId", package.InvoiceId.ToString() } });
+                        }
+                    }
+                    else
+                    {
+                        var msg = string.IsNullOrWhiteSpace(response.ErrorMessage) ? "Nie udało się wygenerować etykiety kurierskiej!" : response.ErrorMessage;
+
+                        Toast.Show("Błąd!", msg);
+                    }
+                }
+                else
+                {
+                    var msg = string.IsNullOrWhiteSpace(response?.ErrorMessage)
+                        ? "Nie udało się wygenerować przesyłki!"
+                        : response.ErrorMessage;
+
+                    Toast.Show("Błąd!", msg);
+                }
+            }
+            catch (Exception ex)
+            {
+                Toast.Show("Błąd!", $"Błąd przy próbie finalizacji pakowania: {ex.Message}");
+            }
+        }
+
+        protected virtual async Task HandleShipmentOkClick(string trackingNumber)
+        {
+            await CloseJlInWMS(CurrentJl.CourierName, trackingNumber, DocumentStatus.Ready);
+
             switch (_currentPackingFlow)
             {
                 case PackingFlow.FinishPacking:
@@ -787,7 +789,7 @@ namespace KontrolaPakowania.Server.Shared.Base
                     dimensions = await DimensionsModal.Show();
                 }
 
-                await CloseJlInWMS(CurrentJl.CourierName, internalBarcode);
+                await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, DocumentStatus.Ready);
                 await ClosePackage(internalBarcode, dimensions);
                 await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", internalBarcode } });
 
@@ -827,7 +829,7 @@ namespace KontrolaPakowania.Server.Shared.Base
                     dimensions = await DimensionsModal.Show();
                 }
 
-                await CloseJlInWMS(CurrentJl.CourierName, internalBarcode);
+                await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, DocumentStatus.InProgress);
                 await ClosePackage(internalBarcode, dimensions, DocumentStatus.InProgress);
                 await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", internalBarcode } });
 

@@ -44,11 +44,11 @@ namespace KontrolaPakowania.API.Integrations.Email
 
         public async Task SendPackageFailureEmail(PackageData package, string errorMessage)
         {
-            var subject = $"❌ Błąd wysyłki paczki dla klienta {package.RecipientName}";
+            var subject = $"❌ Błąd wysyłki paczki dla klienta {package.Recipient.Name}";
             var body = $@"
             <div style='font-family: Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.5;'>
                 <p style='font-size:16px; font-weight:bold; color:#d9534f;'>
-                    Wystąpił błąd przy próbie wysłania paczki do kontrahenta: {package.RecipientName}
+                    Wystąpił błąd przy próbie wysłania paczki do kontrahenta: {package.Recipient.Name}
                 </p>
 
                 <p>

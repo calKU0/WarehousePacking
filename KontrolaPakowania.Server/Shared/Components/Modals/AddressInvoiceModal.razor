@@ -1,0 +1,239 @@
+﻿@using System.Net
+@inject ShipmentService ShipmentService
+
+
+@if (IsVisible)
+{
+    <div class="modal fade show"
+         tabindex="-1"
+         style="display: block; background-color: rgba(0,0,0,0.5);">
+        >
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content shadow-lg">
+
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Wybierz adres i (opcjonalnie) fakturę</h5>
+                    <button type="button" class="btn-close bg-white" @onclick="Hide"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row">
+
+                        <!-- LEFT – ADDRESS SEARCH -->
+                        <div class="col-6 border-end">
+                            <h5 class="fw-bold">Adres odbiorcy</h5>
+
+                            <input class="form-control mb-2"
+                                   placeholder="Szukaj adresu..."
+                                   value="@AddressSearch"
+                                   @oninput="OnAddressInput"
+                                   disabled="@LeftDisabled" />
+
+                            @if (IsAddressLoading)
+                            {
+                                <div class="text-muted small">Ładowanie...</div>
+                            }
+
+                            <table class="table table-hover mt-2">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Akronim</th>
+                                        <th>Nazwa</th>
+                                        <th>Miasto</th>
+                                        <th>Ulica</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (AddressResults != null)
+                                    {
+                                        @foreach (var item in AddressResults)
+                                        {
+                                            <tr class="selectable-row"
+                                                @onclick="() => SelectRecipient(item)"
+                                                style=@($"cursor: {(LeftDisabled ? "not-allowed" : "pointer")}; opacity: {(LeftDisabled ? "0.5" : "1")};")>
+                                                <td>@item.Acronym</td>
+                                                <td>@item.Name</td>
+                                                <td>@item.City</td>
+                                                <td>@item.Street</td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+
+                            @if (SelectedRecipient != null)
+                            {
+                                <div class="alert alert-success mt-3">
+                                    Wybrano adres: <strong>@SelectedRecipient.Name</strong>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- RIGHT – INVOICE SEARCH -->
+                        <div class="col-6">
+                            <h5 class="fw-bold">Faktura (opcjonalne)</h5>
+
+                            <input class="form-control mb-2"
+                                   placeholder="Szukaj faktury..."
+                                   value="@InvoiceSearch"
+                                   @oninput="OnInvoiceInput"
+                                   disabled="@RightDisabled" />
+
+                            @if (IsInvoiceLoading)
+                            {
+                                <div class="text-muted small">Ładowanie...</div>
+                            }
+
+                            <table class="table table-hover mt-2">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Nazwa</th>
+                                        <th>Klient</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (InvoiceResults != null)
+                                    {
+                                        @foreach (var item in InvoiceResults)
+                                        {
+                                            <tr class="selectable-row"
+                                                @onclick="() => SelectInvoice(item)">
+                                                <td>@item.InvoiceName</td>
+                                                <td>@item.ClientName</td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+
+                            @if (SelectedInvoice != null)
+                            {
+                                <div class="alert alert-info mt-3">
+                                    Wybrano fakturę: <strong>@SelectedInvoice.InvoiceName</strong>
+                                </div>
+                            }
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="Hide">Anuluj</button>
+                    <button class="btn btn-primary" @onclick="Confirm" disabled=@(!CanConfirm)>
+                        Zatwierdź
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    public bool IsVisible { get; set; }
+
+    // Inputs
+    private string AddressSearch { get; set; } = "";
+    private string InvoiceSearch { get; set; } = "";
+
+    // Results
+    private List<Recipient>? AddressResults;
+    private List<SearchInvoiceResult>? InvoiceResults;
+
+    // Selected
+    private Recipient? SelectedRecipient;
+    private SearchInvoiceResult? SelectedInvoice;
+
+    // States
+    private bool LeftDisabled => SelectedRecipient != null;
+    private bool RightDisabled => SelectedRecipient == null;
+    private bool IsAddressLoading;
+    private bool IsInvoiceLoading;
+
+    public EventCallback<Recipient> OnRecipientSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<(Recipient Recipient, SearchInvoiceResult? Invoice)> OnConfirmed { get; set; }
+
+    private bool CanConfirm => SelectedRecipient != null;
+
+    // PUBLIC API
+    public async Task ShowAsync()
+    {
+        ResetState();
+        IsVisible = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Hide()
+    {
+        IsVisible = false;
+    }
+
+    private void ResetState()
+    {
+        AddressSearch = "";
+        InvoiceSearch = "";
+        AddressResults = null;
+        InvoiceResults = null;
+        SelectedRecipient = null;
+        SelectedInvoice = null;
+    }
+
+    // ADDRESS HANDLER
+    private async Task OnAddressInput(ChangeEventArgs args)
+    {
+        AddressSearch = args.Value?.ToString() ?? "";
+
+        if (AddressSearch.Length < 3)
+        {
+            AddressResults = null;
+            return;
+        }
+
+        IsAddressLoading = true;
+        StateHasChanged();
+
+        AddressResults = await ShipmentService.SearchAddress(AddressSearch);
+
+        IsAddressLoading = false;
+    }
+
+    private void SelectRecipient(Recipient r)
+    {
+        if (LeftDisabled) return;
+        SelectedRecipient = r;
+    }
+
+    // INVOICE HANDLER
+    private async Task OnInvoiceInput(ChangeEventArgs args)
+    {
+        if (RightDisabled) return;
+
+        InvoiceSearch = args.Value?.ToString() ?? "";
+
+        if (InvoiceSearch.Length < 3)
+        {
+            InvoiceResults = null;
+            return;
+        }
+
+        IsInvoiceLoading = true;
+        StateHasChanged();
+
+        InvoiceResults = await ShipmentService.SearchInvoice(InvoiceSearch);
+
+        IsInvoiceLoading = false;
+    }
+
+    private void SelectInvoice(SearchInvoiceResult item)
+    {
+        SelectedInvoice = item;
+    }
+
+    private async Task Confirm()
+    {
+        Hide();
+        await OnConfirmed.InvokeAsync((SelectedRecipient!, SelectedInvoice));
+    }
+}

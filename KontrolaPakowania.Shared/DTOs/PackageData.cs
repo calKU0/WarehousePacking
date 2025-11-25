@@ -34,14 +34,6 @@ namespace KontrolaPakowania.Shared.DTOs
         public DocumentStatus Status { get; set; }
         public string InvoiceName { get; set; } = string.Empty;
         public string PackageName { get; set; } = string.Empty;
-        public string RecipientName { get; set; } = string.Empty;
-        public string RecipientCity { get; set; } = string.Empty;
-        public string RecipientStreet { get; set; } = string.Empty;
-        public string RecipientPostalCode { get; set; } = string.Empty;
-        public string RecipientCountry { get; set; } = string.Empty;
-        public string RecipientPhone { get; set; } = string.Empty;
-        public string RecipientEmail { get; set; } = string.Empty;
-        public int RecipentType { get; set; }
         public string SenderBankAccount { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string References { get; set; } = string.Empty;
@@ -57,6 +49,10 @@ namespace KontrolaPakowania.Shared.DTOs
         public int WysType { get; set; }
         public bool HasInvoice { get; set; }
         public bool TaxFree { get; set; }
+        public bool ManualSend { get; set; }
+        public bool ManualEdit { get; set; }
+        public string TrackingNumber { get; set; } = string.Empty;
+        public Recipient Recipient { get; set; } = new Recipient();
         public ShipmentServices ShipmentServices { get; set; } = new ShipmentServices();
 
         private void InitCourierLogo()

@@ -50,7 +50,7 @@ namespace KontrolaPakowania.API.Integrations.Couriers.DPD
             if (string.IsNullOrWhiteSpace(waybill))
                 return ShipmentResponse.CreateFailure("Nie zwrócono etykiety przez DPD API.");
 
-            var labelResponse = await CreateDpdLabel(createDpdResponse.SessionId, waybill, package.RecipientCountry, createDpdResponse.Packages);
+            var labelResponse = await CreateDpdLabel(createDpdResponse.SessionId, waybill, package.Recipient.Country, createDpdResponse.Packages);
             if (labelResponse == null)
                 return ShipmentResponse.CreateFailure("Pusta odpowiedź z tworzenia etykiety DPD przez API.");
             if (labelResponse.Status != "OK")

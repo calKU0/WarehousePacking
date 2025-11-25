@@ -64,28 +64,28 @@ namespace KontrolaPakowania.API.Integrations.Couriers.Mapping
             {
                 addressDetails = new daneAdresowe
                 {
-                    city = package.RecipientCity,
-                    postalCode = package.RecipientPostalCode,
-                    countryCode = package.RecipientCountry,
-                    street = package.RecipientStreet,
-                    isCompany = package.RecipentType.ToString(),
+                    city = package.Recipient.City,
+                    postalCode = package.Recipient.PostalCode,
+                    countryCode = package.Recipient.Country,
+                    street = package.Recipient.Street,
+                    isCompany = package.Recipient.Type.ToString(),
                     homeNo = string.Empty
                 },
                 contactDetails = new daneKontaktowe
                 {
-                    phoneNo = package.RecipientPhone,
-                    email = package.RecipientEmail
+                    phoneNo = package.Recipient.Phone,
+                    email = package.Recipient.Email
                 }
             };
 
-            if (package.RecipentType == 1)
+            if (package.Recipient.Type == 1)
             {
-                receiver.addressDetails.companyName = package.RecipientName;
+                receiver.addressDetails.companyName = package.Recipient.Name;
             }
             else
             {
-                receiver.addressDetails.surname = package.RecipientName;
-                receiver.contactDetails.surname = package.RecipientName;
+                receiver.addressDetails.surname = package.Recipient.Name;
+                receiver.contactDetails.surname = package.Recipient.Name;
             }
 
             return receiver;

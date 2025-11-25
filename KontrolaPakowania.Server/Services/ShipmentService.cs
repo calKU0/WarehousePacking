@@ -39,6 +39,56 @@ namespace KontrolaPakowania.Server.Services
             throw new Exception(generic);
         }
 
+        public async Task<List<Recipient>?> SearchAddress(string code)
+        {
+            var response = await _dbClient.GetAsync($"api/shipments/search-address?code={code}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<List<Recipient>?>();
+            }
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException(message);
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
+
+        public async Task<List<SearchInvoiceResult>?> SearchInvoice(string code)
+        {
+            var response = await _dbClient.GetAsync($"api/shipments/search-invoice?code={code}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<List<SearchInvoiceResult>?>();
+            }
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException(message);
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
+
         public async Task<ShipmentResponse> SendPackage(PackageData package)
         {
             var response = await _dbClient.PostAsJsonAsync($"api/shipments/create-shipment", package);

@@ -48,13 +48,13 @@
     public string Printer { get; set; } = string.Empty;
     public PrintDataType LabelType { get; set; }
     public bool HasInvoice { get; set; }
-    [Parameter] public EventCallback OnOk { get; set; }
+    [Parameter] public EventCallback<string> OnOk { get; set; }
 
     private async Task OnOkClicked()
     {
         if (OnOk.HasDelegate)
         {
-            await OnOk.InvokeAsync(null);
+            await OnOk.InvokeAsync(TrackingNumber);
         }
         Hide();
     }

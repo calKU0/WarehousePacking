@@ -115,14 +115,14 @@ namespace KontrolaPakowania.API.Integrations.Couriers.Mapping
             {
                 Receiver = new()
                 {
-                    Company = packageInfo.RecipientName,
-                    Name = packageInfo.RecipientName,
-                    Address = packageInfo.RecipientStreet,
-                    City = packageInfo.RecipientCity,
-                    CountryCode = packageInfo.RecipientCountry,
-                    PostalCode = packageInfo.RecipientPostalCode.Replace("-", ""),
-                    Phone = string.IsNullOrEmpty(packageInfo.RecipientPhone) ? null : packageInfo.RecipientPhone,
-                    Email = string.IsNullOrEmpty(packageInfo.RecipientEmail) ? null : packageInfo.RecipientEmail
+                    Company = packageInfo.Recipient.Name,
+                    Name = packageInfo.Recipient.Name,
+                    Address = packageInfo.Recipient.Street,
+                    City = packageInfo.Recipient.City,
+                    CountryCode = packageInfo.Recipient.Country,
+                    PostalCode = packageInfo.Recipient.PostalCode.Replace("-", ""),
+                    Phone = string.IsNullOrEmpty(packageInfo.Recipient.Phone) ? null : packageInfo.Recipient.Phone,
+                    Email = string.IsNullOrEmpty(packageInfo.Recipient.Email) ? null : packageInfo.Recipient.Email
                 },
                 Sender = new()
                 {

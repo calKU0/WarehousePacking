@@ -1,0 +1,71 @@
+﻿@if (IsVisible)
+{
+    <div class="modal-backdrop @(IsVisible ? "show" : "")">
+        <div class="modal-container shadow-lg rounded-2 p-4">
+            <div class="modal-header d-flex justify-content-between align-items-center mb-3">
+                <h5 class="modal-title">Przesyłka z listem przewozowym</h5>
+                <button type="button" class="btn-close" @onclick="Close" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body mb-3">
+                <p>Sprawdź zgodność danych zeskanowanej paczki/palety z dostarczonym listem przewozowym.</p>
+                <p>Jeśli nie masz listu, wygeneruj etykietę wewnętrzną i naklej na przesyłkę</p>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Dane odbiorcy:</label>
+                    <div>
+                        <div>Akronim: @Recipient?.Name</div>
+                        <div>Ulica: @Recipient?.Street</div>
+                        <div>Kod Pocztowy: @Recipient?.PostalCode</div>
+                        <div>Kraj: @Recipient?.Country</div>
+                        <div>Sposób wysyłki: <strong>@Courier</strong></div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label">Numer przesyłki:</label>
+                    <input type="text" class="form-control mb-2" placeholder="Zeskanuj lub wpisz numer" @bind="TrackingNumber" />
+                </div>
+            </div>
+
+            <div class="modal-footer d-flex gap-2 justify-content-end">
+                <button class="btn btn-success" @onclick="TriggerSave">Zapisz numer</button>
+                <button class="btn btn-secondary" @onclick="TriggerPrint">Drukuj etykietę wewn.</button>
+                <button class="btn btn-danger" @onclick="Close">Cofnij</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool IsVisible = false;
+    private string TrackingNumber = string.Empty;
+    private Recipient Recipient { get; set; } = new();
+    private string Courier { get; set; } = string.Empty;
+
+    [Parameter] public EventCallback<string> OnSaveNumber { get; set; }
+    [Parameter] public EventCallback<Recipient> OnPrintLabel { get; set; }
+
+    public async Task Show(Recipient recipient, string courier)
+    {
+        Recipient = recipient;
+        Courier = courier;
+        TrackingNumber = string.Empty;
+        IsVisible = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task TriggerSave()
+    {
+        await OnSaveNumber.InvokeAsync(TrackingNumber);
+        Close();
+    }
+
+    private async Task TriggerPrint()
+    {
+        await OnPrintLabel.InvokeAsync(Recipient);
+        Close();
+    }
+
+    private void Close() => IsVisible = false;
+}

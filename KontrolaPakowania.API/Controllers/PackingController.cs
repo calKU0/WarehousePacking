@@ -385,11 +385,14 @@ namespace KontrolaPakowania.API.Controllers
                     return BadRequest(packResult.Desc);
                 }
 
-                var closeResult = await _packingService.CloseWmsPackage(request.PackageCode, request.Courier);
-                if (closeResult.Status != "1")
+                if (request.Status == DocumentStatus.Ready)
                 {
-                    _logger.Warning("CloseWmsPackage failed for package {PackageCode}: {Desc}", request.PackageCode, closeResult.Desc);
-                    return BadRequest(closeResult.Desc);
+                    var closeResult = await _packingService.CloseWmsPackage(request.PackageCode, request.Courier);
+                    if (closeResult.Status != "1")
+                    {
+                        _logger.Warning("CloseWmsPackage failed for package {PackageCode}: {Desc}", request.PackageCode, closeResult.Desc);
+                        return BadRequest(closeResult.Desc);
+                    }
                 }
 
                 _logger.Information("PackWmsStock succeeded for package {PackageCode}", request.PackageCode);

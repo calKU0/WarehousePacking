@@ -21,7 +21,7 @@ namespace KontrolaPakowania.Shared.Enums
         [Description("DPD-Romania")]
         DPD_Romania,
 
-        [Description("Shenker")]
+        [Description("Schenker")]
         Schenker,
 
         [Description("Hellmann")]

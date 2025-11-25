@@ -26,7 +26,7 @@ namespace KontrolaPakowania.API.Integrations.Couriers.Fedex
 
         private IFedexApiStrategy GetStrategy(PackageData package)
         {
-            return package.RecipientCountry == "PL" ? _soapStrategy : _restStrategy;
+            return package.Recipient.Country == "PL" ? _soapStrategy : _restStrategy;
         }
 
         public Task<ShipmentResponse> SendPackageAsync(PackageData package)

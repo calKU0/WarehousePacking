@@ -4,6 +4,7 @@ using KontrolaPakowania.API.Services.Shipment;
 using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
+using KontrolaPakowania.Shared.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using System;
@@ -53,6 +54,44 @@ namespace KontrolaPakowania.API.Controllers
             }
         }
 
+        [HttpGet("search-address")]
+        public async Task<IActionResult> SearchAddress([FromQuery] string code)
+        {
+            _logger.Information("Request: SearchAddress for code {Code}", code);
+
+            try
+            {
+                var result = await _shipmentService.SearchAddress(code);
+
+                _logger.Information("Addresses retrieved successfully for code {Code}", code);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error in SearchAddress for code {Code}", code);
+                return HandleException(ex);
+            }
+        }
+
+        [HttpGet("search-invoice")]
+        public async Task<IActionResult> SearchInvoice([FromQuery] string code)
+        {
+            _logger.Information("Request: SearchInvoice for code {Code}", code);
+
+            try
+            {
+                var result = await _shipmentService.SearchInvoice(code);
+
+                _logger.Information("Invoices retrieved successfully for code {Code}", code);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error in SearchInvoice for code {Code}", code);
+                return HandleException(ex);
+            }
+        }
+
         [HttpPost("create-shipment")]
         public async Task<IActionResult> CreateShipment([FromBody] PackageData package)
         {
@@ -60,8 +99,20 @@ namespace KontrolaPakowania.API.Controllers
 
             try
             {
-                var courier = _courierFactory.GetCourier(package.Courier);
-                var result = await courier.SendPackageAsync(package);
+                ShipmentResponse result = new();
+                if (CourierHelper.AllowedCouriersForLabel.Contains(package.Courier))
+                {
+                    var courier = _courierFactory.GetCourier(package.Courier);
+                    result = await courier.SendPackageAsync(package);
+                }
+                else
+                {
+                    result.TrackingNumber = package.TrackingNumber;
+                    result.Success = true;
+                    result.PackageId = package.Id;
+                    result.Courier = package.Courier;
+                    result.PackageInfo = package;
+                }
 
                 if (!result.Success)
                 {
@@ -82,12 +133,18 @@ namespace KontrolaPakowania.API.Controllers
 
                 _logger.Information("Package sent successfully to courier {Courier} for {PackageCode}", package.Courier, package.PackageName);
 
+                if (package.ManualSend)
+                {
+                    _logger.Information("Package {PackageCode} was sent manually. Skipping ERP document creation.", package.PackageName);
+                    return Ok(result);
+                }
+
                 var createDocResult = await _shipmentService.CreateErpShipmentDocument(result);
 
                 if (createDocResult <= 0)
                 {
                     _logger.Error("Failed to create ERP shipment document for package {PackageCode}", package.PackageName);
-                    return StatusCode(500, "Nie udało się założyć wysyłki dokumentu w ERP.");
+                    return StatusCode(500, "Nie udało się założyć dokumentu wysyłki w ERP.");
                 }
 
                 result.ErpShipmentId = createDocResult;
@@ -112,13 +169,16 @@ namespace KontrolaPakowania.API.Controllers
         [HttpDelete("delete-shipment")]
         public async Task<IActionResult> DeleteShipment([FromQuery] Courier courier, [FromQuery] int wysNumber, [FromQuery] int wysType)
         {
-            _logger.Information("Request: DeleteShipment for courier {Courier}, WYS number {WysNumber}, type {WysType}",
-                courier, wysNumber, wysType);
+            _logger.Information("Request: DeleteShipment for courier {Courier}, WYS number {WysNumber}, type {WysType}", courier, wysNumber, wysType);
 
             try
             {
-                var courierClient = _courierFactory.GetCourier(courier);
-                var result = await courierClient.DeletePackageAsync(wysNumber);
+                int result = 1;
+                if (CourierHelper.AllowedCouriersForLabel.Contains(courier))
+                {
+                    var courierClient = _courierFactory.GetCourier(courier);
+                    result = await courierClient.DeletePackageAsync(wysNumber);
+                }
 
                 if (result < 0)
                 {

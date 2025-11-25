@@ -14,6 +14,7 @@ namespace KontrolaPakowania.Shared.DTOs.Requests
         public string Courier { get; set; } = string.Empty;
         public string JlCode { get; set; } = string.Empty;
         public decimal Weight { get; set; }
+        public DocumentStatus Status { get; set; }
         public List<WMSPackStockItemsRequest> Items { get; set; } = new();
     }
 
