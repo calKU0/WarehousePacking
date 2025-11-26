@@ -1,4 +1,6 @@
-﻿@if (IsVisible)
+﻿@inject IJSRuntime JSRuntime
+
+@if (IsVisible)
 {
     <div class="modal-backdrop @(IsVisible ? "show" : "")">
         <div class="modal-container">
@@ -12,6 +14,7 @@
                 <input class="form-control mb-3"
                        value="@ScanInput"
                        @oninput="OnScanInputChanged"
+                       @ref="InputRef"
                        placeholder="Zeskanuj kod kreskowy..." />
 
                 <table class="table table-hover table-tall">
@@ -49,17 +52,24 @@
     private List<PackageData> AvaliablePackages = new();
     private int? SelectedPackage;
     private string ScanInput = string.Empty;
+    private ElementReference InputRef;
 
-    public Task<PackageSelectionResult?> Show(List<PackageData> avaliablePackages)
+    public async Task<PackageSelectionResult?> Show(List<PackageData> avaliablePackages)
     {
         AvaliablePackages = avaliablePackages;
         ScanInput = string.Empty;
 
         IsVisible = true;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged); // ensure render scheduled
 
         _tcs = new TaskCompletionSource<PackageSelectionResult?>();
-        return _tcs.Task;
+
+        // wait until DOM is ready
+        await Task.Yield();
+
+        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
+
+        return await _tcs.Task;
     }
 
     private void OnScanInputChanged(ChangeEventArgs e)

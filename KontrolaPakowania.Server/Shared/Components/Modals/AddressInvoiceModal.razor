@@ -1,6 +1,6 @@
 ﻿@using System.Net
 @inject ShipmentService ShipmentService
-
+@inject IJSRuntime JSRuntime
 
 @if (IsVisible)
 {
@@ -27,6 +27,7 @@
                                    placeholder="Szukaj adresu..."
                                    value="@AddressSearch"
                                    @oninput="OnAddressInput"
+                                   @ref="AddressInputRef"
                                    disabled="@LeftDisabled" />
 
                             @if (IsAddressLoading)
@@ -77,6 +78,7 @@
                                    placeholder="Szukaj faktury..."
                                    value="@InvoiceSearch"
                                    @oninput="OnInvoiceInput"
+                                   @ref="InvoiceInputRef"
                                    disabled="@RightDisabled" />
 
                             @if (IsInvoiceLoading)
@@ -135,6 +137,8 @@
     // Inputs
     private string AddressSearch { get; set; } = "";
     private string InvoiceSearch { get; set; } = "";
+    private ElementReference AddressInputRef;
+    private ElementReference InvoiceInputRef;
 
     // Results
     private List<Recipient>? AddressResults;
@@ -163,6 +167,8 @@
         ResetState();
         IsVisible = true;
         await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", AddressInputRef);
     }
 
     private void Hide()
@@ -199,10 +205,12 @@
         IsAddressLoading = false;
     }
 
-    private void SelectRecipient(Recipient r)
+    private async Task SelectRecipient(Recipient r)
     {
         if (LeftDisabled) return;
         SelectedRecipient = r;
+        await Task.Yield();
+        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InvoiceInputRef);
     }
 
     // INVOICE HANDLER

@@ -204,6 +204,77 @@ namespace KontrolaPakowania.API.Controllers
             }
         }
 
+        [HttpGet("routes-status")]
+        public async Task<IActionResult> GetRoutesStatus()
+        {
+            _logger.Information("Request: GetRoutesStatus.");
+
+            try
+            {
+                var status = await _shipmentService.GetRoutesStatus();
+
+                _logger.Information("Routes status retrieved successfully");
+                return Ok(status);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error in GetRoutesStatus.");
+                return HandleException(ex);
+            }
+        }
+
+        [HttpGet("route-packages")]
+        public async Task<IActionResult> GetRoutePackages([FromQuery] Courier courier)
+        {
+            _logger.Information("Request: GetRoutePackages for courier {Courier}", courier.GetDescription());
+
+            try
+            {
+                var shipments = await _shipmentService.GetRoutePackages(courier);
+
+                if (shipments == null)
+                {
+                    _logger.Warning("No packages found for closing route {Courier}", courier.GetDescription());
+                    return NotFound($"Brak paczek do zamnięcia trasy dla kuriera {courier.GetDescription()}");
+                }
+
+                _logger.Information("Route packages retrieved successfully for courier {Courier}", courier.GetDescription());
+                return Ok(shipments);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error in GetRoutePackages for courier {Courier}", courier.GetDescription());
+                return HandleException(ex);
+            }
+        }
+
+        [HttpPost("close-route")]
+        public async Task<IActionResult> CloseRoute([FromBody] Courier courier)
+        {
+            _logger.Information("Request: CloseRoute for courier {Courier}", courier.GetDescription());
+
+            try
+            {
+                var shipments = await _shipmentService.GetRoutePackages(courier);
+
+                if (shipments == null)
+                {
+                    _logger.Warning("No packages found for closing route {Courier}", courier.GetDescription());
+                    return NotFound($"Brak paczek do zamnięcia trasy dla kuriera {courier.GetDescription()}");
+                }
+
+                var result = await _shipmentService.CloseRoute(courier);
+
+                _logger.Information("Closed route successfully for courier {Courier}", courier.GetDescription());
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error in CloseRoute for courier {Courier}", courier.GetDescription());
+                return HandleException(ex);
+            }
+        }
+
         private IActionResult HandleException(Exception ex)
         {
             if (ex is ArgumentException)

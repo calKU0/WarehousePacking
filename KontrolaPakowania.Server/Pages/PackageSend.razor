@@ -7,6 +7,7 @@
 @inject WorkstationService WorkstationService
 @inject ClientPrinterService ClientPrinterService
 @inject IJSRuntime JSRuntime
+@implements IDisposable
 
 <div class="container-fluid package-send position-relative">
     <!-- Barcode Input Full Width -->
@@ -177,9 +178,9 @@
                 </div>
 
                 <div class="d-flex flex-column gap-2 mb-4">
-                    <button class="btn btn-outline-success">Zamknij Trase DPD</button>
-                    <button class="btn btn-outline-warning">Zamknij Trase GLS</button>
-                    <button class="btn btn-outline-primary">Zamknij Trase Fedex</button>
+                    <button class="btn btn-outline-success" @onclick="() => CloseRoute(Courier.DPD)" disabled=@(RoutesStatus.DPDClosed)>Zamknij Trase DPD</button>
+                    <button class="btn btn-outline-warning" @onclick="() => CloseRoute(Courier.GLS)" disabled=@(RoutesStatus.GLSClosed)>Zamknij Trase GLS</button>
+                    <button class="btn btn-outline-primary" @onclick="() => CloseRoute(Courier.Fedex)" disabled=@(RoutesStatus.FedexClosed)>Zamknij Trase Fedex</button>
                 </div>
                 <div class="mb-4 d-flex flex-column">
                     <button class="btn btn-info" disabled="@(Package.Id == 0)" @onclick=SendEmail>Wyślij mail do opiekuna</button>
@@ -192,7 +193,7 @@
 <Toast @ref="Toast" />
 <EmailModal @ref="EmailModal" />
 <ShipmentModal @ref="ShipmentModal" />
-<ConfirmDialog @ref="ConfirmDialog" OnCancelClicked="HideConfirm" OnConfirmClicked="ConfirmDelete" />
+<ConfirmDialog @ref="ConfirmDialog"/>
 <AddressInvoiceModal @ref="AddressInvoiceModal" OnConfirmed="OnAddressModalConfirmed" />
 <PackingListModal @ref="PackingListModal" OnSaveNumber="HandlePackingListSave" OnPrintLabel="HandlePackingListPrint" />
 
@@ -201,6 +202,10 @@
     private PackageData Package { get; set; } = new();
     private WorkstationSettings Settings = new();
     private ElementReference InputRef;
+    private RoutesStatus RoutesStatus = new();
+
+    // Timer for checking closed routes
+    private System.Threading.Timer? Timer;
 
     private ShipmentModal ShipmentModal = new();
     private ConfirmDialog ConfirmDialog = new();
@@ -214,6 +219,12 @@
         try
         {
             Settings = await WorkstationService.GetSettingsAsync();
+
+            // Auto-refresh every 1 minute.
+            Timer = new System.Threading.Timer(async _ =>
+            {
+                await InvokeAsync(CheckRouteStatus);
+            }, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
         }
         catch (Exception ex)
         {
@@ -251,7 +262,30 @@
             Package = response;
             if (Package.WysNumber != 0)
             {
-                ConfirmDialog.Show("Usuń przesyłke", "Przesyłka do tej paczki została wygenerowana. Czy chcesz ją usunąć?");
+                ConfirmDialog.Show(
+                    title: "Usuń przesyłkę",
+                    message: "Przesyłka do tej paczki została wygenerowana. Czy chcesz ją usunąć?",
+                    onConfirm: async () =>
+                    {
+                        try
+                        {
+                            await ShipmentService.DeleteShipment(Package.Courier, Package.WysNumber, Package.WysType);
+                            Toast.Show("Sukces!", "Przesyłka została usunięta.", ToastType.Success);
+                        }
+                        catch (Exception ex)
+                        {
+                            Toast.Show("Błąd!", $"Błąd przy próbie usunięcia paczki: {ex.Message}");
+                        }
+                        finally
+                        {
+                            await ClearData();
+                            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
+                        }
+                    },
+                    onCancel: async () =>
+                    {
+                    }
+                );
             }
         }
         catch (Exception ex)
@@ -356,31 +390,6 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task HideConfirm()
-    {
-        ConfirmDialog.Hide();
-        await ClearData();
-        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
-    }
-
-    private async Task ConfirmDelete()
-    {
-        try
-        {
-            ConfirmDialog.Hide();
-            await ShipmentService.DeleteShipment(Package.Courier, Package.WysNumber, Package.WysType);
-        }
-        catch (Exception ex)
-        {
-            Toast.Show("Błąd!", $"Błąd przy próbie usuwania paczki: {ex.Message}");
-        }
-        finally
-        {
-            await ClearData();
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
-        }
-    }
-
     private void SendEmail()
     {
         EmailModal.ShowModal(Package.Recipient.Name, Package.PackageName, Package.InvoiceName, Package.Representative, Package.RepresentativeEmail);
@@ -398,5 +407,68 @@
         Package.InvoiceName = data.Invoice?.InvoiceName ?? string.Empty;
         Package.ManualEdit = true;
         Package.ManualSend = true;
+    }
+
+    private async Task CheckRouteStatus()
+    {
+        try
+        {
+            RoutesStatus = await ShipmentService.GetRoutesStatus();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Toast.Show("Błąd!", $"Błąd przy próbie sprawdzenia statusu tras kurierskich: {ex.Message}");
+        }
+    }
+
+    private async Task CloseRoute(Courier courier)
+    {
+        try
+        {
+            var shipmentsToClose = await ShipmentService.GetRoutePackages(courier);
+            if (shipmentsToClose.Count == 0)
+            {
+                Toast.Show("Infromacja", $"Nie wysłano dziś żadnej przesyłki. Musi istnieć conajmniej jedna wysyłka aby zamknąć trasę.", ToastType.Info);
+                return;
+            }
+
+            ConfirmDialog.Show(
+                title: "Zamknięcie trasy kurierskiej",
+                message: $"Zostanie zamkniętych {shipmentsToClose.Count} wysyłek. Czy na pewno chcesz zamknąć trasę dla kuriera {courier.GetDescription()}?",
+                onConfirm: async () =>
+                {
+                    int shipmentsClosed = await ShipmentService.CloseRoute(courier);
+                    switch (courier)
+                    {
+                        case Courier.DPD:
+                            RoutesStatus.DPDClosed = true;
+                            break;
+                        case Courier.GLS:
+                            RoutesStatus.GLSClosed = true;
+                            break;
+                        case Courier.Fedex:
+                            RoutesStatus.FedexClosed = true;
+                            break;
+                    }
+                    await InvokeAsync(StateHasChanged);
+                    Toast.Show("Sukces!", $"Trasa dla kuriera {courier.GetDescription()} została zamknięta pomyślnie. Zamknięto {shipmentsClosed} wysyłek.", ToastType.Success);
+       
+                },
+                onCancel: async () =>
+                {
+                    
+                }
+            );
+        }
+        catch (Exception ex)
+        {
+            Toast.Show("Błąd!", $"Błąd przy próbie zamknięcia trasy: {ex.Message}");
+        }
+    }
+
+    public void Dispose()
+    {
+        Timer?.Dispose();
     }
 }

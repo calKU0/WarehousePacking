@@ -64,7 +64,7 @@
         </div>
     </div>
 
-    <ConfirmDialog @ref="ConfirmDialog" OnCancelClicked="HideConfirm" OnConfirmClicked="ConfirmClose" />
+    <ConfirmDialog @ref="ConfirmDialog" />
 }
 <Toast @ref="Toast"/>
 
@@ -106,7 +106,37 @@
     private void ConfirmRemove(JlInProgressDto jl)
     {
         SelectedJl = jl;
-        ConfirmDialog.Show("Usuń kuwete", "Czy na pewno chcesz usunąć kuwete z realizacji?");
+
+        ConfirmDialog.Show(
+            title: "Usuń kuwetę",
+            message: "Czy na pewno chcesz usunąć kuwetę z realizacji?",
+            onConfirm: async () =>
+            {
+                if (SelectedJl == null)
+                    return;
+
+                try
+                {
+                    await _packingService.RemoveJlRealization(SelectedJl.Name);
+                    Toast.Show("Sukces!", "Kuweta została usunięta z realizacji.");
+                }
+                catch (Exception ex)
+                {
+                    Toast.Show("Błąd!", $"Błąd przy próbie usuwania JL z realizacji: {ex.Message}");
+                }
+                finally
+                {
+                    SelectedJl = null;
+                    await LoadData();
+                    await InvokeAsync(StateHasChanged);
+                }
+            },
+            onCancel: async () =>
+            {
+                SelectedJl = null;
+                await InvokeAsync(StateHasChanged);
+            }
+        );
     }
 
     private void Close()
@@ -114,32 +144,5 @@
         Show = false;
         SelectedJl = null;
         StateHasChanged();
-    }
-
-    private void HideConfirm()
-    {
-        ConfirmDialog.Hide();
-    }
-
-    private async void ConfirmClose()
-    {
-        ConfirmDialog.Hide();
-        if (SelectedJl != null)
-        {
-            try
-            {
-                await _packingService.RemoveJlRealization(SelectedJl.Name);
-            }
-            catch (Exception ex)
-            {
-                Toast.Show("Błąd!", $"Błąd przy próbie usuwania JL z realizacji: {ex.Message}");
-            }
-            finally
-            {
-                await LoadData();
-                SelectedJl = null;
-                await InvokeAsync(StateHasChanged);
-            }
-        }
     }
 }

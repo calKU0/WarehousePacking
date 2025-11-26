@@ -590,36 +590,41 @@ namespace KontrolaPakowania.Server.Shared.Base
 
         protected virtual void Close()
         {
-            ConfirmDialog.Show("Wyjście z kuwety", "Czy napewno chcesz wyjść z kuwety?");
-        }
-
-        protected virtual async Task HideConfirm()
-        {
-            ConfirmDialog.Hide();
-            await ScanInputComponent.FocusAsync();
-        }
-
-        protected virtual async void ConfirmClose()
-        {
-            try
-            {
-                ConfirmDialog.Hide();
-                await PackingService.RemoveJlRealization(CurrentJl.Name);
-                if (PackageId > 0)
+            ConfirmDialog.Show(
+                title: "Wyjście z kuwety",
+                message: "Czy na pewno chcesz wyjść z kuwety?",
+                onConfirm: async () =>
                 {
-                    ClosePackageRequest closePackageRequest = new()
+                    try
                     {
-                        DocumentId = PackageId,
-                        Status = DocumentStatus.Delete
-                    };
-                    await PackingService.ClosePackage(closePackageRequest);
+                        // Remove the JL realization
+                        await PackingService.RemoveJlRealization(CurrentJl.Name);
+
+                        // Close package if it exists
+                        if (PackageId > 0)
+                        {
+                            var closePackageRequest = new ClosePackageRequest
+                            {
+                                DocumentId = PackageId,
+                                Status = DocumentStatus.Delete
+                            };
+                            await PackingService.ClosePackage(closePackageRequest);
+                        }
+
+                        // Navigate back
+                        Navigation.NavigateTo("/kontrola-pakowania");
+                    }
+                    catch (Exception ex)
+                    {
+                        Toast.Show("Błąd!", $"Błąd przy próbie zamknięcia pakowania: {ex.Message}");
+                    }
+                },
+                onCancel: async () =>
+                {
+                    // Refocus input
+                    await ScanInputComponent.FocusAsync();
                 }
-                Navigation.NavigateTo("/kontrola-pakowania");
-            }
-            catch (Exception ex)
-            {
-                Toast.Show("Błąd!", $"Błąd przy próbie zamknięcia pakowania: {ex.Message}");
-            }
+            );
         }
 
         protected virtual async Task HandlePasswordConfirm(string password)

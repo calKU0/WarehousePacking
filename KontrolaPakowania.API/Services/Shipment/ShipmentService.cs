@@ -3,9 +3,11 @@ using KontrolaPakowania.API.Data.Enums;
 using KontrolaPakowania.API.Services.Shipment.GLS;
 using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
+using KontrolaPakowania.Shared.Enums;
 using KontrolaPakowania.Shared.Helpers;
 using System.Data;
 using System.Reflection.Metadata;
+using static KontrolaPakowania.API.Integrations.Couriers.DPD_Romania.DTOs.DpdRomaniaCreateShipmentRequest;
 
 namespace KontrolaPakowania.API.Services.Shipment
 {
@@ -89,6 +91,26 @@ namespace KontrolaPakowania.API.Services.Shipment
         {
             const string procedure = "kp.SearchInvoice";
             return await _db.QueryAsync<SearchInvoiceResult>(procedure, new { code }, CommandType.StoredProcedure, Connection.ERPConnection);
+        }
+
+        public async Task<RoutesStatus> GetRoutesStatus()
+        {
+            const string procedure = "kp.GetRoutesStatus";
+            return await _db.QuerySingleOrDefaultAsync<RoutesStatus>(procedure, param: null, CommandType.StoredProcedure, Connection.ERPConnection);
+        }
+
+        public async Task<IEnumerable<RoutePackages>> GetRoutePackages(Courier courier)
+        {
+            const string procedure = "kp.GetRoutePackages";
+            string courierName = courier.GetDescription();
+            return await _db.QueryAsync<RoutePackages>(procedure, new { courier = courierName }, CommandType.StoredProcedure, Connection.ERPConnection);
+        }
+
+        public async Task<int> CloseRoute(Courier courier)
+        {
+            const string procedure = "kp.CloseRoute";
+            string courierName = courier.GetDescription();
+            return await _db.QuerySingleOrDefaultAsync<int>(procedure, new { courier = courierName }, CommandType.StoredProcedure, Connection.ERPConnection);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
+using KontrolaPakowania.Shared.Enums;
 
 namespace KontrolaPakowania.API.Services.Shipment
 {
@@ -16,5 +17,11 @@ namespace KontrolaPakowania.API.Services.Shipment
         Task<int> CreateErpShipmentDocument(ShipmentResponse shipment);
 
         Task<bool> AddErpAttributes(int documentId, PackageData packageInfo);
+
+        Task<RoutesStatus> GetRoutesStatus();
+
+        Task<IEnumerable<RoutePackages>> GetRoutePackages(Courier courier);
+
+        Task<int> CloseRoute(Courier courier);
     }
 }

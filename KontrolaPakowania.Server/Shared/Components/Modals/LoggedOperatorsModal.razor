@@ -1,6 +1,4 @@
-﻿
-
-@inject AuthService _authSerice
+﻿@inject AuthService AuthService
 
 @if (Show)
 {
@@ -61,7 +59,7 @@
         </div>
     </div>
 
-    <ConfirmDialog @ref="ConfirmDialog" OnCancelClicked="HideConfirm" OnConfirmClicked="ConfirmClose" />
+    <ConfirmDialog @ref="ConfirmDialog"/>
 }
 <Toast @ref="Toast"/>
 
@@ -85,7 +83,7 @@
         try
         {
             IsLoading = true;
-            Users = await _authSerice.GetLoggedUsers();
+            Users = await AuthService.GetLoggedUsers();
         }
         catch (Exception ex)
         {
@@ -101,7 +99,37 @@
     private void ConfirmRemove(LoginDto op)
     {
         SelectedUser = op;
-        ConfirmDialog.Show("Usuń operatora", "Czy na pewno chcesz usunąć operatora?");
+
+        ConfirmDialog.Show(
+            title: "Usuń operatora",
+            message: "Czy na pewno chcesz usunąć operatora?",
+            onConfirm: async () =>
+            {
+                if (SelectedUser == null)
+                    return;
+
+                try
+                {
+                    await AuthService.Logout(SelectedUser.Username);
+                    Toast.Show("Sukces!", $"Operator {SelectedUser.Username} został usunięty.");
+                }
+                catch (Exception ex)
+                {
+                    Toast.Show("Błąd!", $"Błąd przy próbie usuwania operatora: {ex.Message}");
+                }
+                finally
+                {
+                    SelectedUser = null;
+                    await LoadData();
+                    await InvokeAsync(StateHasChanged);
+                }
+            },
+            onCancel: async () =>
+            {
+                SelectedUser = null;
+                await InvokeAsync(StateHasChanged);
+            }
+        );
     }
 
     private void Close()
@@ -109,32 +137,5 @@
         Show = false;
         SelectedUser = null;
         StateHasChanged();
-    }
-
-    private void HideConfirm()
-    {
-        ConfirmDialog.Hide();
-    }
-
-    private async void ConfirmClose()
-    {
-        ConfirmDialog.Hide();
-        if (SelectedUser != null)
-        {
-            try
-            {                      
-                await _authSerice.Logout(SelectedUser.Username);
-            }
-            catch (Exception ex)
-            {
-                Toast.Show("Błąd!", $"Błąd przy próbie usuwania operatora: {ex.Message}");
-            }
-            finally
-            {
-                await LoadData();
-                SelectedUser = null;
-                await InvokeAsync(StateHasChanged);
-            }
-        }
     }
 }

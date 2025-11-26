@@ -132,5 +132,80 @@ namespace KontrolaPakowania.Server.Services
             var generic = await response.Content.ReadAsStringAsync();
             throw new Exception(generic);
         }
+
+        public async Task<RoutesStatus> GetRoutesStatus()
+        {
+            var response = await _dbClient.GetAsync($"api/shipments/routes-status");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<RoutesStatus>();
+            }
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException(message);
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
+
+        public async Task<List<RoutePackages>> GetRoutePackages(Courier courier)
+        {
+            var response = await _dbClient.GetAsync($"api/shipments/route-packages?courier={courier}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<List<RoutePackages>>();
+            }
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException(message);
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
+
+        public async Task<int> CloseRoute(Courier courier)
+        {
+            var response = await _dbClient.PostAsJsonAsync($"api/shipments/close-route", courier);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<int>();
+            }
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException(message);
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
     }
 }

@@ -93,6 +93,7 @@ namespace KontrolaPakowania.API.Integrations.Couriers.DPD_Romania
                 Language = "EN",
                 PaperSize = "A6",
                 Format = "zpl",
+                Dpi = "dpi300",
                 Parcels = new List<ParcelToPrint>
                 {
                     new ParcelToPrint

@@ -20,17 +20,20 @@
 }
 
 @code {
-    [Parameter] public EventCallback OnCancelClicked { get; set; }
-    [Parameter] public EventCallback OnConfirmClicked { get; set; }
     private string Title { get; set; } = string.Empty;
     private string Message { get; set; } = string.Empty;
-
     protected bool IsVisible { get; set; }
 
-    public void Show(string title = "Potwierdzenie", string message = "Czy jesteś pewny?")
+    // Dynamic action for confirm
+    private Func<Task> ConfirmAction { get; set; } = () => Task.CompletedTask;
+    private Func<Task> CancelAction { get; set; } = () => Task.CompletedTask;
+
+    public void Show(string title = "Potwierdzenie", string message = "Czy jesteś pewny?", Func<Task>? onConfirm = null, Func<Task>? onCancel = null)
     {
         Title = title;
         Message = message;
+        ConfirmAction = onConfirm ?? (() => Task.CompletedTask);
+        CancelAction = onCancel ?? (() => Task.CompletedTask);
         IsVisible = true;
         StateHasChanged();
     }
@@ -41,6 +44,15 @@
         StateHasChanged();
     }
 
-    private async Task OnCancel() => await OnCancelClicked.InvokeAsync();
-    private async Task OnConfirm() => await OnConfirmClicked.InvokeAsync();
+    private async Task OnConfirm()
+    {
+        await ConfirmAction.Invoke();
+        Hide();
+    }
+
+    private async Task OnCancel()
+    {
+        await CancelAction.Invoke();
+        Hide();
+    }
 }
