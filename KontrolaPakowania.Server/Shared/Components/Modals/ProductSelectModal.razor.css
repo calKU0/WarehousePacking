@@ -25,6 +25,7 @@
 .product-image {
     height: 175px;
     width: auto;
+    max-width: 300px;
     margin-right: 0.5rem;
 }
 

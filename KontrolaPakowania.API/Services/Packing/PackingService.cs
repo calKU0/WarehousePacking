@@ -190,7 +190,7 @@ public class PackingService : IPackingService
     {
         int status = (int)request.Status;
         const string procedure = "kp.ClosePackageDocument";
-        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.InternalBarcode, request.DocumentId, request.Height, request.Width, request.Length, status }, CommandType.StoredProcedure, Connection.ERPConnection);
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.InternalBarcode, request.DocumentId, request.Height, request.Width, request.Length, Status = (int)request.Status }, CommandType.StoredProcedure, Connection.ERPConnection);
         return result;
     }
 
