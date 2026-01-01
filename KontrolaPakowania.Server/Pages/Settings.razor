@@ -10,8 +10,9 @@
 {
     <DynamicLayout TLayout="NoNavLayout">
         <div class="container mt-5">
-            <div class="alert alert-warning">
-                Brak ustawień stanowiska. Uzupełnij dane aby kontynuować.
+            <div class="alert alert-danger text-center settings-container">
+                <p class="pb-0 mb-0"><strong>Brak ustawień stanowiska. Uzupełnij dane aby kontynuować.</strong></p>
+                <small>Przy pierwszej instalacji upewnij się, że zainstalowałeś wymagane wydruki z intrukcji instalacji w prawym górnym rogu.</small>
             </div>
             @SettingsForm
         </div>
@@ -35,7 +36,7 @@ else
     {
         var settings = await WorkstationService.GetSettingsAsync();
 
-        if (!string.IsNullOrEmpty(settings.StationNumber))
+        if (!string.IsNullOrWhiteSpace(settings.StationNumber))
         {
             WorkStationSettings = settings;
             IsFirstSave = false;
@@ -49,13 +50,13 @@ else
 
     private RenderFragment SettingsForm => __builder =>
     {
-        <div class="container settings-container mt-4">
+        <div class="settings-container mt-4">
             <div class="card shadow-sm">
                 <div class="card-body">
                     <h3 class="card-title mb-4">
                         Ustawienia stanowiska
                         <!-- Icon in top-right corner -->
-                        <button class="btn btn-outline-secondary btn-sm position-absolute top-0 end-0 mt-2 me-2"
+                        <button class="btn btn-outline-primary btn-sm position-absolute top-0 end-0 mt-2 me-2"
                                 @onclick="ShowInstructions"
                                 title="Instrukcja instalacji">
                             <i class="bi bi-info-circle"></i>
@@ -103,7 +104,17 @@ else
 
                     <div class="mb-3">
                         <label class="form-label">Numer stanowiska:</label>
-                        <input class="form-control" required @bind="WorkStationSettings.StationNumber" placeholder="Wprowadź numer stanowiska" />
+                        <input class="form-control"
+                               required
+                               @bind="WorkStationSettings.StationNumber"
+                               @bind:event="oninput"
+                               placeholder="Wprowadź numer stanowiska" />
+                        @if (string.IsNullOrWhiteSpace(WorkStationSettings.StationNumber))
+                        {
+                            <small class="text-danger">
+                                Numer stanowiska jest wymagany
+                            </small>
+                        }
                     </div>
 
                     <div class="d-grid">

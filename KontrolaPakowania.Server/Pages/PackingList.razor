@@ -37,6 +37,7 @@
                 <table class="table table-striped table-hover align-middle table-tall">
                     <thead class="table-dark">
                         <tr>
+                            <th>Lokalizacja</th>
                             <th>Kuweta</th>
                             <th>Waga (kg)</th>
                             <th>Kurier</th>
@@ -56,6 +57,7 @@
                             };
 
                             <tr class="@rowClass clickable-row" ondblclick="@(() => OnRowDoubleClick(item))">
+                                <td>@item.LocationCode</td>
                                 <td>@item.Name</td>
                                 <td>@item.Weight.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)</td>
                                 <td>@item.Courier.GetDescription()</td>

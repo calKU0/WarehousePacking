@@ -1,202 +1,36 @@
-[2025-10-20T11:46:54.8706112Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029237","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
+[2025-12-28T23:48:42.4323071Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"MOG-B-1-4-1","locDestNr":"PACK-1-1-1","luSourceNr":"059990000000001566","luDestNr":"4235345345345","luDestTypeSymbol":"PACZKA","itemNr":"610646.01","batchId":null,"itemQty":"2"}]}
 
-[2025-10-20T11:46:55.2121544Z] Received Response (200)
-{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
+[2025-12-28T23:48:55.0872433Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: Nieprawidłowa lokalizacja ->> OK"}
 
-[2025-10-20T11:49:53.5295942Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029238","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
+[2025-12-30T14:04:31.1971646Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"MOG-B004","locDestNr":"PAK-B2202","luSourceNr":"059990000000001566","luDestNr":"12423423432","luDestTypeSymbol":"PACZKA","itemNr":"610646.01","batchId":null,"itemQty":"2"}]}
 
-[2025-10-20T11:49:53.7530064Z] Received Response (200)
-{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
+[2025-12-30T14:04:31.4695321Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: Błąd wyznaczenia strefy docelowej dla Jl. ->> OK"}
 
-[2025-10-20T11:52:29.8999800Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029239","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
+[2025-12-30T14:11:00.7232232Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"MOG-B004","locDestNr":"PAK-B2202","luSourceNr":"059990000000001566","luDestNr":"2342342342","luDestTypeSymbol":"PACZKA","itemNr":"610646.01","batchId":null,"itemQty":"2"}]}
 
-[2025-10-20T11:52:30.1330161Z] ERROR: System.Net.Http.HttpRequestException: An error occurred while sending the request.
- ---> System.Net.Http.HttpIOException: The response ended prematurely. (ResponseEnded)
-   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
-   --- End of inner exception stack trace ---
-   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
-   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
-   at System.Net.Http.DiagnosticsHandler.SendAsyncCore(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
-   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
-   at Microsoft.Extensions.Http.Logging.LoggingHttpMessageHandler.<SendCoreAsync>g__Core|5_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
-   at Microsoft.Extensions.Http.Logging.LoggingScopeHttpMessageHandler.<SendCoreAsync>g__Core|5_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
-   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
-   at KontrolaPakowania.API.Integrations.Wms.WmsApiClient.PackStock(PackStockRequest request, CancellationToken cancellationToken) in C:\Users\Krzys\Desktop\Projects\KontrolaPakowania\KontrolaPakowania.API\Integrations\Wms\WmsApiClient.cs:line 55
+[2025-12-30T14:11:01.0128337Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: Błąd wyznaczenia strefy docelowej dla Jl. ->> OK"}
 
-[2025-10-20T11:54:31.8768211Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029240","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
+[2025-12-30T14:13:09.8512828Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PAK-A1102","luSourceNr":"KW-026","luDestNr":"45645645645","luDestTypeSymbol":"PACZKA","itemNr":"676235.14","batchId":null,"itemQty":"5"}]}
 
-[2025-10-20T11:54:31.9797938Z] Received Response (200)
-{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
-
-[2025-10-20T11:58:44.3419170Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029241","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
-
-[2025-10-20T11:58:44.6309951Z] Received Response (200)
-{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
-
-[2025-10-20T12:01:02.6106086Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029242","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
-
-[2025-10-20T12:01:03.1158182Z] Received Response (200)
-{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
-
-[2025-10-20T12:01:32.7610158Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029254","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
-
-[2025-10-20T12:01:33.0802755Z] Received Response (200)
-{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
-
-[2025-10-20T12:02:35.0178246Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029255","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"2"}]}
-
-[2025-10-20T12:02:35.3944580Z] Received Response (200)
-{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
-
-[2025-10-20T12:03:08.4110023Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"","luDestNr":"44680029256","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
-
-[2025-10-20T12:03:08.6706984Z] Received Response (200)
-{"status":"-1","desc":"Wystąpił błąd: Nie zeskanowano JL. ->> OK"}
-
-[2025-10-20T12:04:39.0946776Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"Zrzuty-rolotok-1-5-1","luSourceNr":"KK-001","luDestNr":"44680029257","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"5"}]}
-
-[2025-10-20T12:04:39.4156485Z] Received Response (200)
+[2025-12-30T14:13:10.1345573Z] Received Response (200)
 {"status":"1","desc":"OK"}
 
-[2025-10-20T13:28:29.1787912Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"PACK-1-1-1","locDestNr":"PACK-1-1-1","luSourceNr":"KK-001","luDestNr":"44680029258","luDestTypeSymbol":"PACZKA","itemNr":"804581-G","batchId":null,"itemQty":"3"}]}
+[2025-12-30T14:14:34.6837110Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PAK-A1102","luSourceNr":"KW-026","luDestNr":"5345345354","luDestTypeSymbol":"PACZKA","itemNr":"676235.14","batchId":null,"itemQty":"5"}]}
 
-[2025-10-20T13:28:29.5207458Z] Received Response (200)
+[2025-12-30T14:14:34.9520711Z] Received Response (200)
 {"status":"1","desc":"OK"}
 
-[2025-11-07T09:33:38.6902977Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-170","luDestNr":"0000832823764Q","luDestTypeSymbol":"PACZKA","itemNr":"011780.04","batchId":null,"itemQty":"3,0"}]}
+[2025-12-30T14:24:39.7310844Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"A-PAK. G\u00D3RA","locDestNr":"PAK-A1102","luSourceNr":"KK-265","luDestNr":"34545345345","luDestTypeSymbol":"PACZKA","itemNr":"610408.00","batchId":null,"itemQty":"1"}]}
 
-[2025-11-07T09:33:38.9562038Z] Received Response (200)
-{"status":"-1","desc":"Wystąpił błąd: invalid input syntax for type numeric: \"3,0\" ->> OK"}
-
-[2025-11-07T09:34:00.8456083Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-170","luDestNr":"0000832823929Q","luDestTypeSymbol":"PACZKA","itemNr":"011780.04","batchId":null,"itemQty":"3,0"}]}
-
-[2025-11-07T09:34:01.2230939Z] Received Response (200)
-{"status":"-1","desc":"Wystąpił błąd: invalid input syntax for type numeric: \"3,0\" ->> OK"}
-
-[2025-11-07T09:36:11.0507623Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-170","luDestNr":"0000832825574Q","luDestTypeSymbol":"PACZKA","itemNr":"011780.04","batchId":null,"itemQty":"3.0"}]}
-
-[2025-11-07T09:36:11.3320508Z] Received Response (200)
-{"status":"1","desc":"OK"}
-
-[2025-11-07T09:36:27.0658220Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-170","luDestNr":"0000832825707Q","luDestTypeSymbol":"PACZKA","itemNr":"236510.01","batchId":null,"itemQty":"10"}]}
-
-[2025-11-07T09:36:27.3843510Z] Received Response (200)
-{"status":"1","desc":"OK"}
-
-[2025-11-07T09:54:19.0318030Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-170","luDestNr":"0000832835486Q","luDestTypeSymbol":"PACZKA","itemNr":"236510.01","batchId":null,"itemQty":"10.0"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-170","luDestNr":"0000832835486Q","luDestTypeSymbol":"PACZKA","itemNr":"D28283060.01","batchId":null,"itemQty":"10"}]}
-
-[2025-11-07T09:54:19.4150066Z] Received Response (200)
-{"status":"1","desc":"OK"}
-
-[2025-11-07T13:49:00.4105804Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-127","luDestNr":"44680029259","luDestTypeSymbol":"PACZKA","itemNr":"610272.31","batchId":null,"itemQty":"5.0"}]}
-
-[2025-11-07T13:49:00.6623456Z] Received Response (200)
-{"status":"1","desc":"OK"}
-
-[2025-11-07T13:57:42.4702050Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-127","luDestNr":"44680029260","luDestTypeSymbol":"PACZKA","itemNr":"617309.0","batchId":null,"itemQty":"3"}]}
-
-[2025-11-07T13:57:42.7988534Z] Received Response (200)
-{"status":"1","desc":"OK"}
-
-[2025-11-12T11:13:16.2744995Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-102","luDestNr":"81178757558","luDestTypeSymbol":"PACZKA","itemNr":"647450.01","batchId":null,"itemQty":"8"}]}
-
-[2025-11-12T11:13:16.7607834Z] Received Response (200)
-{"status":"1","desc":"OK"}
-
-[2025-11-12T11:15:16.0978131Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-102","luDestNr":"81178759662","luDestTypeSymbol":"PACZKA","itemNr":"667618.01","batchId":null,"itemQty":"1"}]}
-
-[2025-11-12T11:15:16.4744680Z] Received Response (200)
-{"status":"1","desc":"OK"}
-
-[2025-11-12T11:48:38.7508009Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-102","luDestNr":"81178804736","luDestTypeSymbol":"PACZKA","itemNr":"678856.03","batchId":null,"itemQty":"2"}]}
-
-[2025-11-12T11:48:39.0164158Z] Received Response (200)
-{"status":"1","desc":"OK"}
-
-[2025-11-12T11:52:01.4357582Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-102","luDestNr":"81178808453","luDestTypeSymbol":"PACZKA","itemNr":"678856.03","batchId":null,"itemQty":"1"}]}
-
-[2025-11-12T11:52:01.6889538Z] Received Response (200)
-{"status":"1","desc":"OK"}
-
-[2025-11-12T11:52:40.3880519Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-102","luDestNr":"81178809232","luDestTypeSymbol":"PACZKA","itemNr":"678856.03","batchId":null,"itemQty":"1"}]}
-
-[2025-11-12T11:52:40.7525975Z] Received Response (200)
-{"status":"1","desc":"OK"}
-
-[2025-11-12T11:58:11.8385296Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-102","luDestNr":"81178814251","luDestTypeSymbol":"PACZKA","itemNr":"683725.01","batchId":null,"itemQty":"1"}]}
-
-[2025-11-12T11:58:12.2315604Z] Received Response (200)
-{"status":"1","desc":"OK"}
-
-[2025-11-12T12:06:01.5402989Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-102","luDestNr":"81178822274","luDestTypeSymbol":"PACZKA","itemNr":"754503.01","batchId":null,"itemQty":"1"}]}
-
-[2025-11-12T12:06:01.8316928Z] Received Response (200)
-{"status":"1","desc":"OK"}
-
-[2025-11-21T13:18:54.0248479Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-054","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31216.00","batchId":null,"itemQty":"1"}]}
-
-[2025-11-21T13:18:54.2804660Z] Received Response (200)
-{"status":"1","desc":"OK"}
-
-[2025-11-21T13:55:09.6937398Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"618186.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AH107066.02","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31215.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31217.00","batchId":null,"itemQty":"1"}]}
-
-[2025-11-21T13:55:09.8994659Z] Received Response (200)
-{"status":"-1","desc":"Wystąpił błąd: duplicate key value violates unique constraint \"wms_logistic_unit_code_key\" ->> OK"}
-
-[2025-11-21T13:55:24.6071403Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"618186.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AH107066.02","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31215.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31217.00","batchId":null,"itemQty":"1"}]}
-
-[2025-11-21T13:55:24.8013305Z] Received Response (200)
-{"status":"-1","desc":"Wystąpił błąd: duplicate key value violates unique constraint \"wms_logistic_unit_code_key\" ->> OK"}
-
-[2025-11-21T13:55:28.4456032Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"618186.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AH107066.02","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31215.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31217.00","batchId":null,"itemQty":"1"}]}
-
-[2025-11-21T13:55:28.5463668Z] Received Response (200)
-{"status":"-1","desc":"Wystąpił błąd: duplicate key value violates unique constraint \"wms_logistic_unit_code_key\" ->> OK"}
-
-[2025-11-21T13:55:36.0649104Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"618186.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AH107066.02","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31215.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"1000009876543","luDestTypeSymbol":"PACZKA","itemNr":"AZ31217.00","batchId":null,"itemQty":"1"}]}
-
-[2025-11-21T13:55:36.2571953Z] Received Response (200)
-{"status":"-1","desc":"Wystąpił błąd: duplicate key value violates unique constraint \"wms_logistic_unit_code_key\" ->> OK"}
-
-[2025-11-25T14:50:27.8856387Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-127","luDestNr":"44680029261","luDestTypeSymbol":"PACZKA","itemNr":"626408.02","batchId":null,"itemQty":"100.0"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-127","luDestNr":"44680029261","luDestTypeSymbol":"PACZKA","itemNr":"667248.26","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-127","luDestNr":"44680029261","luDestTypeSymbol":"PACZKA","itemNr":"678258-G","batchId":null,"itemQty":"5.0"}]}
-
-[2025-11-25T14:50:28.2928347Z] Received Response (200)
-{"status":"1","desc":"OK"}
-
-[2025-11-25T15:11:18.1945379Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
-{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"44680029262","luDestTypeSymbol":"PACZKA","itemNr":"618186.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"44680029262","luDestTypeSymbol":"PACZKA","itemNr":"AH107066.02","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"44680029262","luDestTypeSymbol":"PACZKA","itemNr":"AZ31215.00","batchId":null,"itemQty":"1"},{"locSourceNr":"Rolotok","locDestNr":"PACK-1-1-1","luSourceNr":"KK-055","luDestNr":"44680029262","luDestTypeSymbol":"PACZKA","itemNr":"AZ31217.00","batchId":null,"itemQty":"1"}]}
-
-[2025-11-25T15:11:18.5240580Z] Received Response (200)
+[2025-12-30T14:24:40.0601659Z] Received Response (200)
 {"status":"1","desc":"OK"}
 

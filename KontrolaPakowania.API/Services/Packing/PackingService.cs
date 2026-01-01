@@ -32,7 +32,14 @@ public class PackingService : IPackingService
     public async Task<IEnumerable<JlData>> GetJlListAsync(PackingLevel location)
     {
         var jlList = await _wmsApi.GetJlListAsync();
-        var jlToPack = jlList.Where(x => x.Status == 12);
+        var jlToPack = jlList.Where(x =>
+            x.Status == 12 &&
+            (
+                (location == PackingLevel.Góra && (x.LocationCode == "Rolotok" || x.LocationCode == "A-PAK. GÓRA")) ||
+                (location != PackingLevel.Góra && x.LocationCode != "Rolotok" && x.LocationCode != "A-PAK. GÓRA")
+            )
+        );
+
         // Map string courier to enum
         foreach (var jl in jlToPack)
         {
@@ -115,10 +122,10 @@ public class PackingService : IPackingService
         return result > 0;
     }
 
-    public async Task<bool> RemoveJlRealization(string jl)
+    public async Task<bool> RemoveJlRealization(string jl, bool packageClose)
     {
         const string procedure = "kp.RemoveJlRealization";
-        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { jl }, CommandType.StoredProcedure, Connection.ERPConnection);
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { jl, packageClose }, CommandType.StoredProcedure, Connection.ERPConnection);
         return result > 0;
     }
 
@@ -260,7 +267,7 @@ public class PackingService : IPackingService
             allPackItems.Add(new PackStockItems
             {
                 LocSourceNr = request.LocationCode,
-                LocDestNr = "PACK-1-1-1",
+                LocDestNr = MapStationNumber(request.StationNumber),
                 LuSourceNr = request.JlCode,
                 LuDestNr = request.PackageCode,
                 LuDestTypeSymbol = luDestType,
@@ -281,9 +288,9 @@ public class PackingService : IPackingService
         return response;
     }
 
-    public async Task<PackWMSResponse> CloseWmsPackage(string packageCode, string courier)
+    public async Task<PackWMSResponse> CloseWmsPackage(string packageCode, string courier, PackingLevel level, PackingWarehouse warehouse)
     {
-        var packageDestination = await GetPackageDestination(courier);
+        var packageDestination = await GetPackageDestination(courier, level, warehouse);
         var request = new CloseLuRequest
         {
             WhsSource = "6",
@@ -303,11 +310,23 @@ public class PackingService : IPackingService
         return response;
     }
 
-    private async Task<string> GetPackageDestination(string courier)
+    private async Task<string> GetPackageDestination(string courier, PackingLevel level, PackingWarehouse warehouse)
     {
+        if (level == PackingLevel.Dół)
+        {
+            if (warehouse == PackingWarehouse.Magazyn_A)
+                return "A - Załadunek-1-1-1";
+
+            if (warehouse == PackingWarehouse.Magazyn_B)
+                return "B - Załadunek-1-1-1";
+        }
+
         const string procedure = "kp.GetPackageDestination";
-        var result = await _db.QuerySingleOrDefaultAsync<string>(procedure, new { courier }, CommandType.StoredProcedure, Connection.ERPConnection);
-        return result;
+        return await _db.QuerySingleOrDefaultAsync<string>(
+            procedure,
+            new { courier },
+            commandType: CommandType.StoredProcedure,
+            Connection.ERPConnection);
     }
 
     public async Task<bool> BufferPackage(string barcode)
@@ -315,5 +334,21 @@ public class PackingService : IPackingService
         const string procedure = "kp.BufferPackage";
         var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { barcode }, CommandType.StoredProcedure, Connection.ERPConnection);
         return true;
+    }
+
+    private string MapStationNumber(string stationNumber)
+    {
+        if (string.IsNullOrWhiteSpace(stationNumber))
+            throw new ArgumentException("Numer stanowiska nie może być pusty", nameof(stationNumber));
+
+        return stationNumber[0] switch
+        {
+            '1' => $"PAK-A{stationNumber}",
+            '2' => $"PAK-B{stationNumber}",
+            _ => throw new ArgumentOutOfRangeException(
+                       nameof(stationNumber),
+                       stationNumber,
+                       "Błędny numer stanowiska")
+        };
     }
 }

@@ -93,6 +93,7 @@
             await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", PasswordInput);
         }
     }
+
     private async Task HandleLogin()
     {
         try
@@ -100,13 +101,9 @@
             loginDto.StationNumber = Settings.StationNumber;
             loginDto.LoginDate = DateTime.Now;
 
-            if (!await AuthService.Login(loginDto))
-            {
-                Toast.Show("Błąd!", "Nieprawidłowa nazwa użytkownika lub hasło.");
-                return;
-            }
+            var username = await AuthService.Login(loginDto);
             await JSRuntime.InvokeVoidAsync("fullscreenHelper.enter");
-            await UserSession.LoginAsync(loginDto.Username);
+            await UserSession.LoginAsync(username);
             NavigateAfterLogin();
         }
         catch (Exception ex)

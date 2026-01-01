@@ -118,7 +118,7 @@
 
                 try
                 {
-                    await PackingService.RemoveJlRealization(SelectedJl.Name);
+                    await PackingService.RemoveJlRealization(SelectedJl.Name, true);
                     Toast.Show("Sukces!", "Kuweta została usunięta z realizacji.", ToastType.Success);
                 }
                 catch (Exception ex)

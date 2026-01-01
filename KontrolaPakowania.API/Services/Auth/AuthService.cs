@@ -14,14 +14,14 @@ namespace KontrolaPakowania.API.Services.Auth
             _db = db;
         }
 
-        public async Task<bool> Login(LoginDto login)
+        public async Task<string> Login(LoginDto login)
         {
             if (string.IsNullOrEmpty(login.Username) || string.IsNullOrEmpty(login.StationNumber) || string.IsNullOrEmpty(login.Password))
                 throw new ArgumentException("Username, Password and StationNumber cannot be empty");
 
             const string procedure = "kp.LoginUser";
-            var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { username = login.Username, password = login.Password, stationNumber = login.StationNumber }, CommandType.StoredProcedure, Connection.ERPConnection);
-            return result == 1;
+            var result = await _db.QuerySingleOrDefaultAsync<string>(procedure, new { username = login.Username, password = login.Password, stationNumber = login.StationNumber }, CommandType.StoredProcedure, Connection.ERPConnection);
+            return result;
         }
 
         public async Task<IEnumerable<LoginDto>> GetLoggedUsersAsync()

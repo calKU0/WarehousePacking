@@ -4,7 +4,7 @@ namespace KontrolaPakowania.API.Services.Auth
 {
     public interface IAuthService
     {
-        Task<bool> Login(LoginDto login);
+        Task<string> Login(LoginDto login);
 
         Task<IEnumerable<LoginDto>> GetLoggedUsersAsync();
 

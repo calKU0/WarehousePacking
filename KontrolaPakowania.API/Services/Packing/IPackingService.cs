@@ -20,7 +20,7 @@ namespace KontrolaPakowania.API.Services.Packing
 
         Task<bool> AddJlRealization(JlInProgressDto jl);
 
-        Task<bool> RemoveJlRealization(string jl);
+        Task<bool> RemoveJlRealization(string jl, bool packageClose);
 
         Task<bool> UpdateJlRealization(JlInProgressDto jl);
 
@@ -50,7 +50,7 @@ namespace KontrolaPakowania.API.Services.Packing
 
         Task<PackWMSResponse> PackWmsStock(WmsPackStockRequest request);
 
-        Task<PackWMSResponse> CloseWmsPackage(string packageCode, string courier);
+        Task<PackWMSResponse> CloseWmsPackage(string packageCode, string courier, PackingLevel level, PackingWarehouse warehouse);
 
         Task<bool> BufferPackage(string barcode);
     }

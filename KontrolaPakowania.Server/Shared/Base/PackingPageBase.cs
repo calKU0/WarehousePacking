@@ -479,8 +479,11 @@ namespace KontrolaPakowania.Server.Shared.Base
 
             var packStockRequest = new WmsPackStockRequest
             {
+                PackingLevel = Settings.PackingLevel,
+                PackingWarehouse = Settings.PackingWarehouse,
                 LocationCode = CurrentJl.LocationCode,
                 PackageCode = packageCode,
+                StationNumber = Settings.StationNumber,
                 Courier = courier,
                 JlCode = CurrentJl.Name,
                 Weight = PackedItems.Sum(i => i.ItemWeight * i.JlQuantity),
@@ -622,7 +625,7 @@ namespace KontrolaPakowania.Server.Shared.Base
                     try
                     {
                         // Remove the JL realization
-                        await PackingService.RemoveJlRealization(CurrentJl.Name);
+                        await PackingService.RemoveJlRealization(CurrentJl.Name, true);
 
                         // Close package if it exists
                         if (PackageId > 0)
@@ -904,9 +907,9 @@ namespace KontrolaPakowania.Server.Shared.Base
             {
                 foreach (var jl in MergeJlsName)
                 {
-                    await PackingService.RemoveJlRealization(jl);
+                    await PackingService.RemoveJlRealization(jl, false);
                 }
-                await PackingService.RemoveJlRealization(Jl);
+                await PackingService.RemoveJlRealization(Jl, false);
             }
         }
 

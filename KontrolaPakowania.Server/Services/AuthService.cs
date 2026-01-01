@@ -1,5 +1,6 @@
 ﻿using Blazored.LocalStorage;
 using KontrolaPakowania.Shared.DTOs;
+using System.Net;
 
 namespace KontrolaPakowania.Server.Services
 {
@@ -12,13 +13,29 @@ namespace KontrolaPakowania.Server.Services
             _dbClient = httpFactory.CreateClient("Database");
         }
 
-        public async Task<bool> Login(LoginDto login)
+        public async Task<string?> Login(LoginDto login)
         {
             var response = await _dbClient.PostAsJsonAsync("api/auth/login", login);
-            response.EnsureSuccessStatusCode();
 
-            bool isValid = await response.Content.ReadFromJsonAsync<bool>();
-            return isValid;
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<string>();
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
         }
 
         public async Task<bool> Logout(string username)

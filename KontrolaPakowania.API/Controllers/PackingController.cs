@@ -141,12 +141,12 @@ namespace KontrolaPakowania.API.Controllers
         }
 
         [HttpDelete("remove-jl-realization")]
-        public async Task<IActionResult> RemoveJlRealization([FromQuery] string jl)
+        public async Task<IActionResult> RemoveJlRealization([FromQuery] string jl, [FromQuery] bool packageClose)
         {
             _logger.Information("Request: RemoveJlRealization for JL {Jl}", jl);
             try
             {
-                bool success = await _packingService.RemoveJlRealization(jl);
+                bool success = await _packingService.RemoveJlRealization(jl, packageClose);
                 if (success)
                     _logger.Information("JL {Jl} realization removed successfully", jl);
                 else
@@ -415,7 +415,7 @@ namespace KontrolaPakowania.API.Controllers
 
                 if (request.Status == DocumentStatus.Ready)
                 {
-                    var closeResult = await _packingService.CloseWmsPackage(request.PackageCode, request.Courier);
+                    var closeResult = await _packingService.CloseWmsPackage(request.PackageCode, request.Courier, request.PackingLevel, request.PackingWarehouse);
                     if (closeResult.Status != "1")
                     {
                         _logger.Warning("CloseWmsPackage failed for package {PackageCode}: {Desc}", request.PackageCode, closeResult.Desc);

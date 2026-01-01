@@ -25,18 +25,19 @@ namespace KontrolaPakowania.API.Controllers
 
             try
             {
-                bool isValid = await _authService.Login(login);
+                string username = await _authService.Login(login);
 
-                if (isValid)
+                if (!string.IsNullOrEmpty(username))
                 {
-                    _logger.Information("User {@Username} logged in successfully", login?.Username);
+                    _logger.Information("User {@Username} logged in successfully", username);
                 }
                 else
                 {
                     _logger.Warning("Invalid login credentials for user {@Username}", login?.Username);
+                    return Unauthorized("Nieprawidłowa nazwa użytkownika lub hasło.");
                 }
 
-                return Ok(isValid);
+                return Ok(username);
             }
             catch (ArgumentException ex)
             {
