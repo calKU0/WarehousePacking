@@ -26,8 +26,8 @@ namespace KontrolaPakowania.API.Integrations.Couriers.Fedex.Strategies
 
         public async Task<string> GenerateProtocol(IEnumerable<RoutePackages> shipments)
         {
-            var accessCode = shipments.FirstOrDefault().Dropshipping ? _soapSettings.DropshippingAccessCode : _soapSettings.AccessCode;
-            byte[] result = await _client.zapiszDokumentWydaniaAsync(accessCode, string.Join(";", shipments.Select(x => x.TrackingNumber)), ",", CourierID);
+            var accessCode = shipments.First().Dropshipping ? _soapSettings.DropshippingAccessCode : _soapSettings.AccessCode;
+            byte[] result = await _client.zapiszDokumentWydaniaAsync(accessCode, string.Join(";", shipments.Select(x => x.TrackingNumber)), ";", CourierID);
 
             return Convert.ToBase64String(result);
         }

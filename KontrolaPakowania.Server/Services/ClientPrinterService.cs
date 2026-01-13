@@ -1,4 +1,5 @@
 ﻿using KontrolaPakowania.Server.Settings;
+using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.Enums;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
@@ -7,18 +8,26 @@ namespace KontrolaPakowania.Server.Services
 {
     public class ClientPrinterService
     {
-        private readonly IJSRuntime _js;
+        private readonly PrintServiceClient _printClient;
         private readonly CrystalReportsOptions _crystalOptions;
 
-        public ClientPrinterService(IJSRuntime js, IOptions<CrystalReportsOptions> crystalOptions)
+        public ClientPrinterService(IOptions<CrystalReportsOptions> crystalOptions, PrintServiceClient printClient)
         {
-            _js = js;
             _crystalOptions = crystalOptions.Value;
+            _printClient = printClient;
         }
 
         public async Task<bool> PrintAsync(string printer, string dataType, string content)
         {
-            return await _js.InvokeAsync<bool>("sendZplToAgent", printer, dataType, content, null);
+            var job = new PrintJob
+            {
+                PrinterName = printer,
+                DataType = dataType,
+                Content = content,
+                Parameters = null
+            };
+
+            return await _printClient.SendPrintJobAsync(job);
         }
 
         public async Task<bool> PrintCrystalAsync(string printer, string reportKey, Dictionary<string, string> extraParams)
@@ -42,15 +51,17 @@ namespace KontrolaPakowania.Server.Services
                 parameters[kvp.Key] = kvp.Value;
             }
 
+            var job = new PrintJob
+            {
+                PrinterName = printer,
+                DataType = "CRYSTAL",
+                Content = reportPath,
+                Parameters = parameters
+            };
+
             try
             {
-                return await _js.InvokeAsync<bool>(
-                    "sendZplToAgent",
-                    printer,
-                    PrintDataType.CRYSTAL.ToString(),
-                    reportPath,
-                    parameters
-                );
+                return await _printClient.SendPrintJobAsync(job);
             }
             catch (JSException ex)
             {

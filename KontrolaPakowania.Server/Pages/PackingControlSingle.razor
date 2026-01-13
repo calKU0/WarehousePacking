@@ -191,14 +191,14 @@
         await ScanInputComponent.FocusAsync();
     }
 
-    protected override async Task HandleShipmentOkClick(string scannedCode)
+    protected override async Task HandleShipmentOkClick((string ScannedCode, string TrackingNumber) data)
     {
         try
         {
             switch (_currentPackingFlow)
             {
                 case PackingFlow.FinishPacking:
-                    await CloseJlInWMS(CurrentJl.CourierName, scannedCode, DocumentStatus.Ready);
+                    await CloseJlInWMS(CurrentJl.CourierName, data.ScannedCode, data.TrackingNumber, DocumentStatus.Ready);
                     PackedItems.Clear();
                     MovedProduct = false;
                     ClearJlData();
@@ -238,7 +238,7 @@
                 dimensions = await DimensionsModal.Show();
             }
 
-            await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, DocumentStatus.Ready);
+            await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, internalBarcode, DocumentStatus.Ready);
             await ClosePackage(internalBarcode, dimensions);
             await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", internalBarcode } });
 

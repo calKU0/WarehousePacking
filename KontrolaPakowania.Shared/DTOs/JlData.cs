@@ -33,7 +33,18 @@ namespace KontrolaPakowania.Shared.DTOs
         public ShipmentServices ShipmentServices { get; set; } = new();
         public int Priority { get; set; }
         public int Sorting { get; set; }
-        public string Country { get; set; } = string.Empty;
+        private string country = string.Empty;
+
+        public string Country
+        {
+            get => country;
+            set
+            {
+                country = value;
+                UpdateOutsideEU();
+            }
+        }
+
         public string LocationCode { get; set; } = string.Empty;
         public string ReadyToPack { get; set; } = string.Empty;
         public bool OutsideEU { get; set; } = false;
@@ -64,6 +75,21 @@ namespace KontrolaPakowania.Shared.DTOs
             LogoCourier = suffixes.Any()
                 ? $"{Courier.GetDescription()}-{string.Join(", ", suffixes)}"
                 : Courier.GetDescription();
+        }
+
+        private void UpdateOutsideEU()
+        {
+            // List of EU countries (simplified example, you can add all EU countries)
+            var euCountries = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus",
+                "Czech Republic", "Denmark", "Estonia", "Finland", "France",
+                "Germany", "Greece", "Hungary", "Ireland", "Italy",
+                "Latvia", "Lithuania", "Luxembourg", "Malta", "Netherlands",
+                "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden"
+            };
+
+            OutsideEU = !euCountries.Contains(country);
         }
     }
 }

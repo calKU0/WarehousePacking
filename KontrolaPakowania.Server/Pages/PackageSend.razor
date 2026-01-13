@@ -249,7 +249,7 @@
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter")
+        if (e.Key == "Enter" && string.IsNullOrEmpty(Barcode))
         {
             await LoadData();
         }

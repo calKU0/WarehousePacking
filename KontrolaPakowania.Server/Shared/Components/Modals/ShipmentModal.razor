@@ -15,13 +15,16 @@
                     <h5 class="modal-title">Przesyłka wysłana</h5>
                 </div>
                 <div class="modal-body text-center">
-                    <input class="form-control mb-3 text-center"
-                           placeholder="Zeskanuj kod kreskowy etykiety"
-                           @bind="ScannedCode"
-                           @bind:event="oninput"
-                           @onkeydown="HandleKeyDown"
-                           @ref="InputRef"
-                           autofocus />
+                    @if (ShowScan)
+                    {           
+                        <input class="form-control mb-3 text-center"
+                               placeholder="Zeskanuj kod kreskowy etykiety"
+                               @bind="ScannedCode"
+                               @bind:event="oninput"
+                               @onkeydown="HandleKeyDown"
+                               @ref="InputRef"
+                               autofocus />
+                    }
                     @if (!string.IsNullOrEmpty(ScanErrorMessage))
                     {
                         <p class="text-danger fw-bold mt-2">@ScanErrorMessage</p>
@@ -62,11 +65,12 @@
     private bool HasInvoice { get; set; }
     private string InternalBarcode { get; set; } = string.Empty;
     private string ScannedCode { get; set; } = string.Empty;
+    private bool ShowScan { get; set; } = false;
     private ElementReference InputRef;
     private string? ScanErrorMessage;
-    [Parameter] public EventCallback<string> OnOk { get; set; }
+    [Parameter] public EventCallback<(string ScannedCode, string TrackingNumber)> OnOk { get; set; }
 
-    public async void Show(string internalBarcode, string trackingNumber, string labelBase64, PrintDataType labelType, string printer, bool hasInvoice)
+    public async void Show(string internalBarcode, string trackingNumber, string labelBase64, PrintDataType labelType, string printer, bool hasInvoice, bool showScan = true)
     {
         try
         {
@@ -76,6 +80,7 @@
             Printer = printer;
             HasInvoice = hasInvoice;
             InternalBarcode = internalBarcode;
+            ShowScan = showScan;
 
             ScannedCode = string.Empty;
             IsVisible = true;
@@ -126,7 +131,7 @@
     {
         if (OnOk.HasDelegate)
         {
-            await OnOk.InvokeAsync(ScannedCode);
+            await OnOk.InvokeAsync((ScannedCode, TrackingNumber));
         }
 
         ScannedCode = string.Empty;

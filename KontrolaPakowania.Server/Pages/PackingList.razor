@@ -207,6 +207,7 @@
             if (idleSeconds >= AppSettings.Intervals.Logout)
             {
                 AfkTimer?.Dispose();
+                await AuthService.Logout(UserSession.Username);
                 await UserSession.LogoutAsync();
                 Navigation.NavigateTo("/login", forceLoad: true);
             }

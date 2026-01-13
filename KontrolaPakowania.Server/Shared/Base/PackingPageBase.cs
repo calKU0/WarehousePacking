@@ -29,7 +29,7 @@ namespace KontrolaPakowania.Server.Shared.Base
         // Shared state
         protected JlData CurrentJl = new();
 
-        protected List<(string jlName,string locationCode)> MergeJls = new();
+        protected List<(string jlName, string locationCode)> MergeJls = new();
         protected List<JlItemDto> JlItems = new();
         protected List<JlItemDto> PackedItems = new();
         protected HashSet<string> HighlightedRows = new();
@@ -312,7 +312,6 @@ namespace KontrolaPakowania.Server.Shared.Base
                     },
                     onCancel: async () =>
                     {
-
                     });
                 await ScanInputComponent.FocusAsync();
             }
@@ -392,7 +391,6 @@ namespace KontrolaPakowania.Server.Shared.Base
                         ItemUnit = item.ItemUnit,
                         DocumentId = item.DocumentId,
                         ErpPositionNumber = item.ErpPositionNumber,
-                        
                     };
                     PackedItems.Add(packedItem);
                 }
@@ -566,7 +564,7 @@ namespace KontrolaPakowania.Server.Shared.Base
             }
         }
 
-        protected virtual async Task CloseJlInWMS(string courier, string packageCode, DocumentStatus status)
+        protected virtual async Task CloseJlInWMS(string courier, string packageCode, string trackingNumber, DocumentStatus status)
         {
             if (PackedItems == null || !PackedItems.Any())
                 return;
@@ -585,7 +583,8 @@ namespace KontrolaPakowania.Server.Shared.Base
                     PackingLevel = Settings.PackingLevel,
                     PackingWarehouse = Settings.PackingWarehouse,
                     LocationCode = jl.locationCode,
-                    PackageCode = packageCode,
+                    ScannedCode = packageCode,
+                    TrackingNumber = trackingNumber,
                     StationNumber = Settings.StationNumber,
                     Courier = courier,
                     JlCode = jl.jlName,
@@ -608,7 +607,8 @@ namespace KontrolaPakowania.Server.Shared.Base
                 PackingLevel = Settings.PackingLevel,
                 PackingWarehouse = Settings.PackingWarehouse,
                 LocationCode = CurrentJl.LocationCode,
-                PackageCode = packageCode,
+                ScannedCode = packageCode,
+                TrackingNumber = trackingNumber,
                 StationNumber = Settings.StationNumber,
                 Courier = courier,
                 JlCode = CurrentJl.Name,
@@ -885,11 +885,11 @@ namespace KontrolaPakowania.Server.Shared.Base
             }
         }
 
-        protected virtual async Task HandleShipmentOkClick(string scannedCode)
+        protected virtual async Task HandleShipmentOkClick((string ScannedCode, string TrackingNumber) data)
         {
             try
             {
-                await CloseJlInWMS(CurrentJl.CourierName, scannedCode, DocumentStatus.Ready);
+                await CloseJlInWMS(CurrentJl.CourierName, data.ScannedCode, data.TrackingNumber, DocumentStatus.Ready);
 
                 switch (_currentPackingFlow)
                 {
@@ -903,7 +903,7 @@ namespace KontrolaPakowania.Server.Shared.Base
                         break;
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Toast.Show("Błąd!", $"Błąd przy próbie finalizacji pakowania: {ex.Message}");
             }
@@ -928,7 +928,7 @@ namespace KontrolaPakowania.Server.Shared.Base
                     dimensions = await DimensionsModal.Show();
                 }
 
-                await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, DocumentStatus.Ready);
+                await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, internalBarcode, DocumentStatus.Ready);
                 await ClosePackage(internalBarcode, dimensions);
                 await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", internalBarcode } });
 
@@ -969,7 +969,7 @@ namespace KontrolaPakowania.Server.Shared.Base
                     dimensions = await DimensionsModal.Show();
                 }
 
-                await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, DocumentStatus.InProgress);
+                await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, internalBarcode, DocumentStatus.Bufor);
                 await ClosePackage(internalBarcode, dimensions, DocumentStatus.Bufor);
                 await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", internalBarcode } });
 

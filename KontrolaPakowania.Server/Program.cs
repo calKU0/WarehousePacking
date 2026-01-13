@@ -34,6 +34,8 @@ builder.Services.AddHttpClient("Database", (serviceProvider, client) =>
 });
 
 // Scopes
+builder.Services.AddSingleton<PrintAgentStatusService>();
+builder.Services.AddHttpClient<PrintServiceClient>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<WorkstationService>();
 builder.Services.AddScoped<PackingService>();

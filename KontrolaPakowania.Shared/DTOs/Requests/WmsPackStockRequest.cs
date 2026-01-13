@@ -12,7 +12,8 @@ namespace KontrolaPakowania.Shared.DTOs.Requests
         public PackingLevel PackingLevel { get; set; }
         public PackingWarehouse PackingWarehouse { get; set; }
         public string LocationCode { get; set; } = string.Empty;
-        public string PackageCode { get; set; } = string.Empty;
+        public string ScannedCode { get; set; } = string.Empty;
+        public string TrackingNumber { get; set; } = string.Empty;
         public string Courier { get; set; } = string.Empty;
         public string JlCode { get; set; } = string.Empty;
         public string StationNumber { get; set; } = string.Empty;

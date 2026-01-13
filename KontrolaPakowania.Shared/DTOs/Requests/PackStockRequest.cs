@@ -22,6 +22,7 @@ namespace KontrolaPakowania.Shared.DTOs.Requests
         public string? LocDestNr { get; set; }
         public string? LuSourceNr { get; set; }
         public string? LuDestNr { get; set; }
+        public string? LuDestEan { get; set; }
         public string? LuDestTypeSymbol { get; set; }
         public string? ItemNr { get; set; }
         public int? BatchId { get; set; } = null;

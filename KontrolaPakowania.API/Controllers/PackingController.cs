@@ -424,7 +424,7 @@ namespace KontrolaPakowania.API.Controllers
 
             _logger.Information(
                 "Request: PackWmsStock for package {PackageCode} courier {Courier}",
-                first?.PackageCode,
+                first?.ScannedCode,
                 first?.Courier);
 
             try
@@ -434,7 +434,7 @@ namespace KontrolaPakowania.API.Controllers
                 {
                     _logger.Warning(
                         "PackWmsStock failed for package {PackageCode}: {Desc}",
-                        first?.PackageCode,
+                        first?.ScannedCode,
                         packResult.Desc);
 
                     return BadRequest(packResult.Desc);
@@ -449,7 +449,7 @@ namespace KontrolaPakowania.API.Controllers
                         try
                         {
                             var closeResult = await _packingService.CloseWmsPackage(
-                                first.PackageCode,
+                                first.ScannedCode,
                                 first.Courier,
                                 first.PackingLevel,
                                 first.PackingWarehouse);
@@ -458,7 +458,7 @@ namespace KontrolaPakowania.API.Controllers
                             {
                                 _logger.Warning(
                                     "CloseWmsPackage business failure for package {PackageCode}: {Desc}",
-                                    first.PackageCode,
+                                    first.ScannedCode,
                                     closeResult.Desc);
 
                                 return BadRequest(closeResult.Desc);
@@ -499,7 +499,7 @@ namespace KontrolaPakowania.API.Controllers
                                 ex,
                                 "CloseWmsPackage failed after {Attempts} attempts for package {PackageCode}",
                                 attempt,
-                                first.PackageCode);
+                                first.ScannedCode);
 
                             return StatusCode(502, "WMS communication error");
                         }
@@ -508,7 +508,7 @@ namespace KontrolaPakowania.API.Controllers
 
                 _logger.Information(
                     "PackWmsStock succeeded for package {PackageCode}",
-                    first?.PackageCode);
+                    first?.ScannedCode);
 
                 return Ok();
             }
@@ -517,7 +517,7 @@ namespace KontrolaPakowania.API.Controllers
                 _logger.Error(
                     ex,
                     "Error in PackWmsStock for package {PackageCode}",
-                    first?.PackageCode);
+                    first?.ScannedCode);
 
                 return HandleException(ex);
             }

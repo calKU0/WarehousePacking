@@ -1,4 +1,9 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@inject PrintAgentStatusService StatusService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject UserSessionService UserSession
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">
             <span class="brand-icon bi bi-box-seam"></span>
@@ -47,5 +52,48 @@
         </div>
     </nav>
 
+    <div class="sidebar-bottom">
+        <div class="service-status">
+            <span class="@StatusClass">@StatusText</span>
+        </div>
+
+        <button class="nav-link logout-btn" @onclick="Logout">
+            <span class="nav-icon bi bi-box-arrow-right"></span>
+            <span class="nav-text">Wyloguj</span>
+        </button>
+    </div>
 </div>
 
+@code {
+    private bool _isOnline;
+    private string StatusText => _isOnline ? "Drukowanie" : "Drukowanie";
+    private string StatusClass => _isOnline ? "text-success" : "text-danger";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckServiceStatus();
+    }
+
+    private async Task CheckServiceStatus()
+    {
+        _isOnline = await StatusService.IsServiceOnline();
+
+        // Optionally refresh every 10s
+        _ = Task.Run(async () =>
+        {
+            while (true)
+            {
+                _isOnline = await StatusService.IsServiceOnline();
+                InvokeAsync(StateHasChanged);
+                await Task.Delay(10000); // 10 seconds
+            }
+        });
+    }
+
+    private async Task Logout()
+    {
+        await AuthService.Logout(UserSession.Username);
+        await UserSession.LogoutAsync();
+        Navigation.NavigateTo("/login", true);
+    }
+}

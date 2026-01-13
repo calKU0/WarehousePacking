@@ -270,7 +270,7 @@ public class PackingService : IPackingService
             return new PackWMSResponse { Status = "-1", Desc = "No items to process." };
 
         var allPackItems = new List<PackStockItems>();
-        var luDestType = request.Sum(i =>i.Weight) > 120 ? "PALETA" : "PACZKA";
+        var luDestType = request.Sum(i => i.Weight) > 120 ? "PALETA" : "PACZKA";
 
         foreach (var jl in request)
         {
@@ -281,7 +281,8 @@ public class PackingService : IPackingService
                     LocSourceNr = jl.LocationCode,
                     LocDestNr = MapStationNumber(jl.StationNumber),
                     LuSourceNr = jl.JlCode,
-                    LuDestNr = jl.PackageCode,
+                    LuDestEan = string.IsNullOrEmpty(jl.ScannedCode) ? jl.TrackingNumber : jl.ScannedCode,
+                    LuDestNr = jl.TrackingNumber,
                     LuDestTypeSymbol = luDestType,
                     ItemNr = item.ItemCode,
                     ItemQty = item.Quantity.ToString().Replace(",", "."),
