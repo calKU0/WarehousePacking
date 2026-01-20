@@ -40,6 +40,23 @@ namespace KontrolaPakowania.API.Controllers
             }
         }
 
+        [HttpGet("not-closed-packages")]
+        public async Task<IActionResult> GetNotClosedPackages()
+        {
+            _logger.Information("Request: GetNotClosedPackages");
+            try
+            {
+                var list = await _packingService.GetNotClosedPackagesAsync();
+                _logger.Information("GetNotClosedPackages succeeded with {Count} results", list.Count());
+                return Ok(list);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error in GetNotClosedPackages");
+                return HandleException(ex);
+            }
+        }
+
         [HttpGet("jl-info")]
         public async Task<IActionResult> GetJlInfo([FromQuery] string jl, [FromQuery] PackingLevel location)
         {
@@ -200,23 +217,6 @@ namespace KontrolaPakowania.API.Controllers
             catch (Exception ex)
             {
                 _logger.Error(ex, "Error in GetPackagesInBuforForClient for ClientId {ClientId}", clientId);
-                return HandleException(ex);
-            }
-        }
-
-        [HttpDelete("release-jl")]
-        public async Task<IActionResult> ReleaseJl([FromQuery] string jl)
-        {
-            _logger.Information("Request: ReleaseJl for JL {Jl}", jl);
-            try
-            {
-                bool success = await _packingService.ReleaseJl(jl);
-                _logger.Information("ReleaseJl result for JL {Jl}: {Result}", jl, success);
-                return Ok(success);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex, "Error in ReleaseJl for JL {Jl}", jl);
                 return HandleException(ex);
             }
         }

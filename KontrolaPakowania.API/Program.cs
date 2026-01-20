@@ -21,6 +21,8 @@ using KontrolaPakowania.API.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using Polly;
+using Polly.Extensions.Http;
 using Serilog;
 using System.Net;
 using System.Net.Http.Headers;
@@ -76,16 +78,18 @@ builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"
 
 System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
 
+var retryPolicy = HttpPolicyExtensions
+    .HandleTransientHttpError() // Handles 5xx and 408
+    .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+
 // DPD REST client
 builder.Services.AddHttpClient<DpdService>((sp, client) =>
 {
     var settings = sp.GetRequiredService<IOptions<CourierSettings>>().Value.DPD;
     client.BaseAddress = new Uri(settings.BaseUrl);
     var byteArray = Encoding.ASCII.GetBytes($"{settings.Username}:{settings.Password}");
-    client.DefaultRequestHeaders.Authorization =
-        new AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
     client.DefaultRequestHeaders.Add("x-dpd-fid", settings.MasterFID);
-    client.Timeout = TimeSpan.FromSeconds(15);
 });
 
 // DPD-Romania REST client
@@ -110,7 +114,8 @@ builder.Services.AddHttpClient<IWmsApiClient, WmsApiClient>((sp, client) =>
     client.BaseAddress = new Uri(settings.BaseUrl);
     client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     client.DefaultRequestHeaders.TryAddWithoutValidation("token-mer", settings.Token);
-});
+})
+.AddPolicyHandler(retryPolicy);
 
 // =====================
 // Mappers

@@ -10,3 +10,9 @@
 [2026-01-02T16:37:34.6418081Z] Received Response (200)
 {"status":"1","desc":"OK"}
 
+[2026-01-16T10:03:38.7116633Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=closeLu
+{"whsSource":"6","proces":"PCK","destStatusLuId":"14","Items":[{"luNr":"1000003830719","luDestNr":null,"luDestTypeSymbol":null,"locDestNr":"Zrzuty-rolotok-1-1-1"}]}
+
+[2026-01-16T10:03:38.9030096Z] Received Response (200)
+{"status":"1","desc":"OK"}
+

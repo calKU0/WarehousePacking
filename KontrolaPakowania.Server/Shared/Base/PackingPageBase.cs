@@ -307,7 +307,7 @@ namespace KontrolaPakowania.Server.Shared.Base
                         }
                         catch (Exception ex)
                         {
-                            Toast.Show("Błąd!", $"Błąd przy próbie zamknięcia pakowania: {ex.Message}");
+                            Toast.Show("Błąd!", $"Błąd przy próbie zmiany kuriera: {ex.Message}");
                         }
                     },
                     onCancel: async () =>
@@ -351,7 +351,7 @@ namespace KontrolaPakowania.Server.Shared.Base
             // Move to PackedItems
             JlItemDto packedItem;
             var existingPacked = PackedItems.FirstOrDefault(p => p.ItemCode == item.ItemCode && p.DocumentId == item.DocumentId && p.ErpPositionNumber == item.ErpPositionNumber && p.JlCode == item.JlCode);
-            if (qty == item.DocumentQuantity || qty == item.JlQuantity)
+            if (qty == item.JlQuantity)
             {
                 if (existingPacked == null)
                 {
@@ -903,7 +903,7 @@ namespace KontrolaPakowania.Server.Shared.Base
             }
             catch (Exception ex)
             {
-                Toast.Show("Błąd!", $"Błąd przy próbie finalizacji pakowania: {ex.Message}");
+                Toast.Show("Błąd!", $"Błąd przy próbie wysłania paczki: {ex.Message}");
                 await OpenPackage();
             }
         }

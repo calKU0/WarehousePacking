@@ -15,7 +15,6 @@ namespace KontrolaPakowania.PrintService
     public partial class PrintingService : ServiceBase
     {
         private Thread listenerThread;
-        private bool running;
 
         public PrintingService()
         {
@@ -26,9 +25,20 @@ namespace KontrolaPakowania.PrintService
 
         protected override void OnStart(string[] args)
         {
-            running = true;
+            PrintingListener.Running = true;
 
-            listenerThread = new Thread(StartListener)
+            listenerThread = new Thread(() =>
+            {
+                try
+                {
+                    PrintingListener.Start();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("PrintingListener crashed:");
+                    Logger.Error(ex.ToString());
+                }
+            })
             {
                 IsBackground = true
             };
@@ -38,19 +48,12 @@ namespace KontrolaPakowania.PrintService
 
         protected override void OnStop()
         {
-            running = false;
-        }
+            PrintingListener.Running = false;
+            PrintingListener.Stop();
 
-        private void StartListener()
-        {
-            try
+            if (listenerThread != null && listenerThread.IsAlive)
             {
-                PrintingListener.Start(running);
-            }
-            catch (Exception ex)
-            {
-                // Log to Event Log or file
-                Logger.Error(ex.ToString());
+                listenerThread.Join(3000);
             }
         }
     }

@@ -29,6 +29,7 @@ namespace KontrolaPakowania.Shared.Helpers
             ["transport na zlecenie"] = Courier.Transport_On_Request,
             ["trans. na zlecenie"] = Courier.Transport_On_Request,
             ["transport odbiorcy"] = Courier.Recipient_Transport,
+            ["transport dostawcy"] = Courier.Supplier_Transport,
             ["raben"] = Courier.Raben,
             ["schenker"] = Courier.Schenker,
             ["suus"] = Courier.Suus,

@@ -65,6 +65,16 @@ public class PackingService : IPackingService
         return jlToPack.ToJlData().OrderBy(jl => jl.Status).ThenBy(c => c.CourierName).ThenBy(c => c.ClientSymbol);
     }
 
+    public async Task<IEnumerable<string>> GetNotClosedPackagesAsync()
+    {
+        var jlList = await _wmsApi.GetJlListAsync();
+        var jlToPack = jlList
+            .Where(x => x.Status == 13)
+            .Select(x => x.JlCode);
+
+        return jlToPack;
+    }
+
     public async Task<JlData?> GetJlInfoByCodeAsync(string jlCode, PackingLevel location)
     {
         var jlList = await _wmsApi.GetJlListAsync();
@@ -158,13 +168,6 @@ public class PackingService : IPackingService
     {
         const string procedure = "kp.GetPackagesForClient";
         return await _db.QueryAsync<PackageData>(procedure, new { clientId, addressName, addressCity, addressStreet, addressPostalCode, addressCountry, status }, CommandType.StoredProcedure, Connection.ERPConnection);
-    }
-
-    public async Task<bool> ReleaseJl(string jl)
-    {
-        const string procedure = "kp.ReleseJl";
-        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { jl }, CommandType.StoredProcedure, Connection.WMSConnection);
-        return result > 0;
     }
 
     public async Task<CourierConfiguration> GetCourierConfiguration(string courierName, PackingLevel level, string country)
@@ -307,7 +310,13 @@ public class PackingService : IPackingService
 
     public async Task<PackWMSResponse> CloseWmsPackage(WmsCloseJlRequest request)
     {
-        var packageDestination = await GetPackageDestination(request.Courier.GetDescription(), request.PackingLevel, request.PackingWarehouse);
+        string packageDestination = string.Empty;
+
+        if (string.IsNullOrEmpty(request.PackageDestination))
+            packageDestination = await GetPackageDestination(request.Courier.GetDescription(), request.PackingLevel, request.PackingWarehouse);
+        else
+            packageDestination = request.PackageDestination;
+
         var wmsRequest = new CloseLuRequest
         {
             WhsSource = "6",

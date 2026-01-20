@@ -8,6 +8,8 @@ namespace KontrolaPakowania.API.Services.Packing
     {
         Task<IEnumerable<JlData>> GetJlListAsync(PackingLevel location);
 
+        Task<IEnumerable<string>> GetNotClosedPackagesAsync();
+
         Task<JlData> GetJlInfoByCodeAsync(string jl, PackingLevel location);
 
         Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl, PackingLevel location);
@@ -25,8 +27,6 @@ namespace KontrolaPakowania.API.Services.Packing
         Task<bool> UpdateJlRealization(JlInProgressDto jl);
 
         Task<IEnumerable<PackageData>> GetPackagesForClient(int clientId, string? addressName, string? addressCity, string? addressStreet, string? addressPostalCode, string? addressCountry, DocumentStatus status);
-
-        Task<bool> ReleaseJl(string jl);
 
         Task<CourierConfiguration> GetCourierConfiguration(string courierName, PackingLevel level, string country);
 

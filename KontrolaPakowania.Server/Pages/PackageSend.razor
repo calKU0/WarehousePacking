@@ -182,12 +182,26 @@
                 </div>
 
                 <div class="d-flex flex-column gap-2 mb-4">
-                    <button class="btn btn-outline-success" @onclick="() => CloseRoute(Courier.DPD)" disabled=@(RoutesStatus.DPDClosed)>Zamknij Trase DPD</button>
-                    <button class="btn btn-outline-warning" @onclick="() => CloseRoute(Courier.GLS)" disabled=@(RoutesStatus.GLSClosed)>Zamknij Trase GLS</button>
-                    <button class="btn btn-outline-primary" @onclick="() => CloseRoute(Courier.Fedex)" disabled=@(RoutesStatus.FedexClosed)>Zamknij Trase Fedex</button>
+                    <button class="btn @(!RoutesStatus.DPDClosed ? "btn-success" : "btn-outline-success")"
+                            @onclick="() => CloseRoute(Courier.DPD)"
+                            disabled="@RoutesStatus.DPDClosed">
+                        Zamknij Trasę DPD
+                    </button>
+
+                    <button class="btn @(!RoutesStatus.GLSClosed ? "btn-warning" : "btn-outline-warning")"
+                            @onclick="() => CloseRoute(Courier.GLS)"
+                            disabled="@RoutesStatus.GLSClosed">
+                        Zamknij Trasę GLS
+                    </button>
+
+                    <button class="btn @(!RoutesStatus.FedexClosed ? "btn-primary" : "btn-outline-primary")"
+                            @onclick="() => CloseRoute(Courier.Fedex)"
+                            disabled="@RoutesStatus.FedexClosed">
+                        Zamknij Trasę Fedex
+                    </button>
                 </div>
                 <div class="mb-4 d-flex flex-column">
-                    <button class="btn btn-info" disabled="@(Package.Id == 0)" @onclick=SendEmail>Wyślij mail do opiekuna</button>
+                    <button class="btn @(Package.Id == 0 ? "btn-outline-info" : "btn-info")" disabled="@(Package.Id == 0)" @onclick=SendEmail>Wyślij mail do opiekuna</button>
                 </div>
             </div>
         </div>

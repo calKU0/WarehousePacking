@@ -109,22 +109,42 @@
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter")
+        if (e.Key != "Enter")
+            return;
+
+        if (string.IsNullOrWhiteSpace(ScannedCode))
+            return;
+
+        if (ScannedCode.Length > 29)
         {
-            if (ScannedCode.Length > 29)
-            {
-                ScanErrorMessage = "Za długi kod etykiety. Zeskanuj ponownie.";
-                ScannedCode = string.Empty;
+            ScanErrorMessage = "Za długi kod etykiety. Zeskanuj ponownie.";
+            ScannedCode = string.Empty;
 
-                await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
-
-                StateHasChanged();
-                return;
-            }
-
-            ScanErrorMessage = null;
-            await ConfirmAsync();
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
+            StateHasChanged();
+            return;
         }
+
+        bool containsTracking =
+            !string.IsNullOrEmpty(TrackingNumber) &&
+            ScannedCode.Contains(TrackingNumber, StringComparison.OrdinalIgnoreCase);
+
+        bool containsInternalBarcode =
+            !string.IsNullOrEmpty(InternalBarcode) &&
+            ScannedCode.Contains(InternalBarcode, StringComparison.OrdinalIgnoreCase);
+
+        if (!containsTracking && !containsInternalBarcode)
+        {
+            ScanErrorMessage = "Nieprawidłowy kod. Zeskanuj numer przesyłki lub kod wewnętrzny.";
+            ScannedCode = string.Empty;
+
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
+            StateHasChanged();
+            return;
+        }
+
+        ScanErrorMessage = null;
+        await ConfirmAsync();
     }
 
     private async Task ConfirmAsync()

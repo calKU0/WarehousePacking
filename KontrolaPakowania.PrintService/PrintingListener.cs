@@ -1,48 +1,65 @@
 ﻿using BusinessObjects.ThirdParty.OOC.FSSL;
+using KontrolaPakowania.PrintService.Logging;
 using KontrolaPakowania.PrintService.Models;
 using System;
 using System.IO;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using KontrolaPakowania.PrintService.Logging;
+using System.Threading.Tasks;
 using Logger = KontrolaPakowania.PrintService.Logging.Logger;
 
 namespace KontrolaPakowania.PrintService
 {
     public static class PrintingListener
     {
-        public static void Start(bool running)
+        private static HttpListener _listener;
+        public static volatile bool Running;
+
+        public static void Start()
         {
-            var listener = new HttpListener();
-            listener.Prefixes.Add("http://localhost:54321/print/");
-            listener.Start();
+            _listener = new HttpListener();
+            _listener.Prefixes.Add("http://localhost:54321/print/");
+            _listener.Start();
+
             Logger.Info("Started on http://localhost:54321/print/");
 
-            while (running)
+            while (Running)
             {
-                var context = listener.GetContext();
+                HttpListenerContext context = null;
+
+                try
+                {
+                    context = _listener.GetContext();
+                }
+                catch (HttpListenerException)
+                {
+                    if (!Running)
+                        break;
+                    throw;
+                }
+
                 var request = context.Request;
                 var response = context.Response;
 
                 try
                 {
-                    // ---- CORS HEADERS ----
                     response.AddHeader("Access-Control-Allow-Origin", "*");
                     response.AddHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
                     response.AddHeader("Access-Control-Allow-Headers", "Content-Type");
 
-                    // ---- PREFLIGHT ----
                     if (request.HttpMethod == "OPTIONS")
                     {
                         response.StatusCode = 200;
                         var buffer = Encoding.UTF8.GetBytes("OK");
-                        response.OutputStream.Write(buffer, 0, buffer.Length);
-                        continue;
-                    }
 
-                    // ---- POST REQUEST ----
-                    if (request.HttpMethod == "POST")
+                        try
+                        {
+                            response.OutputStream.Write(buffer, 0, buffer.Length);
+                        }
+                        catch { }
+                    }
+                    else if (request.HttpMethod == "POST")
                     {
                         using (var reader = new StreamReader(request.InputStream))
                         {
@@ -52,26 +69,26 @@ namespace KontrolaPakowania.PrintService
                                 body,
                                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                            // ---- HEALTH CHECK ----
                             if (job?.DataType == "PING")
                             {
-                                response.StatusCode = 200;
                                 var buffer = Encoding.UTF8.GetBytes("PONG");
                                 response.OutputStream.Write(buffer, 0, buffer.Length);
-                                continue;
                             }
+                            else
+                            {
+                                // Fire-and-forget: odpowiedź od razu
+                                response.StatusCode = 202;
+                                response.Close();
 
-                            // ---- REAL PRINTING ----
-                            PrintManager.Print(job);
+                                // Druk w tle
+                                Task.Run(() => PrintManager.Print(job));
 
-                            response.StatusCode = 200;
-                            var okBuffer = Encoding.UTF8.GetBytes("OK");
-                            response.OutputStream.Write(okBuffer, 0, okBuffer.Length);
+                                continue; // idź do kolejnego requestu
+                            }
                         }
                     }
                     else
                     {
-                        // Method not allowed
                         response.StatusCode = 405;
                         var buffer = Encoding.UTF8.GetBytes("Method Not Allowed");
                         response.OutputStream.Write(buffer, 0, buffer.Length);
@@ -79,20 +96,45 @@ namespace KontrolaPakowania.PrintService
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error($"[ERROR] Printing failed: {ex}");
+                    Logger.Error(ex.ToString());
                     response.StatusCode = 500;
-                    var buffer = Encoding.UTF8.GetBytes(ex.Message);
-                    response.OutputStream.Write(buffer, 0, buffer.Length);
+
+                    try
+                    {
+                        var buffer = Encoding.UTF8.GetBytes(ex.Message);
+                        response.OutputStream.Write(buffer, 0, buffer.Length);
+                    }
+                    catch { }
                 }
                 finally
                 {
-                    // Close the response always
-                    response.OutputStream.Close();
-                    response.Close();
+                    try
+                    {
+                        response.Close();
+                    }
+                    catch (HttpListenerException)
+                    {
+                        // klient zerwał połączenie – NORMALNE
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // response już zamknięty – OK
+                    }
                 }
             }
 
-            listener.Stop();
+            _listener.Close();
+        }
+
+        public static void Stop()
+        {
+            Running = false;
+            try
+            {
+                _listener?.Stop();
+                _listener?.Close();
+            }
+            catch { }
         }
     }
 }

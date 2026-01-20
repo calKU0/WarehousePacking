@@ -33,6 +33,24 @@ namespace KontrolaPakowania.Server.Services
             throw new Exception(generic);
         }
 
+        public async Task<List<string>> GetNotClosedPackages()
+        {
+            var response = await _dbClient.GetAsync($"api/packing/not-closed-packages");
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<List<string>>();
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
+
         public async Task<JlData> GetJlInfoByCode(string jlCode, PackingLevel packingLocation)
         {
             var response = await _dbClient.GetAsync($"api/packing/jl-info?jl={jlCode}&location={packingLocation}");
@@ -165,7 +183,7 @@ namespace KontrolaPakowania.Server.Services
 
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadFromJsonAsync<int>();
+                var result = await response.Content.ReadFromJsonAsync<bool>();
                 return true;
             }
 

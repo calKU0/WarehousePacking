@@ -1,16 +1,18 @@
-﻿using CrystalDecisions.CrystalReports.Engine;
+﻿using BusinessObjects.ThirdParty.OOC.FSSL;
+using CrystalDecisions.CrystalReports.Engine;
+using KontrolaPakowania.PrintService.Logging;
 using KontrolaPakowania.PrintService.Models;
+using PdfiumViewer;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing.Printing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Drawing.Printing;
 using System.Threading.Tasks;
-using KontrolaPakowania.PrintService.Logging;
-using BusinessObjects.ThirdParty.OOC.FSSL;
 using Logger = KontrolaPakowania.PrintService.Logging.Logger;
 
 namespace KontrolaPakowania.PrintService
@@ -76,45 +78,59 @@ namespace KontrolaPakowania.PrintService
         // Copy your existing methods here unchanged
         private static void PrintPdf(byte[] pdfBytes, string printerName)
         {
-            // Load Pdfium first
-            LoadPdfiumNative();
-
-            string tempFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
-            File.WriteAllBytes(tempFile, pdfBytes);
-
-            PdfiumViewer.PdfDocument doc = null;
-
             try
             {
-                doc = PdfiumViewer.PdfDocument.Load(tempFile);
-                var printDoc = new System.Drawing.Printing.PrintDocument();
-                printDoc.DefaultPageSettings.PaperSize = new PaperSize("A4", 827, 1169);
-                printDoc.PrinterSettings.PrinterName = printerName;
-
-                int pageIndex = 0;
-                printDoc.PrintPage += (s, e) =>
+                using (var stream = new MemoryStream(pdfBytes))
+                using (var pdfDocument = PdfDocument.Load(stream))
                 {
-                    if (pageIndex < doc.PageCount)
+                    // Używamy ShrinkToMargin - jeśli PDF jest większy od obszaru druku, zostanie pomniejszony.
+                    // Jeśli jest mniejszy, zostanie wydrukowany w rozmiarze oryginalnym.
+                    using (var printDocument = pdfDocument.CreatePrintDocument(PdfPrintMode.ShrinkToMargin))
                     {
-                        var image = doc.Render(pageIndex, e.MarginBounds.Width, e.MarginBounds.Height, true);
-                        e.Graphics.DrawImage(image, 0, 0);
-                        pageIndex++;
-                        e.HasMorePages = pageIndex < doc.PageCount;
-                    }
-                };
+                        printDocument.PrinterSettings.PrinterName = printerName;
+                        printDocument.PrintController = new StandardPrintController();
 
-                printDoc.Print();
-                Logger.Info($"[INFO] Printed PDF to {printerName}");
+                        // Pobierz rozmiar pierwszej strony w punktach (1/72 cala)
+                        var pdfPageSize = pdfDocument.PageSizes[0];
+                        bool isLandscape = pdfPageSize.Width > pdfPageSize.Height;
+
+                        // Ustawienie orientacji
+                        printDocument.DefaultPageSettings.Landscape = isLandscape;
+
+                        // WYEROWANIE MARGINESÓW - to jest klucz do "dużego" wydruku
+                        printDocument.DefaultPageSettings.Margins = new Margins(0, 0, 0, 0);
+                        printDocument.OriginAtMargins = false; // (0,0) to fizyczna krawędź kartki
+
+                        // Ręczne ustawienie rozmiaru papieru, aby pasował do PDF (opcjonalne, ale pomaga)
+                        // .NET używa jednostek 1/100 cala, PDF używa 1/72 cala (punktów)
+                        int widthHundredths = (int)(pdfPageSize.Width / 72.0 * 100.0);
+                        int heightHundredths = (int)(pdfPageSize.Height / 72.0 * 100.0);
+
+                        // Próba znalezienia i ustawienia pasującego rozmiaru papieru w drukarce
+                        foreach (PaperSize size in printDocument.PrinterSettings.PaperSizes)
+                        {
+                            // Szukamy rozmiaru zbliżonego (np. A4) lub ustawiamy Custom
+                            if (Math.Abs(size.Width - (isLandscape ? heightHundredths : widthHundredths)) < 10)
+                            {
+                                printDocument.DefaultPageSettings.PaperSize = size;
+                                break;
+                            }
+                        }
+
+                        printDocument.QueryPageSettings += (sender, e) =>
+                        {
+                            e.PageSettings.Landscape = isLandscape;
+                            e.PageSettings.Margins = new Margins(0, 0, 0, 0);
+                        };
+
+                        printDocument.Print();
+                    }
+                }
             }
             catch (Exception ex)
             {
-                Logger.Error($"[ERROR] PDF printing failed: {ex.Message}");
-            }
-            finally
-            {
-                doc?.Dispose();
-                if (File.Exists(tempFile))
-                    File.Delete(tempFile);
+                Logger.Error("Błąd podczas drukowania: " + ex.Message);
+                throw;
             }
         }
 
@@ -167,39 +183,6 @@ namespace KontrolaPakowania.PrintService
                 try { report.Close(); } catch { }
                 try { report.Dispose(); } catch { }
             }
-        }
-
-        private static void LoadPdfiumNative()
-        {
-            string architecture = Environment.Is64BitProcess ? "x64" : "x86";
-            string resourceName = $"KontrolaPakowania.PrintService.native.win_{architecture}.pdfium.dll";
-
-            // Temporary path to extract the DLL
-            string tempPath = Path.Combine(Path.GetTempPath(), "pdfium.dll");
-
-            foreach (var res in Assembly.GetExecutingAssembly().GetManifestResourceNames())
-            {
-                Logger.Info(res);
-            }
-
-            if (!File.Exists(tempPath))
-            {
-                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
-                {
-                    if (stream == null)
-                        throw new Exception($"Cannot find embedded resource: {resourceName}");
-
-                    using (var file = File.Create(tempPath))
-                    {
-                        stream.CopyTo(file);
-                    }
-                }
-            }
-
-            // Load the DLL manually
-            IntPtr handle = NativeMethods.LoadLibrary(tempPath);
-            if (handle == IntPtr.Zero)
-                throw new Exception("Failed to load pdfium.dll");
         }
 
         private static class NativeMethods

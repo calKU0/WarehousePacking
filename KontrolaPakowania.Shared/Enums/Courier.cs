@@ -39,6 +39,9 @@ namespace KontrolaPakowania.Shared.Enums
         [Description("Transport odbiorcy")]
         Recipient_Transport,
 
+        [Description("Transport dostawcy")]
+        Supplier_Transport,
+
         [Description("Diera")]
         Diera,
 

@@ -1,0 +1,131 @@
+﻿@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@inject IJSRuntime JSRuntime
+
+@if (IsVisible)
+{
+    <div class="modal-backdrop fade show" @onclick="Cancel"></div>
+
+    <div class="modal d-block">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">@Title</h5>
+                    <button type="button" class="btn-close" @onclick="Cancel"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p>@Message</p>
+
+                    @for (int i = 0; i < ComboBoxes.Count; i++)
+                    {
+                        var combo = ComboBoxes[i];   // 👈 IMPORTANT
+
+                        <div class="mb-3">
+                            <label class="form-label">@combo.Label</label>
+
+                            <select class="form-select"
+                                    value="@combo.SelectedValue"
+                                    @onchange="e => OnValueChanged(combo, e.Value?.ToString())"
+                                    @onkeydown="HandleKeyDown">
+
+                                <option value="" disabled selected hidden>
+                                    @combo.Placeholder
+                                </option>
+
+                                @foreach (var item in combo.Items)
+                                {
+                                    <option value="@item">@item</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                </div>
+
+                <div class="modal-footer d-flex gap-2 w-100">
+                    <button class="btn btn-primary btn-lg tall-btn"
+                            style="flex:7"
+                            disabled="@(!CanConfirm)"
+                            @onclick="Confirm">
+                        Potwierdź
+                    </button>
+
+                    <button class="btn btn-secondary btn-lg tall-btn"
+                            style="flex:3"
+                            @onclick="Cancel">
+                        Anuluj
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = "Wybierz wartości";
+    [Parameter] public string Message { get; set; } = "Wybierz z listy";
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    public bool IsVisible { get; set; }
+    private bool CanConfirm =>
+        ComboBoxes.Any() &&
+        ComboBoxes.All(c => !string.IsNullOrWhiteSpace(c.SelectedValue));
+
+    public List<ComboBoxDefinition> ComboBoxes { get; set; } = new();
+
+    private TaskCompletionSource<List<string>> _tcs;
+
+    public Task<List<string>> Show(string title, string message, List<ComboBoxDefinition> comboBoxes)
+    {
+        Title = title;
+        Message = message;
+
+        ComboBoxes = comboBoxes;
+
+        foreach (var cb in ComboBoxes)
+            cb.SelectedValue = string.Empty;
+
+        IsVisible = true;
+        StateHasChanged();
+
+        _tcs = new TaskCompletionSource<List<string>>();
+        return _tcs.Task;
+    }
+
+    private void OnValueChanged(ComboBoxDefinition combo, string value)
+    {
+        combo.SelectedValue = value;
+    }
+
+    private void Confirm()
+    {
+        var results = ComboBoxes
+            .Select(c => c.SelectedValue)
+            .ToList();
+
+        _tcs?.SetResult(results);
+        Close();
+    }
+
+    private void Cancel()
+    {
+        _tcs?.SetResult(null);
+        Close();
+    }
+
+    private void Close()
+    {
+        IsVisible = false;
+        StateHasChanged();
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            Confirm();
+        }
+    }
+}

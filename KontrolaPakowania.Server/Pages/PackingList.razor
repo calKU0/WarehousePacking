@@ -1,6 +1,7 @@
 ﻿@page "/kontrola-pakowania"
 @using KontrolaPakowania.Server.Services
 @using KontrolaPakowania.Server.Settings
+@using KontrolaPakowania.Server.Shared
 @using KontrolaPakowania.Shared.DTOs.Requests
 @using KontrolaPakowania.Shared.Enums
 @using KontrolaPakowania.Shared.Helpers
@@ -118,6 +119,7 @@
 <TextBoxModal @ref="TextBoxModal" />
 <PackagesInBuforModal @ref="PackagesInBuforModal"/>
 <MergeJlsModal @ref="MergeJlsModal" />
+<ComboBoxModal @ref="ComboBoxModal" />
 
 <Toast FocusAfterCloseInput="InputRef" @ref="Toast" />
 
@@ -140,6 +142,7 @@
     private PackingJlItemsModal PackingJlItemsModal = new();
     private MergeJlsModal MergeJlsModal = new();
     private PackagesInBuforModal PackagesInBuforModal = new();
+    private ComboBoxModal ComboBoxModal = new();
 
     private int JlReadyToPackCount { get; set; } = 0;
     private int AddressesCount { get; set; } = 0;
@@ -394,15 +397,45 @@
                 await JlInProgressModal.ShowModal();
                 break;
             case 7: /* Zwolnij */
-                var jlCode = await TextBoxModal.Show("Zwolnij kuwetę", "Wprowadź kod kuwety", "Kod kuwety");
-                if (!string.IsNullOrEmpty(jlCode))
+                try
                 {
-                    var releaseSuccess = await PackingService.ReleaseJl(jlCode);
-                    if (!releaseSuccess)
+                    var packages = await PackingService.GetNotClosedPackages();
+                    var comboBoxes = new List<ComboBoxDefinition>
                     {
-                        Toast.Show("Błąd!", "Kuweta nie została zwolniona. Spróbuj ponownie.");
-                        return;
+                        new()
+                        {
+                            Label = "Paczka",
+                            Placeholder = "Wybierz paczke",
+                            Items = packages
+                        },
+                        new()
+                        {
+                            Label = "Lokalizacja docelowa",
+                            Placeholder = "Wybierz lokalizację docelową",
+                            Items = new() { "Zrzuty-rolotok-1-1-1", "Zrzuty-rolotok-1-2-1", "Zrzuty-rolotok-1-3-1", "Zrzuty-rolotok-1-4-1", "Zrzuty-rolotok-1-5-1", "A - Załadunek-1-1-1", "B - Załadunek-1-1-1" }
+                        }
+                    };
+
+                    var result = await ComboBoxModal.Show("Zamknij paczke", "Wybierz paczke do zamknięcia. Zostanie jej nadany status 'Gotowa do załadunku'", comboBoxes);
+
+                    if (result != null)
+                    {
+                        var closeWmsJlRequest = new WmsCloseJlRequest
+                        {
+                            PackageNumber = result[0],
+                            PackageDestination = result[1],
+                            PackingLevel = Settings.PackingLevel,
+                            PackingWarehouse = Settings.PackingWarehouse,
+                            Courier = Courier.Unknown
+                        };
+                        var success = await PackingService.CloseWmsJl(closeWmsJlRequest);
+                        if (success)
+                            Toast.Show("Sukces!", "Paczka została pomyślnie zamknięta.", ToastType.Success);
                     }
+                }
+                catch (Exception ex)
+                {
+                    Toast.Show("Błąd!", $"Błąd przy próbie zwolnienia paczki: {ex.Message}");
                 }
                 break;
             case 8: /* Zmień magazyn */
