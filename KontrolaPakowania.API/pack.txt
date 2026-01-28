@@ -58,3 +58,33 @@
 [2026-01-02T16:37:34.4353207Z] Received Response (200)
 {"status":"1","desc":"OK"}
 
+[2026-01-28T09:57:03.7572133Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"test","locDestNr":"test","luSourceNr":"test","luDestNr":"test","luDestEan":"test","luDestTypeSymbol":"test","itemNr":"test","batchId":null,"itemQty":"test"},{"locSourceNr":"test","locDestNr":"test","luSourceNr":"test","luDestNr":"test","luDestEan":"test","luDestTypeSymbol":"test","itemNr":"test","batchId":null,"itemQty":"test"}]}
+
+[2026-01-28T09:57:03.9293943Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: invalid input syntax for type numeric: \"test\" ->> OK"}
+
+[2026-01-28T09:57:59.6307467Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"test","locDestNr":"test","luSourceNr":"test","luDestNr":"test","luDestEan":"test","luDestTypeSymbol":"test","itemNr":"test","batchId":null,"itemQty":"test"},{"locSourceNr":"test","locDestNr":"test","luSourceNr":"test","luDestNr":"test","luDestEan":"test","luDestTypeSymbol":"test","itemNr":"test","batchId":null,"itemQty":"test"}]}
+
+[2026-01-28T09:57:59.8679371Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: invalid input syntax for type numeric: \"test\" ->> OK"}
+
+[2026-01-28T09:59:05.8974967Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"test","locDestNr":"test","luSourceNr":"test","luDestNr":"test","luDestEan":"test","luDestTypeSymbol":"test","itemNr":"test","batchId":null,"itemQty":"test"},{"locSourceNr":"test","locDestNr":"test","luSourceNr":"test","luDestNr":"test","luDestEan":"test","luDestTypeSymbol":"test","itemNr":"test","batchId":null,"itemQty":"test"}]}
+
+[2026-01-28T09:59:06.1547119Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: invalid input syntax for type numeric: \"test\" ->> OK"}
+
+[2026-01-28T10:04:12.5167164Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"test","locDestNr":"test","luSourceNr":"test","luDestNr":"test","luDestEan":"test","luDestTypeSymbol":"test","itemNr":"test","batchId":null,"itemQty":"test"},{"locSourceNr":"test","locDestNr":"test","luSourceNr":"test","luDestNr":"test","luDestEan":"test","luDestTypeSymbol":"test","itemNr":"test","batchId":null,"itemQty":"test"}]}
+
+[2026-01-28T10:04:12.7373795Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: invalid input syntax for type numeric: \"test\" ->> OK"}
+
+[2026-01-28T10:04:20.8058278Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"test","locDestNr":"test","luSourceNr":"test","luDestNr":"test","luDestEan":"test","luDestTypeSymbol":"test","itemNr":"test","batchId":null,"itemQty":"test"},{"locSourceNr":"test","locDestNr":"test","luSourceNr":"test","luDestNr":"test","luDestEan":"test","luDestTypeSymbol":"test","itemNr":"test","batchId":null,"itemQty":"test"}]}
+
+[2026-01-28T10:04:20.9909555Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: invalid input syntax for type numeric: \"test\" ->> OK"}
+

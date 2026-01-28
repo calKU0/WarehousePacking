@@ -71,6 +71,8 @@
     private ElementReference InputRef;
     private string? ScanErrorMessage;
     private bool IsSubmitting;
+    private bool StayOpenAfterOk;
+    public void KeepOpenAfterOk() => StayOpenAfterOk = true;
     [Parameter] public EventCallback<(string ScannedCode, string TrackingNumber)> OnOk { get; set; }
 
     public async void Show(string internalBarcode, string trackingNumber, string labelBase64, PrintDataType labelType, string printer, bool hasInvoice, bool showScan = true, string? scannedCode = null)
@@ -181,6 +183,12 @@
         }
 
         ScannedCode = string.Empty;
+        if (StayOpenAfterOk)
+        {
+            StayOpenAfterOk = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
         Hide();
     }
 

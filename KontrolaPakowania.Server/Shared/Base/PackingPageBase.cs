@@ -930,6 +930,7 @@ namespace KontrolaPakowania.Server.Shared.Base
             catch (Exception ex)
             {
                 Toast.Show("Błąd!", $"Błąd przy próbie zwalniania jl w WMS. Spróbuj ponowanie: {ex.Message}");
+                ShipmentModal.KeepOpenAfterOk();
                 ShipmentModal.Show(CurrentJl.InternalBarcode, data.TrackingNumber, string.Empty, PrintDataType.ZPL, Settings.PrinterLabel, false, true, data.ScannedCode);
             }
         }
