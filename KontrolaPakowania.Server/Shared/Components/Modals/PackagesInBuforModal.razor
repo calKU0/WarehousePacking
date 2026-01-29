@@ -54,6 +54,8 @@
     private int? SelectedPackage;
     private string ScanInput = string.Empty;
     private ElementReference InputRef;
+    private bool PendingFocus;
+
 
     public async Task<PackageSelectionResult?> Show(List<PackageData> avaliablePackages)
     {
@@ -62,15 +64,19 @@
 
         IsVisible = true;
         await InvokeAsync(StateHasChanged); // ensure render scheduled
-
+        PendingFocus = true;
         _tcs = new TaskCompletionSource<PackageSelectionResult?>();
 
-        // wait until DOM is ready
-        await Task.Yield();
-
-        await InputRef.FocusAsync();
-
         return await _tcs.Task;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (PendingFocus && IsVisible)
+        {
+            PendingFocus = false;
+            await InputRef.FocusAsync();
+        }
     }
 
     private void OnScanKeyDown(KeyboardEventArgs e)

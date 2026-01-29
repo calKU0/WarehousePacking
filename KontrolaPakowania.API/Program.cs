@@ -18,9 +18,7 @@ using KontrolaPakowania.API.Services.Packing;
 using KontrolaPakowania.API.Services.Shipment;
 using KontrolaPakowania.API.Services.Shipment.GLS;
 using KontrolaPakowania.API.Settings;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Microsoft.OpenApi.Models;
 using Polly;
 using Polly.Extensions.Http;
 using Serilog;
@@ -114,6 +112,7 @@ builder.Services.AddHttpClient<IWmsApiClient, WmsApiClient>((sp, client) =>
     client.BaseAddress = new Uri(settings.BaseUrl);
     client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     client.DefaultRequestHeaders.TryAddWithoutValidation("token-mer", settings.Token);
+    client.Timeout = TimeSpan.FromSeconds(200);
 })
 .AddPolicyHandler(retryPolicy);
 

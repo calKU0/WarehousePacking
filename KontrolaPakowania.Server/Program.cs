@@ -2,7 +2,6 @@ using Blazored.LocalStorage;
 using KontrolaPakowania.Server;
 using KontrolaPakowania.Server.Services;
 using KontrolaPakowania.Server.Settings;
-using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,6 +30,7 @@ builder.Services.AddHttpClient("Database", (serviceProvider, client) =>
     client.BaseAddress = new Uri(settings.Database.BaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
     client.DefaultRequestHeaders.Add("X-Api-Key", settings.Database.ApiKey);
+    client.Timeout = TimeSpan.FromSeconds(200);
 });
 
 // Scopes
