@@ -110,4 +110,8 @@ This project is **proprietary and confidential**.
 
 It was developed for a client and is **not permitted to be shared, redistributed, or used** without explicit written permission from the owner.
 
-See `LICENSE` for details.
+See [LICENSE](LICENSE) for details.
+
+---
+
+© 2025-present [calKU0](https://github.com/calKU0)
