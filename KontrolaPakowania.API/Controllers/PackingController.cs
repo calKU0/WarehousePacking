@@ -1,10 +1,7 @@
-﻿using KontrolaPakowania.API.Infrastructure.Resilience;
-using KontrolaPakowania.API.Services.Packing;
+﻿using KontrolaPakowania.API.Services.Packing;
 using KontrolaPakowania.Shared.DTOs;
 using KontrolaPakowania.Shared.DTOs.Requests;
 using KontrolaPakowania.Shared.Enums;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 
@@ -357,6 +354,31 @@ namespace KontrolaPakowania.API.Controllers
             catch (Exception ex)
             {
                 _logger.Error(ex, "Error in UpdatePackageCourier for package {PackageId}", request.PackageId);
+                return HandleException(ex);
+            }
+        }
+
+        [HttpPatch("update-package-dimensions")]
+        public async Task<IActionResult> UpdatePackageDimensions([FromBody] UpdatePackageDimensionsRequest dimensions)
+        {
+            _logger.Information("Request: UpdatePackageDimensions for PackageId {Package}", dimensions.PackageId);
+            try
+            {
+                bool success = await _packingService.UpdatePackageDimensions(dimensions);
+                if (success)
+                {
+                    _logger.Information("Package {Package} dimensions updated successfully", dimensions.PackageId);
+                    return Ok(success);
+                }
+                else
+                {
+                    _logger.Warning("Package {Package} dimensions update failed", dimensions.PackageId);
+                    return NotFound("Nie znaleziono paczki");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error in UpdatePackageDimensions for PackageId {Package}", dimensions.PackageId);
                 return HandleException(ex);
             }
         }

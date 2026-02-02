@@ -1,12 +1,6 @@
 ﻿using KontrolaPakowania.Shared.Enums;
 using KontrolaPakowania.Shared.Helpers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace KontrolaPakowania.Shared.DTOs
 {
@@ -37,6 +31,7 @@ namespace KontrolaPakowania.Shared.DTOs
         public string ClientSymbol { get; set; } = string.Empty;
         public string DestinationCountry { get; set; } = string.Empty;
         public string PackingRequirements { get; set; } = string.Empty;
+        public DateTime ScanDate { get; set; }
 
         [JsonPropertyName("courier")]
         public string CourierName { get; set; } = string.Empty;

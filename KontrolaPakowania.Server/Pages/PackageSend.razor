@@ -6,6 +6,7 @@
 @using Microsoft.Extensions.Options
 @inject UserSessionService UserSession
 @inject ShipmentService ShipmentService
+@inject PackingService PackingService
 @inject WorkstationService WorkstationService
 @inject ClientPrinterService ClientPrinterService
 @inject AuthService AuthService
@@ -97,7 +98,7 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label fw-bold">Typ paczki</label>
+                    <label class="form-label fw-bold">Typ</label>
                     <InputSelect @bind-Value="Package.PackageType" class="form-select" disabled="@(!Package.ManualEdit)">
                         @foreach (var type in Enum.GetValues<PackageType>())
                         {
@@ -177,8 +178,9 @@
                     <label class="form-check-label text-danger fw-bold">Modyfikuj dane ręcznie</label>
                 </div>
 
-                <div class="mb-4 d-flex flex-column">
-                    <button class="btn btn-outline-primary" @onclick=SearchAddress>Pobierz adres</button>
+                <div class="d-flex flex-column gap-2 mb-4">
+                    <button class="btn @(Package.Id != 0 ? "btn-outline-primary" : "btn-primary")" disabled="@(Package.Id != 0)" @onclick=SearchAddress>Pobierz adres</button>
+                    <button class="btn @(Package.Id == 0 ? "btn-outline-primary" : "btn-primary")" disabled="@(Package.Id == 0)" @onclick=UpdateDimensions>Aktualizuj wymiary</button>
                 </div>
 
                 <div class="d-flex flex-column gap-2 mb-4">
@@ -215,6 +217,7 @@
 <AddressInvoiceModal @ref="AddressInvoiceModal" OnConfirmed="OnAddressModalConfirmed" />
 <PackingListModal @ref="PackingListModal" OnSaveNumber="HandlePackingListSave" OnPrintLabel="HandlePackingListPrint" />
 <PasswordModal @ref="PasswordModal" />
+<DimensionsModal @ref="DimensionsModal" />
 
 @code {
     private string Barcode { get; set; } = string.Empty;
@@ -234,6 +237,7 @@
     private AddressInvoiceModal AddressInvoiceModal = new();
     private PackingListModal PackingListModal = new();
     private PasswordModal PasswordModal = new();
+    private DimensionsModal DimensionsModal = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -504,11 +508,11 @@
                     {
                         Toast.Show("Błąd!", $"Błąd przy próbie zamknięcia trasy: {ex.Message}");
                     }
-       
+
                 },
                 onCancel: async () =>
                 {
-                    
+
                 }
             );
         }
@@ -521,6 +525,34 @@
     private async Task OnShipmentOkClicked((string ScannedCode, string TrackingNumber) data)
     {
         await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
+    }
+
+    public async Task UpdateDimensions()
+    {
+        try
+        {
+            Dimensions dimensions = await DimensionsModal.Show(Package.Height, Package.Width, Package.Length);
+            if (dimensions == null)
+                return;
+
+            var request = new UpdatePackageDimensionsRequest
+            {
+                PackageId = Package.Id,
+                Length = dimensions.Length,
+                Width = dimensions.Width,
+                Height = dimensions.Height,
+            };
+            await PackingService.UpdatePackageDimensions(request);
+            Package.Height = dimensions.Height;
+            Package.Width = dimensions.Width;
+            Package.Length = dimensions.Length;
+
+            Toast.Show("Sukces!", "Wymiary paczki zostały zaktualizowane.", ToastType.Success);
+        }
+        catch (Exception ex)
+        {
+            Toast.Show("Błąd!", $"Błąd przy próbie aktualizacji wymiarów paczki: {ex.Message}");
+        }
     }
 
     public void Dispose()

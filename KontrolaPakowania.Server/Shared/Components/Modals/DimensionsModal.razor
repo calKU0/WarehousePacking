@@ -33,9 +33,12 @@
     public int Width { get; private set; }
     public int Length { get; private set; }
 
-    public Task<Dimensions> Show()
+    public Task<Dimensions> Show(int height = 0, int width = 0, int length = 0)
     {
-        Height = Width = Length = 0;
+        Height = height;
+        Width = width;
+        Length = length;
+
         IsVisible = true;
         StateHasChanged();
 

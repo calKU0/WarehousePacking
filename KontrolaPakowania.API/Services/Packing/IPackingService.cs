@@ -43,6 +43,7 @@ namespace KontrolaPakowania.API.Services.Packing
         Task<bool> OpenPackage(int packageId);
 
         Task<bool> UpdatePackageCourier(UpdatePackageCourierRequest request);
+        Task<bool> UpdatePackageDimensions(UpdatePackageDimensionsRequest dimensions);
 
         Task<string> GenerateInternalBarcode(string stationNumber);
 

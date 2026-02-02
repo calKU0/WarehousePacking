@@ -7,8 +7,6 @@ using KontrolaPakowania.Shared.Enums;
 using KontrolaPakowania.Shared.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
-using System;
-using System.Threading.Tasks;
 
 namespace KontrolaPakowania.API.Controllers
 {
@@ -125,10 +123,10 @@ namespace KontrolaPakowania.API.Controllers
                     catch (Exception emailEx)
                     {
                         _logger.Error(emailEx, "Failed to send failure email for package {PackageCode} to representative {Representative}", package.PackageName, package.Representative);
-                        return BadRequest($"{result.ErrorMessage}. Email z błędem NIE został wysłany do opiekuna klienta, którym jest {package.Representative}, ponieważ doszło do błędu poczty!");
+                        return BadRequest($"{result.ErrorMessage}.</br>Opiekun NIE został poinformowany o błędzie, ponieważ doszło do błędu poczty!");
                     }
 
-                    return BadRequest($"{result.ErrorMessage}. Email z błędem został wysłany do opiekuna klienta, którym jest {package.Representative}");
+                    return BadRequest($"{result.ErrorMessage}.</br>Opiekun został poinformowany o błędzie.");
                 }
 
                 _logger.Information("Package sent successfully to courier {Courier} for {PackageCode}", package.Courier, package.PackageName);

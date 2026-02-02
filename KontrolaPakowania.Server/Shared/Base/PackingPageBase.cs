@@ -337,7 +337,9 @@ namespace KontrolaPakowania.Server.Shared.Base
                 PositionNumber = item.ErpPositionNumber,
                 Quantity = qty,
                 Weight = item.ItemWeight,
-                Volume = item.ItemVolume
+                Volume = item.ItemVolume,
+                ScanDate = item.ScanDate,
+                PackDate = DateTime.Now
             };
 
             var success = await PackingService.AddPackedPosition(request);
@@ -494,6 +496,7 @@ namespace KontrolaPakowania.Server.Shared.Base
 
         protected virtual async void OpenProductModal(JlItemDto item)
         {
+            item.ScanDate = DateTime.Now;
             await ProductSelectModal.Show(item);
             SelectedItem = item;
         }
@@ -862,17 +865,15 @@ namespace KontrolaPakowania.Server.Shared.Base
                 }
 
                 await ClosePackage(CurrentJl.InternalBarcode, new Dimensions());
-
                 // Shipment
                 var package = await ShipmentService.GetShipmentDataByBarcode(CurrentJl.InternalBarcode);
                 if (package is not null && package.TaxFree)
                 {
-                    Toast.Show("Tax Free", "Paczka zawiera dokument Tax Free. Nadaj numer wewnętrzny.", ToastType.Info);
+                    Toast.Show("Tax Free", "Paczka zawiera dokument Tax Free.<br/><br/><b>Nadaj numer wewnętrzny!</b>", ToastType.Info);
                     await OpenPackage();
                     return;
                 }
                 var response = await ShipmentService.SendPackage(package);
-
                 if (response?.PackageId > 0)
                 {
                     if (!string.IsNullOrEmpty(response.LabelBase64))
@@ -888,7 +889,7 @@ namespace KontrolaPakowania.Server.Shared.Base
                     else
                     {
                         var msg = string.IsNullOrWhiteSpace(response.ErrorMessage) ? "Nie udało się wygenerować etykiety kurierskiej!" : response.ErrorMessage;
-                        Toast.Show("Błąd!", msg);
+                        Toast.Show("Błąd!", $"{msg}<br/><br/><b>Nadaj numer wewnętrzny!</b>");
                         await OpenPackage();
                     }
                 }
@@ -898,13 +899,13 @@ namespace KontrolaPakowania.Server.Shared.Base
                         ? "Nie udało się wygenerować przesyłki!"
                         : response.ErrorMessage;
 
-                    Toast.Show("Błąd!", msg);
+                    Toast.Show("Błąd!", $"{msg}<br/><br/><b>Nadaj numer wewnętrzny!</b>");
                     await OpenPackage();
                 }
             }
             catch (Exception ex)
             {
-                Toast.Show("Błąd!", $"Błąd przy próbie wysłania paczki: {ex.Message}");
+                Toast.Show("Błąd!", $"Błąd przy próbie wysłania paczki: {ex.Message}.<br/><br/><b>Nadaj numer wewnętrzny!</b>");
                 await OpenPackage();
             }
         }

@@ -401,6 +401,25 @@ namespace KontrolaPakowania.Server.Services
             throw new Exception(generic);
         }
 
+        public async Task<bool> UpdatePackageDimensions(UpdatePackageDimensionsRequest dimensions)
+        {
+            var response = await _dbClient.PatchAsJsonAsync($"api/packing/update-package-dimensions", dimensions);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<bool>();
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
+
         public async Task<string> GenerateInternalBarcode(string stationNumber)
         {
             var response = await _dbClient.GetAsync($"api/packing/generate-internal-barcode?stationNumber={stationNumber}");

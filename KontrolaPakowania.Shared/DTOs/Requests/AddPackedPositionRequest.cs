@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace KontrolaPakowania.Shared.DTOs.Requests
+﻿namespace KontrolaPakowania.Shared.DTOs.Requests
 {
     public class AddPackedPositionRequest
     {
@@ -15,5 +9,7 @@ namespace KontrolaPakowania.Shared.DTOs.Requests
         public decimal Quantity { get; set; }
         public decimal Weight { get; set; }
         public decimal Volume { get; set; }
+        public DateTime ScanDate { get; set; }
+        public DateTime PackDate { get; set; }
     }
 }

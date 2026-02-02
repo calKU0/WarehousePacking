@@ -180,7 +180,7 @@ public class PackingService : IPackingService
     public async Task<bool> AddPackedPosition(AddPackedPositionRequest request)
     {
         const string procedure = "kp.AddPackedPosition";
-        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.PackingDocumentId, request.SourceDocumentId, request.SourceDocumentType, request.PositionNumber, request.Quantity, request.Weight, request.Volume }, CommandType.StoredProcedure, Connection.ERPConnection);
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.PackingDocumentId, request.SourceDocumentId, request.SourceDocumentType, request.PositionNumber, request.Quantity, request.Weight, request.Volume, request.ScanDate, request.PackDate }, CommandType.StoredProcedure, Connection.ERPConnection);
         return result > 0;
     }
 
@@ -219,6 +219,12 @@ public class PackingService : IPackingService
         {
             throw new InvalidOperationException(ex.Message);
         }
+    }
+    public async Task<bool> UpdatePackageDimensions(UpdatePackageDimensionsRequest dimensions)
+    {
+        const string updateProcedure = "kp.UpdatePackageDimensions";
+        var result = await _db.QuerySingleOrDefaultAsync<int>(updateProcedure, new { dimensions.PackageId, dimensions.Height, dimensions.Width, dimensions.Length }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return result > 0;
     }
 
     public async Task<string> GenerateInternalBarcode(string stationNumber)

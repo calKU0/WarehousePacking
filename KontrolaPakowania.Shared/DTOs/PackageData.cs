@@ -1,10 +1,5 @@
 ﻿using KontrolaPakowania.Shared.Enums;
 using KontrolaPakowania.Shared.Helpers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace KontrolaPakowania.Shared.DTOs
 {
@@ -42,9 +37,9 @@ namespace KontrolaPakowania.Shared.DTOs
         public int PackageQuantity { get; set; } = 1;
         public decimal Insurance { get; set; }
         public decimal Weight { get; set; }
-        public decimal Length { get; set; }
-        public decimal Width { get; set; }
-        public decimal Height { get; set; }
+        public int Length { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
         public int WysNumber { get; set; }
         public int WysType { get; set; }
         public string PackingUser { get; set; } = string.Empty;
