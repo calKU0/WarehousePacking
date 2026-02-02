@@ -70,6 +70,40 @@ Typical configuration is done via `appsettings.json` / `appsettings.*.json` in t
 
 - `wwwroot/downloads` in `KontrolaPakowania.Server` contains packaged downloads (e.g., helper tools/agents) that are copied to output on build.
 
+## Screenshots
+
+Screenshots are stored in the `Screenshots/` folder.
+
+### Logistic units
+
+List of logistic units downloaded from WMS and ready for packing.
+
+![Logistic units list](Screenshots/logistics-units.png)
+
+### Packing view
+
+Main packing screen used by warehouse operators.
+
+![Packing view](Screenshots/packing-view.png)
+
+### Pack item (scan)
+
+Scanning/adding items to the current parcel.
+
+![Pack item / scan](Screenshots/pack-item.png)
+
+### Finish packing
+
+Finalizing a parcel (closing packing, confirming dimensions/weight, etc.).
+
+![Finish packing](Screenshots/finish-packing.png)
+
+### Send package
+
+Shipment step (label generation and sending/creating the parcel in courier/ERP systems).
+
+![Send package](Screenshots/send-package.png)
+
 ## License
 
 This project is **proprietary and confidential**.
