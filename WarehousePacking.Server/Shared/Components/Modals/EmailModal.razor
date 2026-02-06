@@ -1,0 +1,111 @@
+﻿
+
+@using WarehousePacking.Shared.DTOs.Requests
+@using WarehousePacking.Shared.Enums
+@using Microsoft.AspNetCore.Components
+@inject EmailService EmailService
+
+<div class="modal fade @(IsVisable ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" @onclick="CloseOnBackdropClick">
+    <div class="modal-dialog modal-lg" @onclick:stopPropagation>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@Title</h5>
+                <button type="button" class="btn-close" @onclick="Hide"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Klient:</strong> @ClientName</p>
+                <p><strong>Dokument handlowy:</strong> @InvoiceNumber</p>
+                <p><strong>Paczka:</strong> @PackageName</p>
+                <p><strong>Opiekun:</strong> @Representative</p>
+
+                <label>Wiadomość użytkownika:</label>
+                <textarea class="form-control" @bind="UserMessage" rows="5" placeholder="Wpisz swoją wiadomość..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="Hide">Anuluj</button>
+                <button class="btn btn-primary" @onclick="SendEmailAsync" disabled="@string.IsNullOrWhiteSpace(UserMessage)">Wyślij</button>
+            </div>
+        </div>
+    </div>
+</div>
+<Toast @ref="Toast" />
+
+@code {
+    [Parameter] public string Title { get; set; } = "Wyślij email";
+    [Parameter] public EventCallback OnEmailSent { get; set; }
+    private Toast Toast = new();
+
+    private bool IsVisable { get; set; } = false;
+    private string UserMessage { get; set; } = string.Empty;
+    private string PackageName { get; set; } = string.Empty;
+    private string InvoiceNumber { get; set; } = string.Empty;
+    private string ClientName { get; set; } = string.Empty;
+    private string Representative { get; set; } = string.Empty;
+    private string RepresentativeEmail { get; set; } = string.Empty;
+
+    public void ShowModal(string clientName, string packageName, string invoiceNumber, string representative, string representativeEmail)
+    {
+        ClientName = clientName;
+        PackageName = packageName;
+        InvoiceNumber = invoiceNumber;
+        Representative = representative;
+        RepresentativeEmail = representativeEmail;
+        IsVisable = true;
+        StateHasChanged();
+    }
+
+    public void Hide()
+    {
+        IsVisable = false;
+        StateHasChanged();
+    }
+
+    private async Task SendEmailAsync()
+    {
+        try
+        {
+            var subject = $"❌ Błąd wysyłki paczki dla klienta {ClientName}";
+            var body = $@"
+            <div style='font-family: Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.5;'>
+                <p>
+                    <strong>Klient:</strong> {ClientName} <br>
+                    <strong>Dokument handlowy:</strong> {InvoiceNumber} <br>
+                    <strong>Paczka:</strong> {PackageName}
+                </p>
+
+                <p>{UserMessage}</p>
+
+                <hr style='border:none; border-top:1px solid #ccc; margin:20px 0;'>
+
+                <p>Pozdrawiamy,<br><strong>Magazyn</strong></p>
+            </div>";
+
+            var emailRequest = new SendEmailRequest
+                {
+                    To = RepresentativeEmail,
+                    Subject = subject,
+                    Body = body
+                };
+            var result = await EmailService.SendEmailAsync(emailRequest);
+            if (result.Success)
+            {
+                Toast.Show("Wysłano", "Email został wysłany pomyślnie.", ToastType.Success);
+            }
+            else
+            {
+                Toast.Show("Błąd", $"Wystąpił błąd podczas wysyłania emaila: {result.ErrorMessage}", ToastType.Error);
+                return;
+            }
+            Hide();
+        }
+        catch (Exception ex)
+        {
+            Toast.Show("Błąd", $"Wystąpił błąd podczas wysyłania emaila: {ex.Message}", ToastType.Error);
+        }
+    }
+
+    private void CloseOnBackdropClick()
+    {
+        Hide();
+    }
+}

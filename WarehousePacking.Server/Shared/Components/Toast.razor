@@ -1,0 +1,70 @@
+﻿@using WarehousePacking.Shared.Enums
+@inject IJSRuntime JSRuntime
+
+<div class="toast-backdrop @( _isVisible ? "show" : "" )" @onclick="Hide">
+    <div class="toast-container @ToastClass" @onclick:stopPropagation="true">
+        <div class="toast-header-wrapper">
+            <strong class="toast-title">@Title</strong>
+            <button type="button" class="btn-close btn-close-white toast-close" @onclick="Hide" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">@((MarkupString)Message)</div>
+    </div>
+</div>
+
+
+
+@code {
+    private bool _isVisible;
+    private System.Timers.Timer? _timer;
+
+    public string Title { get; private set; } = string.Empty;
+    public string Message { get; private set; } = string.Empty;
+    public ToastType Type { get; private set; } = ToastType.Info;
+    [Parameter] public object? FocusAfterCloseInput { get; set; }
+
+    private string ToastClass => Type switch
+    {
+        ToastType.Success => "toast-success",
+        ToastType.Error => "toast-error",
+        ToastType.Info => "toast-info",
+        _ => "toast-info"
+    };
+
+    public void Show(string title, string message, ToastType type = ToastType.Error, int? autoHideMs = null)
+    {
+        Title = title;
+        Message = message;
+        Type = type;
+        _isVisible = true;
+
+        StateHasChanged();
+
+        // Stop any existing timer
+        _timer?.Stop();
+        _timer = null;
+
+        // Only start timer if autoHideMs is provided
+        if (autoHideMs.HasValue)
+        {
+            _timer = new System.Timers.Timer(autoHideMs.Value);
+            _timer.Elapsed += (s, e) => InvokeAsync(Hide);
+            _timer.AutoReset = false;
+            _timer.Start();
+        }
+    }
+
+    public async void Hide()
+    {
+        _timer?.Stop();
+        _isVisible = false;
+
+        if (FocusAfterCloseInput is ElementReference elRef)
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", elRef);
+
+        else if (FocusAfterCloseInput is ScanInput scanInput)
+            await scanInput.FocusAsync();
+
+        StateHasChanged();
+    }
+
+}

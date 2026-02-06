@@ -1,0 +1,142 @@
+﻿@using WarehousePacking.Shared.Enums
+@inject AuthService AuthService
+
+@if (Show)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content shadow-lg rounded-3">
+                <div class="modal-header">
+                    <h5 class="modal-title">Zalogowani operatorzy</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    @if (IsLoading)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border text-primary"></div>
+                        </div>
+                    }
+                    else if (Users?.Any() == true)
+                    {
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Operator</th>
+                                    <th>Stanowisko</th>
+                                    <th>Data zalogowania</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in Users)
+                                {
+                                    <tr>
+                                        <td>@user.Username</td>
+                                        <td>@user.StationNumber</td>
+                                        <td>@user.LoginDate</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-danger" @onclick="() => ConfirmRemove(user)">
+                                                Usuń
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted">Brak zalogowanych operatorów.</p>
+                    }
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="Close">Zamknij</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ConfirmDialog @ref="ConfirmDialog"/>
+}
+<Toast @ref="Toast"/>
+
+@code {
+    private bool Show { get; set; }
+    private ConfirmDialog ConfirmDialog = new();
+    private List<LoginDto> Users { get; set; } = new();
+    private LoginDto? SelectedUser { get; set; }
+    private Toast Toast = new();
+    private bool IsLoading { get; set; }
+
+    public async Task ShowModal()
+    {
+        Show = true;
+        await InvokeAsync(StateHasChanged);
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            IsLoading = true;
+            Users = await AuthService.GetLoggedUsers();
+        }
+        catch (Exception ex)
+        {
+            Toast.Show("Błąd!", $"Błąd przy próbie pobrania listy operatorów: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ConfirmRemove(LoginDto op)
+    {
+        SelectedUser = op;
+
+        ConfirmDialog.Show(
+            title: "Usuń operatora",
+            message: "Czy na pewno chcesz usunąć operatora?",
+            onConfirm: async () =>
+            {
+                if (SelectedUser == null)
+                    return;
+
+                try
+                {
+                    await AuthService.Logout(SelectedUser.Username);
+                    Toast.Show("Sukces!", $"Operator {SelectedUser.Username} został usunięty.", ToastType.Success);
+                }
+                catch (Exception ex)
+                {
+                    Toast.Show("Błąd!", $"Błąd przy próbie usuwania operatora: {ex.Message}");
+                }
+                finally
+                {
+                    SelectedUser = null;
+                    await LoadData();
+                    await InvokeAsync(StateHasChanged);
+                }
+            },
+            onCancel: async () =>
+            {
+                SelectedUser = null;
+                await InvokeAsync(StateHasChanged);
+            }
+        );
+    }
+
+    private void Close()
+    {
+        Show = false;
+        SelectedUser = null;
+        StateHasChanged();
+    }
+}

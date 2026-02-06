@@ -1,6 +1,0 @@
-[2025-11-07T13:49:00.6955966Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=closeLu
-{"whsSource":"6","proces":"PCK","destStatusLuId":"14","items":[{"luNr":"44680029259","luDestNr":null,"luDestTypeSymbol":null,"locDestNr":"Zrzuty-rolotok-1-5-1"}]}
-
-[2025-11-07T13:49:00.8116345Z] Received Response (200)
-{"status":"1","desc":"OK"}
-

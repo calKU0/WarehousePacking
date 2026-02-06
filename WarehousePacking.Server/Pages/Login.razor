@@ -1,0 +1,140 @@
+﻿@page "/login"
+@using WarehousePacking.Server.Services
+@using WarehousePacking.Shared.Enums
+@inject UserSessionService UserSession
+@inject NavigationManager Navigation
+@inject AuthService AuthService
+@inject WorkstationService WorkstationService
+@inject IJSRuntime JSRuntime
+@layout NoNavLayout
+
+<div class="login-container d-flex justify-content-center align-items-center min-vh-100">
+    <div class="card shadow-lg p-4 login-card">
+        <h3 class="card-title text-center mb-4">Login</h3>
+
+        @if (UserSession.IsLoggedIn)
+        {
+            <div class="text-center">
+                <p class="mb-3">Logged in as: <strong>@UserSession.Username</strong></p>
+                <button class="btn btn-danger btn-lg" @onclick="Logout">
+                    <i class="bi bi-box-arrow-right me-2"></i> Logout
+                </button>
+            </div>
+        }
+        else
+        {
+            <EditForm Model="loginDto" OnValidSubmit="HandleLogin" autocomplete="off">
+                <div class="mb-3">
+                    <label class="form-label">Nazwa użytkownika</label>
+                    <input @ref="UsernameInput"
+                           class="form-control form-control-lg"
+                           @bind="loginDto.Username"
+                           @onkeydown="HandleUsernameKeyDown"
+                           autocomplete="off"
+                           placeholder="Wprowadź nazwę użytkownika" />
+
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Hasło</label>
+                    <input @ref="PasswordInput"
+                           class="form-control form-control-lg"
+                           @bind="loginDto.Password"
+                           type="password"
+                           autocomplete="new-password"
+                           placeholder="Wprowadź hasło" />
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-box-arrow-in-right me-2"></i> Zaloguj
+                    </button>
+                </div>
+            </EditForm>
+        }
+    </div>
+</div>
+
+<Toast FocusAfterCloseInput="UsernameInput" @ref="Toast" />
+
+@code {
+    private LoginDto loginDto = new();
+    private Toast Toast = new ();
+    private WorkstationSettings Settings = new();
+    private ElementReference UsernameInput;
+    private ElementReference PasswordInput;
+    private string scannedUsername = "";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UserSession.InitializeAsync();
+        Settings = await WorkstationService.GetSettingsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", UsernameInput);
+        }
+    }
+
+    private void OnUsernameInput(ChangeEventArgs e)
+    {
+        scannedUsername = e.Value?.ToString() ?? "";
+    }
+
+    private async Task HandleUsernameKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            // Move focus to password when Enter is pressed
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", PasswordInput);
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            loginDto.StationNumber = Settings.StationNumber;
+            loginDto.LoginDate = DateTime.Now;
+
+            var username = await AuthService.Login(loginDto);
+            await JSRuntime.InvokeVoidAsync("fullscreenHelper.enter");
+            await UserSession.LoginAsync(username);
+            NavigateAfterLogin();
+        }
+        catch (Exception ex)
+        {
+            Toast.Show("Błąd!", $"Błąd przy próbie zalogowania: {ex.Message}");
+        }
+    }
+
+    private async Task Logout()
+    {
+        await AuthService.Logout(UserSession.Username);
+        await UserSession.LogoutAsync();
+        Navigation.NavigateTo("/login");
+    }
+
+    private void NavigateAfterLogin()
+    {
+        if (string.IsNullOrEmpty(Settings.StationNumber))
+        {
+            Navigation.NavigateTo("/settings");
+            return;
+        }
+
+        var route = Settings.StationType switch
+        {
+            StationType.Packing => "/kontrola-pakowania",
+            StationType.Shipping => "/wysylka-paczek",
+            StationType.Monitoring => "/monitor",
+            _ => "/"
+        };
+
+        Navigation.NavigateTo(route);
+    }
+}

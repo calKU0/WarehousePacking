@@ -1,0 +1,121 @@
+﻿@using System.ComponentModel
+@using WarehousePacking.Server.Services
+@using WarehousePacking.Shared.Enums
+@using WarehousePacking.Shared.Helpers
+ 
+@inject PackingService PackingService
+@inject IJSRuntime JSRuntime
+
+@if (IsVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content p-3">
+                <div class="modal-header">
+                    <h5 class="modal-title">Zmień magazyn składowania</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Textbox -->
+                    <div class="mb-3">
+                        <label class="form-label">Kod wewnętrzny:</label>
+                        <input class="form-control"
+                               @bind="InputText"
+                               @ref="InputRef"
+                               @onkeydown="OnEnterKey" />
+                    </div>
+
+                    @if (ShowSelect)
+                    {
+                        <!-- Enum select -->
+                        <div class="mb-3">
+                            <label class="form-label">Magazyn składowania:</label>
+                            <select class="form-select" @bind="SelectedWarehouse">
+                                @foreach (var warehouse in Enum.GetValues(typeof(PackingWarehouse)).Cast<PackingWarehouse>())
+                                {
+                                    <option value="@warehouse">@warehouse.GetDescription()</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                </div>
+
+                <div class="modal-footer d-flex flex-column gap-2">
+                    @if (ShowSelect)
+                    {
+                        <button class="btn btn-primary tall-btn w-100" @onclick="Save">Zapisz</button>
+                    }
+                    <button class="btn btn-secondary tall-btn w-100" @onclick="Close">Wyjdź</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+<Toast @ref="Toast" />
+
+@code {
+    private bool IsVisible { get; set; }
+    private string InputText { get; set; } = string.Empty;
+    private bool ShowSelect { get; set; }
+    private PackingWarehouse SelectedWarehouse { get; set; }
+    private Toast Toast = new();
+    private ElementReference InputRef;
+    private bool _shouldFocus;
+
+    public async Task Show()
+    {
+        IsVisible = true;
+        ShowSelect = false;
+        InputText = string.Empty;
+        _shouldFocus = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_shouldFocus)
+        {
+            _shouldFocus = false;
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
+        }
+    }
+
+    private async Task OnEnterKey(KeyboardEventArgs e)
+    {
+        try
+        {
+            if (e.Key == "Enter")
+            {
+                var inputValue = await JSRuntime.InvokeAsync<string>("blazorFocus.getValue", InputRef);
+                PackingWarehouse warehouse = await PackingService.GetPackageWarehouse(InputText);
+                SelectedWarehouse = warehouse;
+                ShowSelect = true;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.Show("Błąd!", $"Błąd przy pobieraniu magazynu składowania dla podanego kodu kreskowego: {ex.Message}");
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            await PackingService.UpdatePackageWarehouse(InputText, SelectedWarehouse);
+            Close();
+        }
+        catch (Exception ex)
+        {
+            Toast.Show("Błąd!", $"Błąd przy aktualizacji magazynu składowania dla podanego kodu kreskowego: {ex.Message}");
+        }
+    }
+
+    private void Close()
+    {
+        IsVisible = false;
+        StateHasChanged();
+    }
+}

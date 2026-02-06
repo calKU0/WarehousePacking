@@ -1,0 +1,168 @@
+﻿@page "/settings"
+@using WarehousePacking.Server.Services
+@using WarehousePacking.Shared.Enums
+@using WarehousePacking.Shared.Helpers
+@inject WorkstationService WorkstationService
+@inject NavigationManager NavigationManager
+@layout EmptyLayout
+
+@if (IsFirstSave)
+{
+    <DynamicLayout TLayout="NoNavLayout">
+        <div class="container mt-5">
+            <div class="alert alert-danger text-center settings-container">
+                <p class="pb-0 mb-0"><strong>Brak ustawień stanowiska. Uzupełnij dane aby kontynuować.</strong></p>
+                <small>Przy pierwszej instalacji upewnij się, że zainstalowałeś wymagane wydruki z intrukcji instalacji w prawym górnym rogu.</small>
+            </div>
+            @SettingsForm
+        </div>
+    </DynamicLayout>
+}
+else
+{
+    <DynamicLayout TLayout="MainLayout">
+        @SettingsForm
+    </DynamicLayout>
+}
+
+<Toast @ref="Toast" />
+
+@code {
+    private WorkstationSettings WorkStationSettings = new(); // always initialized to avoid null
+    private Toast Toast = new();
+    private bool IsFirstSave = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var settings = await WorkstationService.GetSettingsAsync();
+
+        if (!string.IsNullOrWhiteSpace(settings.StationNumber))
+        {
+            WorkStationSettings = settings;
+            IsFirstSave = false;
+        }
+        else
+        {
+            // first-time setup
+            IsFirstSave = true;
+        }
+    }
+
+    private RenderFragment SettingsForm => __builder =>
+    {
+        <div class="settings-container mt-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">
+                        Ustawienia stanowiska
+                        <!-- Icon in top-right corner -->
+                        <button class="btn btn-outline-primary btn-sm position-absolute top-0 end-0 mt-2 me-2"
+                                @onclick="ShowInstructions"
+                                title="Instrukcja instalacji">
+                            <i class="bi bi-info-circle"></i>
+                        </button>
+                    </h3>
+                    <div class="mb-3">
+                        <label class="form-label">Drukarka etykiet:</label>
+                        <input class="form-control" @bind="WorkStationSettings.PrinterLabel" placeholder="Wprowadź drukarkę etykiet" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Drukarka faktur:</label>
+                        <input class="form-control" @bind="WorkStationSettings.PrinterInvoice" placeholder="Wprowadź drukarkę faktur" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Magazyn pakowania:</label>
+                        <select class="form-select" @bind="WorkStationSettings.PackingWarehouse">
+                            @foreach (var warehouse in Enum.GetValues(typeof(PackingWarehouse)).Cast<PackingWarehouse>())
+                            {
+                                <option value="@warehouse">@warehouse.GetDescription()</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Poziom pakowania:</label>
+                        <select class="form-select" @bind="WorkStationSettings.PackingLevel">
+                            @foreach (var level in Enum.GetValues(typeof(PackingLevel)).Cast<PackingLevel>())
+                            {
+                                <option value="@level">@level.GetDescription()</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Typ stanowiska:</label>
+                        <select class="form-select" @bind="WorkStationSettings.StationType">
+                            @foreach (var type in Enum.GetValues(typeof(StationType)).Cast<StationType>())
+                            {
+                                <option value="@type">@type.GetDescription()</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Numer stanowiska:</label>
+                        <input class="form-control"
+                               required
+                               @bind="WorkStationSettings.StationNumber"
+                               @bind:event="oninput"
+                               placeholder="Wprowadź numer stanowiska" />
+                        @if (string.IsNullOrWhiteSpace(WorkStationSettings.StationNumber))
+                        {
+                            <small class="text-danger">
+                                Numer stanowiska jest wymagany
+                            </small>
+                        }
+                    </div>
+
+                    <div class="d-grid">
+                        <button class="btn btn-primary btn-lg"
+                                @onclick="Save"
+                                disabled="@string.IsNullOrWhiteSpace(WorkStationSettings.StationNumber)">
+                            <i class="bi bi-save me-2"></i> Zapisz ustawienia
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    };
+
+    private async Task Save()
+    {
+        try
+        {
+            await WorkstationService.SaveSettingsAsync(WorkStationSettings);
+            Toast.Show("Sukces!", "Ustawienia zapisane!", ToastType.Success, 2000);
+
+            if (IsFirstSave)
+            {
+                NavigationManager.NavigateTo("/login", forceLoad: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.Show("Błąd!", $"Nie udało się zapisać ustawień. {ex.Message}");
+        }
+    }
+
+    private void ShowInstructions()
+    {
+        string message = @"
+        <ol style='text-align:left'>
+            <li>Zainstaluj strone jako aplikację WPF (3 kropki w prawym górnym -> Zapisz jako aplikację)</li>
+            <li>Dodaj skrót na pulpicie oraz do automatycznego uruchamiana</li>
+            <li>Wyłącz klawiature ekranową w Windowsie</li>
+            <li>Uruchom aplikację i uzupełnij wymagane ustawienie konfiguracji w <a href='/settings' target='_blank' style='color:#ffd700'>/settings</a></li>
+            <li>Pobierz <a href='javascript:void(0)' onclick=""window.downloadFile('/downloads/KontrolaPakowania.rar', 'KontrolaPakowania.rar')""
+                   style='color:#ffd700'>Wyduki.rar</a> i rozpakuj w <strong>C:\Program Files</strong></li>
+            <li>Uruchom pobranego agenta drukowania z C:\Program Files\KontrolaPakowania\PrintingAgent</li>
+        </ol>";
+
+
+        // Show as toast, set a longer duration if needed
+        Toast.Show("Instrukcja instalacji", message, ToastType.Info);
+    }
+}
