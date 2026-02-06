@@ -1,4 +1,12 @@
 using FedexServiceReference;
+using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Extensions.Http;
+using Serilog;
+using Serilog.Context;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Text;
 using WarehousePacking.API.Data;
 using WarehousePacking.API.Integrations.Couriers;
 using WarehousePacking.API.Integrations.Couriers.DPD;
@@ -12,19 +20,12 @@ using WarehousePacking.API.Integrations.Couriers.GLS;
 using WarehousePacking.API.Integrations.Couriers.Mapping;
 using WarehousePacking.API.Integrations.Email;
 using WarehousePacking.API.Integrations.Wms;
-using WarehousePacking.API.Middleware;
+using WarehousePacking.API.Logging;
 using WarehousePacking.API.Services.Auth;
 using WarehousePacking.API.Services.Packing;
 using WarehousePacking.API.Services.Shipment;
 using WarehousePacking.API.Services.Shipment.GLS;
 using WarehousePacking.API.Settings;
-using Microsoft.Extensions.Options;
-using Polly;
-using Polly.Extensions.Http;
-using Serilog;
-using System.Net;
-using System.Net.Http.Headers;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,11 +34,11 @@ var builder = WebApplication.CreateBuilder(args);
 // ==================================
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
-    .WriteTo.File(
-        path: Path.Combine(AppContext.BaseDirectory, "Logs", "log-.txt"),
+    .WriteTo.Sink(new PerIpFileSink(
+        basePath: Path.Combine(AppContext.BaseDirectory, "Logs"),
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 31,
-        buffered: true)
+        buffered: true))
     .Enrich.FromLogContext()
     .MinimumLevel.Information()
     .CreateLogger();
@@ -52,7 +53,7 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
     {
-        Title = "KontrolaPakowania API",
+        Title = "WarehousePacking API",
         Version = "v1",
         Description = "API for package control and courier integrations"
     });
@@ -160,10 +161,17 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.Use(async (context, next) =>
+{
+    var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    using (LogContext.PushProperty("ClientIp", ipAddress))
+    {
+        await next();
+    }
+});
 app.UseAuthorization();
 app.MapControllers();
 app.UseSerilogRequestLogging();
-app.UseMiddleware<RequestInfoEnricherMiddleware>();
 
 try
 {
