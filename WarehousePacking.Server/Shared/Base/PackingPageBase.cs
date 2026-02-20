@@ -1009,6 +1009,17 @@ namespace WarehousePacking.Server.Shared.Base
         {
             try
             {
+                var password = await PasswordModal.ShowAsync("Wytyczne do pakowania", string.Join(". ", JlItems.Where(x => !string.IsNullOrEmpty(x.PackingRequirements)).Select(x => x.PackingRequirements)));
+                if (password == null)
+                    return;
+
+                bool valid = await AuthService.ValidatePasswordAsync(password);
+                if (!valid)
+                {
+                    Toast.Show("Błąd!", "Błędne hasło");
+                    return;
+                }
+
                 FinishPackingModal.Hide();
 
                 string internalBarcode = string.Empty;
