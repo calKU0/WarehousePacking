@@ -1009,7 +1009,7 @@ namespace WarehousePacking.Server.Shared.Base
         {
             try
             {
-                var password = await PasswordModal.ShowAsync("Wytyczne do pakowania", string.Join(". ", JlItems.Where(x => !string.IsNullOrEmpty(x.PackingRequirements)).Select(x => x.PackingRequirements)));
+                var password = await PasswordModal.ShowAsync("Wprowadź hasło", "Wprowadź hasło do zabuforowania paczki");
                 if (password == null)
                     return;
 
