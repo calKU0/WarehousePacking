@@ -87,6 +87,7 @@
     private void HandleSelectChanged(ChangeEventArgs e)
     {
         SelectedJl = e.Value?.ToString() ?? string.Empty;
+        StateHasChanged();
     }
 
     private void Confirm()

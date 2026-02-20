@@ -1,4 +1,7 @@
-﻿using WarehousePacking.Server.Services;
+﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Routing;
+using Microsoft.AspNetCore.Components.Web;
+using WarehousePacking.Server.Services;
 using WarehousePacking.Server.Shared.Components;
 using WarehousePacking.Server.Shared.Components.Modals;
 using WarehousePacking.Server.Shared.Components.Packing;
@@ -6,9 +9,6 @@ using WarehousePacking.Shared.DTOs;
 using WarehousePacking.Shared.DTOs.Requests;
 using WarehousePacking.Shared.Enums;
 using WarehousePacking.Shared.Helpers;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.AspNetCore.Components.Web;
 
 namespace WarehousePacking.Server.Shared.Base
 {
@@ -255,7 +255,10 @@ namespace WarehousePacking.Server.Shared.Base
             {
                 var password = await PasswordModal.ShowAsync("Wytyczne do pakowania", string.Join(". ", JlItems.Where(x => !string.IsNullOrEmpty(x.PackingRequirements)).Select(x => x.PackingRequirements)));
                 if (password == null)
+                {
+                    Navigation.NavigateTo("/kontrola-pakowania");
                     return;
+                }
 
                 bool valid = await AuthService.ValidatePasswordAsync(password);
                 if (!valid)
@@ -798,6 +801,10 @@ namespace WarehousePacking.Server.Shared.Base
                     {
                         // Remove the JL realization
                         await PackingService.RemoveJlRealization(CurrentJl.Name, PackingToBufor ? false : true);
+                        foreach (var jl in MergeJls)
+                        {
+                            await PackingService.RemoveJlRealization(jl.jlName, PackingToBufor ? false : true);
+                        }
 
                         // Navigate back
                         Navigation.NavigateTo("/kontrola-pakowania");
