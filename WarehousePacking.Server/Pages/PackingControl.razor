@@ -54,11 +54,11 @@
             CourierSrc="@CurrentJl.LogoCourier"
             PackingLevel="Settings.PackingLevel"
             OnCourierLabel="HandleCourierLabel"
-            OnBufor="HandleBufor"
             OnInternalBarcode="HandleInternalBarcode" />
 
 <DimensionsModal @ref="DimensionsModal"  />
 <ShipmentModal @ref="ShipmentModal" OnOk="HandleShipmentOkClick" />
+<MergePackagesModal @ref="MergePackagesModal" />
 
 <Toast FocusAfterCloseInput="ScanInputComponent" @ref="Toast" />
 

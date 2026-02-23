@@ -31,12 +31,6 @@
                     <button class="btn btn-success btn-lg flex-fill mx-1 tall-btn" @onclick="OnInternalBarcode">
                         Nadaj kod kreskowy wewnętrzny
                     </button>
-                    @if (PackingLevel == PackingLevel.Dół)
-                    {
-                        <button class="btn btn-warning btn-lg flex-fill mx-1 tall-btn" @onclick="OnBufor">
-                            Zabuforuj
-                        </button>
-                    }
                     <button class="btn btn-secondary btn-lg flex-fill mx-1 tall-btn" @onclick="Hide">
                         Anuluj
                     </button>
@@ -54,7 +48,6 @@
     [Parameter] public PackingLevel PackingLevel { get; set; }
     [Parameter] public EventCallback OnCourierLabel { get; set; }
     [Parameter] public EventCallback OnInternalBarcode { get; set; }
-    [Parameter] public EventCallback OnBufor { get; set; }
 
     protected bool IsVisible { get; set; }
 

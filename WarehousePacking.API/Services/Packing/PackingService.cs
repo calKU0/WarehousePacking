@@ -1,4 +1,6 @@
 ﻿using Dapper;
+using Microsoft.Data.SqlClient;
+using System.Data;
 using WarehousePacking.API.Data;
 using WarehousePacking.API.Data.Enums;
 using WarehousePacking.API.Integrations.Wms;
@@ -8,8 +10,6 @@ using WarehousePacking.Shared.DTOs;
 using WarehousePacking.Shared.DTOs.Requests;
 using WarehousePacking.Shared.Enums;
 using WarehousePacking.Shared.Helpers;
-using Microsoft.Data.SqlClient;
-using System.Data;
 
 public class PackingService : IPackingService
 {
@@ -180,7 +180,7 @@ public class PackingService : IPackingService
     public async Task<bool> AddPackedPosition(AddPackedPositionRequest request)
     {
         const string procedure = "kp.AddPackedPosition";
-        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.PackingDocumentId, request.SourceDocumentId, request.SourceDocumentType, request.PositionNumber, request.Quantity, request.Weight, request.Volume, request.ScanDate, request.PackDate }, CommandType.StoredProcedure, Connection.ERPConnection);
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.PackingDocumentId, request.SourceDocumentId, request.SourceDocumentType, request.PositionNumber, request.Quantity, request.Weight, request.Volume, request.ScanDate, request.PackDate, request.Username }, CommandType.StoredProcedure, Connection.ERPConnection);
         return result > 0;
     }
 
@@ -272,14 +272,8 @@ public class PackingService : IPackingService
 
         var allPackItems = new List<PackStockItems>();
 
-        string luDestType = string.Empty;
-        if (request.First().Status == DocumentStatus.Bufor)
-            luDestType = "PALETA";
-        else
-        {
-            string type = request.First().Type.ToUpper();
-            luDestType = type == string.Empty ? (request.Sum(i => i.Weight) > 120 ? "PALETA" : "PACZKA") : type;
-        }
+        string type = request.First().Type.ToUpper();
+        string luDestType = type == string.Empty ? (request.Sum(i => i.Weight) > 120 ? "PALETA" : "PACZKA") : type;
 
         foreach (var jl in request)
         {
@@ -361,13 +355,6 @@ public class PackingService : IPackingService
             Connection.ERPConnection);
     }
 
-    public async Task<bool> BufferPackage(string barcode)
-    {
-        const string procedure = "kp.BufferPackage";
-        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { barcode }, CommandType.StoredProcedure, Connection.ERPConnection);
-        return true;
-    }
-
     private string MapStationNumber(string stationNumber)
     {
         if (string.IsNullOrWhiteSpace(stationNumber))
@@ -382,5 +369,12 @@ public class PackingService : IPackingService
                        stationNumber,
                        "Błędny numer stanowiska")
         };
+    }
+
+    public async Task<bool> MergePackages(MergePackagesDto request)
+    {
+        const string procedure = "kp.MergePackages";
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.InitialBarcode, request.MergingBarcode, request.Dimensions.Width, request.Dimensions.Height, request.Dimensions.Length }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return result > 0;
     }
 }

@@ -1,9 +1,9 @@
-﻿using WarehousePacking.API.Services.Packing;
+﻿using Microsoft.AspNetCore.Mvc;
+using Serilog;
+using WarehousePacking.API.Services.Packing;
 using WarehousePacking.Shared.DTOs;
 using WarehousePacking.Shared.DTOs.Requests;
 using WarehousePacking.Shared.Enums;
-using Microsoft.AspNetCore.Mvc;
-using Serilog;
 
 namespace WarehousePacking.API.Controllers
 {
@@ -197,23 +197,6 @@ namespace WarehousePacking.API.Controllers
             catch (Exception ex)
             {
                 _logger.Error(ex, "Error in UpdateJlRealization for JL {Jl}", jl.Name);
-                return HandleException(ex);
-            }
-        }
-
-        [HttpGet("get-packages-for-client")]
-        public async Task<IActionResult> GetPackagesInBuforForClient([FromQuery] int clientId, [FromQuery] string? addressName, [FromQuery] string? addressCity, [FromQuery] string? addressStreet, [FromQuery] string? addressPostalCode, [FromQuery] string? addressCountry, [FromQuery] DocumentStatus status)
-        {
-            _logger.Information("Request: GetPackagesInBuforForClient for ClientId {ClientId}", clientId);
-            try
-            {
-                var packages = await _packingService.GetPackagesForClient(clientId, addressName, addressCity, addressStreet, addressPostalCode, addressCountry, status);
-                _logger.Information("GetPackagesInBuforForClient succeeded for ClientId {ClientId} with {Count} packages", clientId, packages.Count());
-                return Ok(packages);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex, "Error in GetPackagesInBuforForClient for ClientId {ClientId}", clientId);
                 return HandleException(ex);
             }
         }
@@ -481,7 +464,7 @@ namespace WarehousePacking.API.Controllers
 
                     return BadRequest(closeResult.Desc);
                 }
-                _logger.Information("PackWmsStock succeeded for package {PackageCode}", request.PackageNumber);
+                _logger.Information("CloseWmsPackage succeeded for package {PackageCode}", request.PackageNumber);
                 return Ok(true);
             }
             catch (Exception ex)
@@ -491,19 +474,20 @@ namespace WarehousePacking.API.Controllers
             }
         }
 
-        [HttpPatch("buffer-package")]
-        public async Task<IActionResult> BufferPackage([FromBody] string barcode)
+        [HttpPost("merge-packages")]
+        public async Task<IActionResult> MergePackages([FromBody] MergePackagesDto request)
         {
-            _logger.Information("Request: BufferPackage for barcode {Barcode}", barcode);
+            _logger.Information("Request: MergePackages for initial package {InitialCode} with merging package {MergingPackage}", request.InitialBarcode, request.MergingBarcode);
+
             try
             {
-                await _packingService.BufferPackage(barcode);
-                _logger.Information("BufferPackage succeeded for barcode {Barcode}", barcode);
+                var closeResult = await _packingService.MergePackages(request);
+                _logger.Information("MergePackages succeeded for initial package {InitialCode} with merging package {MergingPackage}", request.InitialBarcode, request.MergingBarcode);
                 return Ok(true);
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Error in BufferPackage for barcode {Barcode}", barcode);
+                _logger.Error(ex, "MergePackages failed for initial package {InitialCode} with merging package {MergingPackage}", request.InitialBarcode, request.MergingBarcode);
                 return HandleException(ex);
             }
         }

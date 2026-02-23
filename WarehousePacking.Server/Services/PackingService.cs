@@ -1,7 +1,7 @@
-﻿using WarehousePacking.Shared.DTOs;
+﻿using System.Net;
+using WarehousePacking.Shared.DTOs;
 using WarehousePacking.Shared.DTOs.Requests;
 using WarehousePacking.Shared.Enums;
-using System.Net;
 
 namespace WarehousePacking.Server.Services
 {
@@ -476,9 +476,9 @@ namespace WarehousePacking.Server.Services
             throw new Exception(generic);
         }
 
-        public async Task<bool> BufferPackage(string barcode)
+        public async Task<bool> UpdateJlRealization(JlInProgressDto jlInProgressDto)
         {
-            var response = await _dbClient.PatchAsJsonAsync($"api/packing/buffer-package", barcode);
+            var response = await _dbClient.PatchAsJsonAsync($"api/packing/update-jl-realization", jlInProgressDto);
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<bool>();
@@ -500,18 +500,13 @@ namespace WarehousePacking.Server.Services
             throw new Exception(generic);
         }
 
-        public async Task<bool> UpdateJlRealization(JlInProgressDto jlInProgressDto)
+        public async Task<bool> MergePackages(MergePackagesDto request)
         {
-            var response = await _dbClient.PatchAsJsonAsync($"api/packing/update-jl-realization", jlInProgressDto);
+            var response = await _dbClient.PostAsJsonAsync($"api/packing/merge-packages", request);
+
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<bool>();
-            }
-
-            if (response.StatusCode == HttpStatusCode.Conflict)
-            {
-                var message = await response.Content.ReadAsStringAsync();
-                throw new ArgumentException(message);
+                return true;
             }
 
             if (response.StatusCode == HttpStatusCode.BadRequest)

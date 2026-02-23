@@ -21,7 +21,7 @@
                             <option value="" disabled selected hidden>Wybierz JL</option>
                             @foreach (var jl in JlCodes)
                             {
-                                <option value="@jl">@jl</option>
+                                <option value="@jl.JlCode">@jl.JlCode</option>
                             }
                         </select>
                     </div>
@@ -59,9 +59,9 @@
     public string Title { get; set; } = "Wybierz kuwetê";
     public string Message { get; set; } = "Towar znajduje siê w wiêcej ni¿ jednej kuwecie. Wybierz kuwetê.";
     public bool IsVisible { get; set; }
-    public List<string> JlCodes { get; set; } = new();
+    public List<(string JlCode, string JlEanCode)> JlCodes { get; set; } = new();
 
-    public Task<string?> ShowAsync(List<string> jlCodes, string scannedCode)
+    public Task<string?> ShowAsync(List<(string JlCode, string JlEanCode)> jlCodes, string scannedCode)
     {
         JlCodes = jlCodes;
         SelectedJl = string.Empty;
@@ -113,15 +113,18 @@
         if (e.Key != "Enter")
             return;
 
-        var match = JlCodes.FirstOrDefault(jl => string.Equals(jl, ScanValue, StringComparison.OrdinalIgnoreCase));
-        if (string.IsNullOrWhiteSpace(match))
+        var match = JlCodes.FirstOrDefault(jl =>
+            string.Equals(jl.JlCode, ScanValue, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(jl.JlEanCode, ScanValue, StringComparison.OrdinalIgnoreCase));
+
+        if (string.IsNullOrWhiteSpace(match.JlCode))
         {
             Toast.Show("B³¹d!", "Nie znaleziono kuwety o podanym kodzie.");
             ScanValue = string.Empty;
             return;
         }
 
-        SelectedJl = match;
+        SelectedJl = match.JlCode;
         Confirm();
     }
 }

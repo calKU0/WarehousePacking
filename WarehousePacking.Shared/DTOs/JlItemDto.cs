@@ -1,12 +1,13 @@
-﻿using WarehousePacking.Shared.Enums;
+﻿using System.Text.Json.Serialization;
+using WarehousePacking.Shared.Enums;
 using WarehousePacking.Shared.Helpers;
-using System.Text.Json.Serialization;
 
 namespace WarehousePacking.Shared.DTOs
 {
     public class JlItemDto
     {
         public string JlCode { get; set; } = string.Empty;
+        public string JlEanCode { get; set; } = string.Empty;
         public int ItemErpId { get; set; }
         public int ItemWmsId { get; set; }
         public int ErpPositionNumber { get; set; }
