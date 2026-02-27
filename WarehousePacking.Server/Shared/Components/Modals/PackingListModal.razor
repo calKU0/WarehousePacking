@@ -1,4 +1,6 @@
-﻿@if (IsVisible)
+﻿@inject IJSRuntime JSRuntime
+
+@if (IsVisible)
 {
     <div class="modal-backdrop @(IsVisible ? "show" : "")">
         <div class="modal-container shadow-lg rounded-2 p-4">
@@ -24,7 +26,7 @@
 
                 <div>
                     <label class="form-label">Numer przesyłki:</label>
-                    <input type="text" class="form-control mb-2" placeholder="Zeskanuj lub wpisz numer" @bind="TrackingNumber" />
+                    <input type="text" class="form-control mb-2" placeholder="Zeskanuj lub wpisz numer" @bind="TrackingNumber" @ref="InputRef" />
                 </div>
             </div>
 
@@ -42,6 +44,7 @@
     private string TrackingNumber = string.Empty;
     private Recipient Recipient { get; set; } = new();
     private string Courier { get; set; } = string.Empty;
+    private ElementReference InputRef;
 
     [Parameter] public EventCallback<string> OnSaveNumber { get; set; }
     [Parameter] public EventCallback<Recipient> OnPrintLabel { get; set; }
@@ -53,6 +56,14 @@
         TrackingNumber = string.Empty;
         IsVisible = true;
         await InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsVisible)
+        {
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
+        }
     }
 
     private async Task TriggerSave()

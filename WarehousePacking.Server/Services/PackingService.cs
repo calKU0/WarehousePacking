@@ -518,5 +518,19 @@ namespace WarehousePacking.Server.Services
             var generic = await response.Content.ReadAsStringAsync();
             throw new Exception(generic);
         }
+
+        public async Task<bool> BufferPackage(string barcode)
+        {
+
+            var response = await _dbClient.PatchAsJsonAsync($"api/packing/buffer-package", barcode);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<bool>();
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
     }
 }

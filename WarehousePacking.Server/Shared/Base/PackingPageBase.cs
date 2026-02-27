@@ -61,6 +61,7 @@ namespace WarehousePacking.Server.Shared.Base
 
         protected PackingFlow _currentPackingFlow;
         protected string InternalBarcodeTemp = string.Empty;
+        protected bool PackingToBufor = false;
 
         protected override async Task OnInitializedAsync()
         {
@@ -73,10 +74,11 @@ namespace WarehousePacking.Server.Shared.Base
                 LoadMergeJlsFromQuery();
                 await LoadJlData();
                 await AddJlRealizations();
-                await ShowPackingRequirements();
-                await CheckRouteStatus();
 
                 Navigation.LocationChanged += OnLocationChanged;
+
+                await ShowPackingRequirements();
+                await CheckRouteStatus();
             }
             catch (Exception ex)
             {
@@ -154,6 +156,12 @@ namespace WarehousePacking.Server.Shared.Base
         {
             var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
             var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+            if (query.TryGetValue("packTo", out var packToValue))
+            {
+                PackageId = Convert.ToInt32(packToValue);
+                PackingToBufor = true;
+            }
 
             if (query.TryGetValue("mergeJls", out var mergeJlsValue))
             {
@@ -248,7 +256,7 @@ namespace WarehousePacking.Server.Shared.Base
             if (JlItems.Any(x => !string.IsNullOrEmpty(x.PackingRequirements)))
             {
                 var password = await PasswordModal.ShowAsync("Wytyczne do pakowania", string.Join(". ", JlItems.Where(x => !string.IsNullOrEmpty(x.PackingRequirements)).Select(x => x.PackingRequirements)));
-                if (password == null)
+                if (password == null || password == string.Empty)
                 {
                     Navigation.NavigateTo("/kontrola-pakowania");
                     return;
@@ -545,7 +553,7 @@ namespace WarehousePacking.Server.Shared.Base
 
         protected virtual async Task OpenPackage(DocumentStatus status = DocumentStatus.Ready)
         {
-            if (CurrentJl.PackageClosed)
+            if (CurrentJl.PackageClosed && !PackingToBufor)
             {
                 var success = await PackingService.OpenPackage(PackageId);
                 if (!success)
@@ -590,6 +598,18 @@ namespace WarehousePacking.Server.Shared.Base
                 return;
 
             var request = new List<WmsPackStockRequest>();
+
+            string destinationCode = string.Empty;
+            if (PackingToBufor == true)
+            {
+                var notClosedPackages = await PackingService.GetNotClosedPackages();
+                var destinationPackage = notClosedPackages.FirstOrDefault(p => p.JlCode == packageCode || p.JlEanCode == packageCode);
+                if (destinationPackage != null)
+                {
+                    destinationCode = destinationPackage.LocationCode;
+                }
+            }
+
             foreach (var jl in MergeJls)
             {
                 var additionalPackedWmsItems = PackedItems.Where(i => i.JlCode == jl.jlName && !i.PackedWMS).Select(i => new WMSPackStockItemsRequest
@@ -603,13 +623,14 @@ namespace WarehousePacking.Server.Shared.Base
                 {
                     PackingLevel = Settings.PackingLevel,
                     PackingWarehouse = Settings.PackingWarehouse,
+                    DestincationCode = destinationCode,
                     LocationCode = jl.locationCode,
                     ScannedCode = packageCode,
                     TrackingNumber = trackingNumber,
                     StationNumber = Settings.StationNumber,
                     Courier = courier,
                     JlCode = jl.jlName,
-                    Type = string.Empty,
+                    Type = PackingToBufor ? "PALETA" : string.Empty,
                     Weight = PackedItems.Where(i => i.JlCode == jl.jlName).Sum(i => i.ItemWeight * i.JlQuantity),
                     Status = status,
                     Items = additionalPackedWmsItems
@@ -761,6 +782,27 @@ namespace WarehousePacking.Server.Shared.Base
                         Toast.Show("Błąd!", $"Błąd przy próbie łącznia paczek: {ex.Message}");
                     }
                     break;
+                case 10: /* Do bufora */
+                    try
+                    {
+                        var internalBarcode = await TextBoxModal.Show("Zabuforuj paczkę/palete.", "Zeskanduj kod kreskowy paczki/palety, która jest zatwierdona i nie została wygenerowana do niej wysyłka. Paczka zmieni status na bufor.", "Kod kreskowy");
+                        if (string.IsNullOrEmpty(internalBarcode))
+                            return;
+
+                        var success = await PackingService.BufferPackage(internalBarcode);
+                        if (!success)
+                        {
+                            Toast.Show("Błąd!", "Nie udało się zabuforować paczki. Spróbuj ponownie.");
+                            return;
+                        }
+
+                        Toast.Show("Sukces!", "Paczka została pomyślnie zabuforowana.", ToastType.Success);
+                    }
+                    catch (Exception ex)
+                    {
+                        Toast.Show("Błąd!", $"Błąd przy próbie zabuforowania paczki: {ex.Message}");
+                    }
+                    break;
             }
             await ScanInputComponent.FocusAsync();
         }
@@ -792,10 +834,10 @@ namespace WarehousePacking.Server.Shared.Base
                     try
                     {
                         // Remove the JL realization
-                        await PackingService.RemoveJlRealization(CurrentJl.Name, true);
+                        await PackingService.RemoveJlRealization(CurrentJl.Name, PackingToBufor ? false : true);
                         foreach (var jl in MergeJls)
                         {
-                            await PackingService.RemoveJlRealization(jl.jlName, true);
+                            await PackingService.RemoveJlRealization(jl.jlName, PackingToBufor ? false : true);
                         }
 
                         // Navigate back
@@ -1010,11 +1052,66 @@ namespace WarehousePacking.Server.Shared.Base
                 };
                 await PackingService.UpdateJlRealization(JlInProgressDto);
                 CurrentJl.InternalBarcode = string.Empty;
+                PackingToBufor = false;
                 StateHasChanged();
             }
             catch (Exception ex)
             {
                 Toast.Show("Błąd!", $"Błąd przy próbie przygotowania następnej paczki: {ex.Message}");
+            }
+        }
+
+        protected virtual async Task HandleBufor()
+        {
+            try
+            {
+                var password = await PasswordModal.ShowAsync("Wprowadź hasło", "Wprowadź hasło do zabuforowania paczki");
+                if (password == null)
+                    return;
+
+                bool valid = await AuthService.ValidatePasswordAsync(password);
+                if (!valid)
+                {
+                    Toast.Show("Błąd!", "Błędne hasło");
+                    return;
+                }
+
+                FinishPackingModal.Hide();
+
+                string internalBarcode = string.Empty;
+                if (!string.IsNullOrEmpty(CurrentJl.InternalBarcode))
+                    internalBarcode = CurrentJl.InternalBarcode;
+                else
+                    internalBarcode = await TextBoxModal.Show("Numer wewnętrzny", "Wprowadź numer wewnętrzny", "Kod kreskowy");
+
+                Dimensions dimensions = new();
+                if (Settings.PackingLevel == PackingLevel.Dół && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
+                {
+                    dimensions = await DimensionsModal.Show();
+                }
+
+                await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, internalBarcode, DocumentStatus.Bufor);
+                await ClosePackage(internalBarcode, dimensions, DocumentStatus.Bufor);
+                if (Settings.PackingLevel == PackingLevel.Dół && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
+                {
+                    await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", internalBarcode } });
+                }
+
+                switch (_currentPackingFlow)
+                {
+                    case PackingFlow.FinishPacking:
+                        Navigation.NavigateTo("/kontrola-pakowania");
+                        break;
+
+                    case PackingFlow.NextPackage:
+                        await HandleNextPackage();
+                        await ScanInputComponent.FocusAsync();
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Toast.Show("Błąd!", $"Błąd przy próbie finalizacji pakowania: {ex.Message}");
             }
         }
 

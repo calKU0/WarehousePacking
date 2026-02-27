@@ -55,5 +55,6 @@ namespace WarehousePacking.API.Services.Packing
 
         Task<PackWMSResponse> CloseWmsPackage(WmsCloseJlRequest request);
         Task<bool> MergePackages(MergePackagesDto request);
+        Task<bool> BufferPackage(string barcode);
     }
 }

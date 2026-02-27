@@ -124,6 +124,7 @@
 <MergeJlsModal @ref="MergeJlsModal" />
 <ComboBoxModal @ref="ComboBoxModal" />
 <MergePackagesModal @ref="MergePackagesModal" />
+<PackagesInBuforModal @ref="PackagesInBuforModal"/>
 
 <Toast FocusAfterCloseInput="InputRef" @ref="Toast" />
 
@@ -147,6 +148,7 @@
     private MergeJlsModal MergeJlsModal = new();
     private ComboBoxModal ComboBoxModal = new();
     private MergePackagesModal MergePackagesModal = new();
+    private PackagesInBuforModal PackagesInBuforModal = new();
 
     private int JlReadyToPackCount { get; set; } = 0;
     private int AddressesCount { get; set; } = 0;
@@ -290,10 +292,27 @@
             }
 
             List<(string jlCode, string location)> selectedMergeJls = new();
+            PackageSelectionResult? selectedPackage = null;
 
             //
-            // 1 FIND OTHER JLs W/ SAME ADDRESS
+            // 1️ BUFOR CHECK
             //
+            var packagesInBufor = await PackingService.GetPackagesForClient(
+                jl.ClientId,
+                jl.AddressName,
+                jl.AddressCity,
+                jl.AddressStreet,
+                jl.AddressPostalCode,
+                jl.AddressCountry,
+                DocumentStatus.Bufor);
+
+            if (packagesInBufor?.Any() == true)
+            {
+                selectedPackage = await PackagesInBuforModal.Show(packagesInBufor);
+            }
+
+            //
+            // 2️ FIND OTHER JLs W/ SAME ADDRESS
             var matchingJls = JlList
                 .Where(x =>
                     x.Id != jl.Id &&
@@ -301,7 +320,8 @@
                     x.AddressCity == jl.AddressCity &&
                     x.AddressCountry == jl.AddressCountry &&
                     x.AddressStreet == jl.AddressStreet &&
-                    x.Courier == jl.Courier)
+                    x.Courier == jl.Courier  &&
+                    x.Status != 3)
                 .ToList();
 
             if (matchingJls.Any())
@@ -310,7 +330,7 @@
             }
 
             //
-            // 2 BUILD FINAL NAVIGATION URL ONCE
+            // 3 BUILD FINAL NAVIGATION URL ONCE
             //
 
             string url;
@@ -320,6 +340,15 @@
                 url = $"/kontrola-pakowania/{jl.Name}";
 
             List<string> queryParts = new();
+
+            if (selectedPackage is not null)
+            {
+                if (selectedPackage.PackageId.HasValue)
+                    queryParts.Add($"packTo={selectedPackage.PackageId}");
+
+                if (!string.IsNullOrWhiteSpace(selectedPackage.InternalBarcode))
+                    queryParts.Add($"barcode={selectedPackage.InternalBarcode}");
+            }
 
             if (selectedMergeJls.Any())
             {
@@ -433,6 +462,27 @@
                 catch (Exception ex)
                 {
                     Toast.Show("Błąd!", $"Błąd przy próbie łącznia paczek: {ex.Message}");
+                }
+                break;
+            case 10: /* Do bufora */
+                try
+                {
+                    var internalBarcode = await TextBoxModal.Show("Zabuforuj paczkę/palete.", "Zeskanduj kod kreskowy paczki/palety, która jest zatwierdona i nie została wygenerowana do niej wysyłka. Paczka zmieni status na bufor.", "Kod kreskowy");
+                    if (string.IsNullOrEmpty(internalBarcode))
+                        return;
+
+                    var success = await PackingService.BufferPackage(internalBarcode);
+                    if (!success)
+                    {
+                        Toast.Show("Błąd!", "Nie udało się zabuforować paczki. Spróbuj ponownie.");
+                        return;
+                    }
+
+                    Toast.Show("Sukces!", "Paczka została pomyślnie zabuforowana.", ToastType.Success);
+                }
+                catch (Exception ex)
+                {
+                    Toast.Show("Błąd!", $"Błąd przy próbie zabuforowania paczki: {ex.Message}");
                 }
                 break;
         }

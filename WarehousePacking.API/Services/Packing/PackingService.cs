@@ -272,8 +272,18 @@ public class PackingService : IPackingService
 
         var allPackItems = new List<PackStockItems>();
 
-        string type = request.First().Type.ToUpper();
-        string luDestType = type == string.Empty ? (request.Sum(i => i.Weight) > 120 ? "PALETA" : "PACZKA") : type;
+        string luDestType = string.Empty;
+        string locDestNr = string.Empty;
+        if (request.First().Status == DocumentStatus.Bufor)
+        {
+            luDestType = "PALETA";
+        }
+        else
+        {
+            locDestNr = request.First().DestincationCode;
+            string type = request.First().Type.ToUpper();
+            luDestType = type == string.Empty ? (request.Sum(i => i.Weight) > 120 ? "PALETA" : "PACZKA") : type;
+        }
 
         foreach (var jl in request)
         {
@@ -285,7 +295,7 @@ public class PackingService : IPackingService
                 allPackItems.Add(new PackStockItems
                 {
                     LocSourceNr = jl.LocationCode,
-                    LocDestNr = MapStationNumber(jl.StationNumber),
+                    LocDestNr = string.IsNullOrEmpty(locDestNr) ? MapStationNumber(jl.StationNumber) : locDestNr,
                     LuSourceNr = jl.JlCode,
                     LuDestEan = string.IsNullOrEmpty(jl.ScannedCode) ? jl.TrackingNumber : jl.ScannedCode,
                     LuDestNr = jl.TrackingNumber,
@@ -376,5 +386,12 @@ public class PackingService : IPackingService
         const string procedure = "kp.MergePackages";
         var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.InitialBarcode, request.MergingBarcode, request.Dimensions.Width, request.Dimensions.Height, request.Dimensions.Length }, CommandType.StoredProcedure, Connection.ERPConnection);
         return result > 0;
+    }
+
+    public async Task<bool> BufferPackage(string barcode)
+    {
+        const string procedure = "kp.BufferPackage";
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { barcode }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return true;
     }
 }

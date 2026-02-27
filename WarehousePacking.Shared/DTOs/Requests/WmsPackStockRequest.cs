@@ -6,6 +6,7 @@ namespace WarehousePacking.Shared.DTOs.Requests
     {
         public PackingLevel PackingLevel { get; set; }
         public PackingWarehouse PackingWarehouse { get; set; }
+        public string DestincationCode { get; set; } = string.Empty;
         public string LocationCode { get; set; } = string.Empty;
         public string ScannedCode { get; set; } = string.Empty;
         public string TrackingNumber { get; set; } = string.Empty;

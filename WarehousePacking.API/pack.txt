@@ -1,0 +1,6 @@
+[2026-02-27T07:29:10.6264023Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"Rolotok","locDestNr":"PAK-A1102","luSourceNr":"KK-093","luDestNr":"1000004596461","luDestEan":"1000004596461","luDestTypeSymbol":"PALETA","itemNr":"661712.02","batchId":null,"itemQty":"50.0"},{"locSourceNr":"MOP-A001","locDestNr":"PAK-A1102","luSourceNr":"KK-035","luDestNr":"1000004596461","luDestEan":"1000004596461","luDestTypeSymbol":"PALETA","itemNr":"002861.40","batchId":null,"itemQty":"10.0"},{"locSourceNr":"Rolotok","locDestNr":"PAK-A1102","luSourceNr":"KK-257","luDestNr":"1000004596461","luDestEan":"1000004596461","luDestTypeSymbol":"PALETA","itemNr":"630425.00","batchId":null,"itemQty":"20.0"}]}
+
+[2026-02-27T07:29:11.0087092Z] Received Response (200)
+{"status":"-1","desc":"Wystąpił błąd: subquery must return only one column ->> OK"}
+
