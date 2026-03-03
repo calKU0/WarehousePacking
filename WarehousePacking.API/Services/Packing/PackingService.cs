@@ -162,12 +162,28 @@ public class PackingService : IPackingService
         return await _db.QueryAsync<PackageData>(procedure, new { clientId, addressName, addressCity, addressStreet, addressPostalCode, addressCountry, status }, CommandType.StoredProcedure, Connection.ERPConnection);
     }
 
-    public async Task<CourierConfiguration> GetCourierConfiguration(string courierName, PackingLevel level, string country)
+    public async Task<IEnumerable<CourierConfiguration>> GetCourierConfiguration(string? courierName, PackingLevel? level, string? country)
     {
-        const string procedure = "kp.GetCourierConfiguration";
-        string levelString = level.ToString();
-        var result = await _db.QuerySingleOrDefaultAsync<CourierConfiguration>(procedure, new { courierName, level = levelString, country }, CommandType.StoredProcedure, Connection.ERPConnection);
-        return result;
+        string procedure = string.IsNullOrEmpty(courierName) ? "kp.GetAllCourierConfigurations" : "kp.GetCourierConfiguration";
+
+        IEnumerable<CourierConfiguration> configuration = null;
+
+        if (string.IsNullOrEmpty(courierName) || level == null || string.IsNullOrEmpty(country))
+            configuration = await _db.QueryAsync<CourierConfiguration>(procedure, null, CommandType.StoredProcedure, Connection.ERPConnection);
+        else
+            configuration = await _db.QueryAsync<CourierConfiguration>(procedure, new { courierName, level = level.ToString(), country }, CommandType.StoredProcedure, Connection.ERPConnection);
+
+        return configuration;
+    }
+
+    public async Task<bool> UpdateCourierConfiguration(IEnumerable<CourierConfiguration> configurations)
+    {
+        const string procedure = "kp.UpdateCourierConfiguration";
+        foreach (CourierConfiguration configuration in configurations)
+        {
+            await _db.QuerySingleOrDefaultAsync<int>(procedure, new { configuration.Courier, configuration.AutomaticFvGeneration, configuration.AutomaticFvStart, configuration.AutomaticFvEnd, configuration.WeightUpPL, configuration.WeightBottomPL, configuration.WeightUpExport, configuration.WeightBottomExport }, CommandType.StoredProcedure, Connection.ERPConnection);
+        }
+        return true;
     }
 
     public async Task<int> CreatePackage(CreatePackageRequest request)

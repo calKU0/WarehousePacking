@@ -47,7 +47,6 @@ namespace WarehousePacking.Server.Shared.Base
         protected CourierModal CourierModal = new();
         protected LoggedOperatorsModal LoggedOperatorsModal = new();
         protected JlInProgressModal JlInProgressModal = new();
-        protected PackingJlItemsModal PackingJlItemsModal = new();
         protected ChangePackingWarehouseModal ChangePackingWarehouseModal = new();
         protected DimensionsModal DimensionsModal = new();
         protected FinishPackingModal FinishPackingModal = new();
@@ -55,6 +54,7 @@ namespace WarehousePacking.Server.Shared.Base
         protected ScanInput ScanInputComponent = new();
         protected JlSelectModal JlSelectModal = new();
         protected MergePackagesModal MergePackagesModal = new();
+        protected CourierConfigurationModal CourierConfigurationModal = new();
 
         protected JlItemDto? SelectedItem;
         protected JlItemDto? SelectedPackedItem;
@@ -691,18 +691,18 @@ namespace WarehousePacking.Server.Shared.Base
         {
             switch (returnClick)
             {
-                case 1: /* Etykiety */ break;
+                //case 1: /* Etykiety */ break;
                 case 2: /* Spakuj */
                     await PackAllItems();
                     break;
 
-                case 3: /* Zawartość */
-                    var barcode = await TextBoxModal.Show("Zawartość kuwety", "Wprowadź kod wewnętrzny", "Kod wewnętrzny");
-                    if (!string.IsNullOrEmpty(barcode))
-                    {
-                        await PackingJlItemsModal.ShowModal(barcode);
-                    }
-                    break;
+                //case 3: /* Zawartość */
+                //    var barcode = await TextBoxModal.Show("Zawartość kuwety", "Wprowadź kod wewnętrzny", "Kod wewnętrzny");
+                //    if (!string.IsNullOrEmpty(barcode))
+                //    {
+                //        await PackingJlItemsModal.ShowModal(barcode);
+                //    }
+                //    break;
 
                 case 4: /* Kurier */
                     try
@@ -803,6 +803,37 @@ namespace WarehousePacking.Server.Shared.Base
                         Toast.Show("Błąd!", $"Błąd przy próbie zabuforowania paczki: {ex.Message}");
                     }
                     break;
+                case 11: /* Konfiguracja kurierów */
+                    List<CourierConfiguration> courierConfigurations;
+                    try
+                    {
+                        courierConfigurations = await PackingService.GetCourierConfiguration();
+                    }
+                    catch (Exception ex)
+                    {
+                        Toast.Show("Błąd!", $"Błąd przy próbie otwarcia konfiguracji kurierów: {ex.Message}");
+                        return;
+                    }
+
+                    CourierConfigurationModal.Show(
+                        configs: courierConfigurations,
+                        onConfirm: async () =>
+                        {
+                            try
+                            {
+                                await PackingService.UpdateCourierConfiguration(courierConfigurations);
+                                Toast.Show("Sukces", "Konfiguracja została zapisana", ToastType.Success);
+                            }
+                            catch (Exception ex)
+                            {
+                                Toast.Show("Błąd", $"Nie udało się zapisać: {ex.Message}");
+                            }
+                        },
+                        onCancel: async () =>
+                        {
+                        }
+                    );
+                    break;
             }
             await ScanInputComponent.FocusAsync();
         }
@@ -811,7 +842,7 @@ namespace WarehousePacking.Server.Shared.Base
         {
             try
             {
-                CourierConfiguration = await PackingService.GetCourierConfiguration(CurrentJl.CourierName, Settings.PackingLevel, CurrentJl.Country);
+                CourierConfiguration = (await PackingService.GetCourierConfiguration(CurrentJl.CourierName, Settings.PackingLevel, CurrentJl.Country)).First();
             }
             catch (Exception ex)
             {

@@ -28,7 +28,8 @@ namespace WarehousePacking.API.Services.Packing
 
         Task<IEnumerable<PackageData>> GetPackagesForClient(int clientId, string? addressName, string? addressCity, string? addressStreet, string? addressPostalCode, string? addressCountry, DocumentStatus status);
 
-        Task<CourierConfiguration> GetCourierConfiguration(string courierName, PackingLevel level, string country);
+        Task<IEnumerable<CourierConfiguration>> GetCourierConfiguration(string? courierName, PackingLevel? level, string? country);
+        Task<bool> UpdateCourierConfiguration(IEnumerable<CourierConfiguration> configurations);
 
         Task<int> CreatePackage(CreatePackageRequest request);
 

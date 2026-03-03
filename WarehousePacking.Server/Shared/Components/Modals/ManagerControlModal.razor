@@ -21,17 +21,17 @@
                             <div class="row g-3">
                                 @if (ShowPackingButtons)
                                 {
-                                    <div class="col-4">
+                                    @* <div class="col-4">
                                         <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(1)">Etykiety</button>
-                                    </div>
+                                    </div> *@
 
                                     <div class="col-4">
                                         <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(2)">Spakuj</button>
                                     </div>
  
-                                    <div class="col-4">
+                                    @* <div class="col-4">
                                         <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(3)">Zawartość</button>
-                                    </div>
+                                    </div> *@
 
                                     <div class="col-4">
                                         <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(4)">Kurier</button>
@@ -53,7 +53,10 @@
                                     <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(9)">Połącz paczki</button>
                                 </div>
                                 <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(10)">Zabuforuj paczke</button>
+                                    <button class="btn btn-primary w-100 py-3 px-0" @onclick="() => HandleClick(10)">Zabuforuj paczke</button>
+                                </div>
+                                <div class="col-4">
+                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(11)">Konf. kurierów</button>
                                 </div>
                             </div>
                         </div>

@@ -202,7 +202,7 @@ namespace WarehousePacking.API.Controllers
         }
 
         [HttpGet("courier-configuration")]
-        public async Task<IActionResult> GetCourierConfiguration([FromQuery] string courier, [FromQuery] PackingLevel level, [FromQuery] string country)
+        public async Task<IActionResult> GetCourierConfiguration([FromQuery] string? courier, [FromQuery] PackingLevel? level, [FromQuery] string? country)
         {
             _logger.Information("Request: GetCourierConfiguration for courier {Courier}, level {Level}, country {Country}", courier, level, country);
             try
@@ -214,6 +214,23 @@ namespace WarehousePacking.API.Controllers
             catch (Exception ex)
             {
                 _logger.Error(ex, "Error in GetCourierConfiguration for courier {Courier}, level {Level}, country {Country}", courier, level, country);
+                return HandleException(ex);
+            }
+        }
+
+        [HttpPatch("update-courier-configuration")]
+        public async Task<IActionResult> UpdateCourierConfiguration([FromBody] IEnumerable<CourierConfiguration> configurations)
+        {
+            _logger.Information("Request: UpdateCourierConfiguration");
+            try
+            {
+                bool success = await _packingService.UpdateCourierConfiguration(configurations);
+                _logger.Information("UpdateCourierConfiguration succeeded");
+                return Ok(success);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error in UpdateCourierConfiguration");
                 return HandleException(ex);
             }
         }

@@ -260,12 +260,30 @@ namespace WarehousePacking.Server.Services
             throw new Exception(generic);
         }
 
-        public async Task<CourierConfiguration> GetCourierConfiguration(string courier, PackingLevel level, string country)
+        public async Task<List<CourierConfiguration>> GetCourierConfiguration(string? courier = null, PackingLevel? level = null, string? country = null)
         {
             var response = await _dbClient.GetAsync($"api/packing/courier-configuration?courier={courier}&level={level}&country={country}");
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<CourierConfiguration>();
+                return await response.Content.ReadFromJsonAsync<List<CourierConfiguration>>();
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
+
+        public async Task<bool> UpdateCourierConfiguration(List<CourierConfiguration> configurations)
+        {
+            var response = await _dbClient.PatchAsJsonAsync($"api/packing/update-courier-configuration", configurations);
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<bool>();
             }
 
             if (response.StatusCode == HttpStatusCode.BadRequest)

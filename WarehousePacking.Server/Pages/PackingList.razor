@@ -119,12 +119,12 @@
 <LoggedOperatorsModal @ref="LoggedOperatorsModal" />
 <JlInProgressModal @ref="JlInProgressModal" />
 <ChangePackingWarehouseModal @ref="ChangePackingWarehouseModal" />
-<PackingJlItemsModal @ref="PackingJlItemsModal" />
 <TextBoxModal @ref="TextBoxModal" />
 <MergeJlsModal @ref="MergeJlsModal" />
 <ComboBoxModal @ref="ComboBoxModal" />
 <MergePackagesModal @ref="MergePackagesModal" />
 <PackagesInBuforModal @ref="PackagesInBuforModal"/>
+<CourierConfigurationModal @ref="CourierConfigurationModal" />
 
 <Toast FocusAfterCloseInput="InputRef" @ref="Toast" />
 
@@ -144,11 +144,11 @@
     private LoggedOperatorsModal LoggedOperatorsModal = new();
     private JlInProgressModal JlInProgressModal = new();
     private ChangePackingWarehouseModal ChangePackingWarehouseModal = new();
-    private PackingJlItemsModal PackingJlItemsModal = new();
     private MergeJlsModal MergeJlsModal = new();
     private ComboBoxModal ComboBoxModal = new();
     private MergePackagesModal MergePackagesModal = new();
     private PackagesInBuforModal PackagesInBuforModal = new();
+    private CourierConfigurationModal CourierConfigurationModal = new();
 
     private int JlReadyToPackCount { get; set; } = 0;
     private int AddressesCount { get; set; } = 0;
@@ -306,7 +306,7 @@
                 jl.AddressCountry,
                 DocumentStatus.Bufor);
 
-            if (packagesInBufor?.Any() == true)
+            if (packagesInBufor?.Where(p => p.Courier == jl.Courier).Any() == true)
             {
                 selectedPackage = await PackagesInBuforModal.Show(packagesInBufor);
             }
@@ -390,13 +390,6 @@
     {
         switch (returnClick)
         {
-            case 3: /* Zawartość */
-                var barcode = await TextBoxModal.Show("Zawartość kuwety", "Wprowadź kod wewnętrzny", "Kod wewnętrzny");
-                if (!string.IsNullOrEmpty(barcode))
-                {
-                    await PackingJlItemsModal.ShowModal(barcode);
-                }
-                break;
             case 5: /* Zalogowani */
                 await LoggedOperatorsModal.ShowModal();
                 break;
@@ -484,6 +477,37 @@
                 {
                     Toast.Show("Błąd!", $"Błąd przy próbie zabuforowania paczki: {ex.Message}");
                 }
+                break;
+            case 11: /* Konfiguracja kurierów */
+                List<CourierConfiguration> courierConfigurations;
+                try
+                {
+                    courierConfigurations = await PackingService.GetCourierConfiguration();
+                }
+                catch (Exception ex)
+                {
+                    Toast.Show("Błąd!", $"Błąd przy próbie otwarcia konfiguracji kurierów: {ex.Message}");
+                    return;
+                }
+
+                CourierConfigurationModal.Show(
+                    configs: courierConfigurations,
+                    onConfirm: async () =>
+                    {
+                        try
+                        {
+                            await PackingService.UpdateCourierConfiguration(courierConfigurations);
+                            Toast.Show("Sukces", "Konfiguracja została zapisana", ToastType.Success);
+                        }
+                        catch (Exception ex)
+                        {
+                            Toast.Show("Błąd", $"Nie udało się zapisać: {ex.Message}");
+                        }
+                    },
+                    onCancel: async () =>
+                    {
+                    }
+                );
                 break;
         }
         await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
