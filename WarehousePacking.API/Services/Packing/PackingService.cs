@@ -289,14 +289,13 @@ public class PackingService : IPackingService
         var allPackItems = new List<PackStockItems>();
 
         string luDestType = string.Empty;
-        string locDestNr = string.Empty;
+        string locDestNr = request.First().DestinationCode;
         if (request.First().Status == DocumentStatus.Bufor)
         {
             luDestType = "PALETA";
         }
         else
         {
-            locDestNr = request.First().DestincationCode;
             string type = request.First().Type.ToUpper();
             luDestType = type == string.Empty ? (request.Sum(i => i.Weight) > 120 ? "PALETA" : "PACZKA") : type;
         }
@@ -315,7 +314,7 @@ public class PackingService : IPackingService
                     LuSourceNr = jl.JlCode,
                     LuDestEan = string.IsNullOrEmpty(jl.ScannedCode) ? jl.TrackingNumber : jl.ScannedCode,
                     LuDestNr = jl.TrackingNumber,
-                    LuDestTypeSymbol = luDestType,
+                    LuDestTypeSymbol = string.IsNullOrEmpty(locDestNr) ? luDestType : "PALETA",
                     ItemNr = item.ItemCode,
                     ItemQty = item.Quantity.ToString().Replace(",", "."),
                 });

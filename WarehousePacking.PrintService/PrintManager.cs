@@ -1,11 +1,11 @@
 ﻿using CrystalDecisions.CrystalReports.Engine;
-using WarehousePacking.PrintService.Models;
 using PdfiumViewer;
 using System;
 using System.Drawing.Printing;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using WarehousePacking.PrintService.Models;
 using Logger = WarehousePacking.PrintService.Logging.Logger;
 
 namespace WarehousePacking.PrintService
@@ -76,8 +76,7 @@ namespace WarehousePacking.PrintService
                 using (var stream = new MemoryStream(pdfBytes))
                 using (var pdfDocument = PdfDocument.Load(stream))
                 {
-                    // Fit to full paper instead of only shrinking
-                    using (var printDocument = pdfDocument.CreatePrintDocument(PdfPrintMode.CutMargin))
+                    using (var printDocument = new PrintDocument())
                     {
                         printDocument.PrinterSettings.PrinterName = printerName;
                         printDocument.PrintController = new StandardPrintController();
@@ -99,6 +98,8 @@ namespace WarehousePacking.PrintService
                         printDocument.DefaultPageSettings.Margins = new Margins(0, 0, 0, 0);
                         printDocument.OriginAtMargins = false;
 
+                        var currentPage = 0;
+
                         printDocument.QueryPageSettings += (sender, e) =>
                         {
                             if (selectedPaper != null)
@@ -106,6 +107,22 @@ namespace WarehousePacking.PrintService
 
                             e.PageSettings.Landscape = isLandscape;
                             e.PageSettings.Margins = new Margins(0, 0, 0, 0);
+                        };
+
+                        printDocument.PrintPage += (sender, e) =>
+                        {
+                            var drawRect = e.PageBounds;
+
+                            var renderWidth = Math.Max(1, (int)(drawRect.Width / 100f * 300f));
+                            var renderHeight = Math.Max(1, (int)(drawRect.Height / 100f * 300f));
+
+                            using (var image = pdfDocument.Render(currentPage, renderWidth, renderHeight, 300, 300, PdfRenderFlags.ForPrinting))
+                            {
+                                e.Graphics.DrawImage(image, drawRect);
+                            }
+
+                            currentPage++;
+                            e.HasMorePages = currentPage < pdfDocument.PageCount;
                         };
 
                         printDocument.Print();

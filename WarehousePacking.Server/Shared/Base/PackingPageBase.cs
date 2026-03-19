@@ -623,7 +623,7 @@ namespace WarehousePacking.Server.Shared.Base
                 {
                     PackingLevel = Settings.PackingLevel,
                     PackingWarehouse = Settings.PackingWarehouse,
-                    DestincationCode = destinationCode,
+                    DestinationCode = destinationCode,
                     LocationCode = jl.locationCode,
                     ScannedCode = packageCode,
                     TrackingNumber = trackingNumber,
@@ -651,6 +651,7 @@ namespace WarehousePacking.Server.Shared.Base
                 PackingLevel = Settings.PackingLevel,
                 PackingWarehouse = Settings.PackingWarehouse,
                 LocationCode = CurrentJl.LocationCode,
+                DestinationCode = destinationCode,
                 ScannedCode = packageCode,
                 TrackingNumber = trackingNumber,
                 StationNumber = Settings.StationNumber,
