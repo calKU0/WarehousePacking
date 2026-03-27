@@ -1,7 +1,7 @@
-﻿using WarehousePacking.API.Integrations.Couriers.DPD_Romania.DTOs;
+﻿using Microsoft.Extensions.Options;
+using WarehousePacking.API.Integrations.Couriers.DPD_Romania.DTOs;
 using WarehousePacking.API.Settings;
 using WarehousePacking.Shared.DTOs;
-using Microsoft.Extensions.Options;
 
 namespace WarehousePacking.API.Integrations.Couriers.Mapping
 {
@@ -104,7 +104,7 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
                 },
                 ShipmentNote = package.Description,
                 Ref1 = package.References,
-                Ref2 = "R2"
+                Ref2 = package.Description
             };
 
             return shipment;

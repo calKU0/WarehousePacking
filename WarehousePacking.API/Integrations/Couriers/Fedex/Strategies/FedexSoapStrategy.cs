@@ -1,12 +1,11 @@
 ﻿using FedexServiceReference;
-using WarehousePacking.API.Integrations.Couriers.Fedex;
+using Microsoft.Extensions.Options;
+using System.ServiceModel;
 using WarehousePacking.API.Integrations.Couriers.Mapping;
 using WarehousePacking.API.Settings;
 using WarehousePacking.Shared.DTOs;
 using WarehousePacking.Shared.DTOs.Requests;
 using WarehousePacking.Shared.Enums;
-using Microsoft.Extensions.Options;
-using System.ServiceModel;
 
 namespace WarehousePacking.API.Integrations.Couriers.Fedex.Strategies
 {
@@ -15,7 +14,6 @@ namespace WarehousePacking.API.Integrations.Couriers.Fedex.Strategies
         private readonly IFedexClientWrapper _client;
         private readonly IParcelMapper<listV2> _mapper;
         private readonly FedexSoapSettings _soapSettings;
-        private static long CourierID => 6700;
 
         public FedexSoapStrategy(IFedexClientWrapper client, IParcelMapper<listV2> mapper, IOptions<CourierSettings> courierSettings)
         {
@@ -27,7 +25,7 @@ namespace WarehousePacking.API.Integrations.Couriers.Fedex.Strategies
         public async Task<string> GenerateProtocol(IEnumerable<RoutePackages> shipments)
         {
             var accessCode = shipments.First().Dropshipping ? _soapSettings.DropshippingAccessCode : _soapSettings.AccessCode;
-            byte[] result = await _client.zapiszDokumentWydaniaAsync(accessCode, string.Join(";", shipments.Select(x => x.TrackingNumber)), ";", CourierID);
+            byte[] result = await _client.zapiszDokumentWydaniaAsync(accessCode, string.Join(";", shipments.Select(x => x.TrackingNumber)), ";", _soapSettings.CourierId);
 
             return Convert.ToBase64String(result);
         }

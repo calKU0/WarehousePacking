@@ -144,6 +144,12 @@
                         <label class="form-check-label">Zwrot dokumentów</label>
                     </div>
                     <div class="form-check">
+                        <InputCheckbox @bind-Value="Package.ShipmentServices.PZ"
+                                       class="form-check-input"
+                                       disabled="@( !Package.ManualEdit )" />
+                        <label class="form-check-label">Przesyłka zwrotna</label>
+                    </div>
+                    <div class="form-check">
                         <InputCheckbox @bind-Value="Package.ShipmentServices.D10"
                                        class="form-check-input"
                                        disabled="@( !Package.ManualEdit )" />

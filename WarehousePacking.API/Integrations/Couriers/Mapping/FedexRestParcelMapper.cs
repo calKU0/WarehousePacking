@@ -1,8 +1,7 @@
-﻿using FedexServiceReference;
+﻿using Microsoft.Extensions.Options;
 using WarehousePacking.API.Integrations.Couriers.Fedex.DTOs;
 using WarehousePacking.API.Settings;
 using WarehousePacking.Shared.DTOs;
-using Microsoft.Extensions.Options;
 
 namespace WarehousePacking.API.Integrations.Couriers.Mapping
 {
@@ -51,6 +50,14 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
                         {
                             Units = "KG",
                             Value = (int)package.Weight,
+                        },
+                        CustomerReferences = new()
+                        {
+                            new CustomerReference
+                            {
+                                CustomerReferenceType = "INVOICE_NUMBER",
+                                Value = package.InvoiceName.ToString()
+                            }
                         }
                     }
                 },

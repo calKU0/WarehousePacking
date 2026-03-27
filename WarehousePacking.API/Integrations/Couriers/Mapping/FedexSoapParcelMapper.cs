@@ -1,7 +1,7 @@
 ﻿using FedexServiceReference;
+using Microsoft.Extensions.Options;
 using WarehousePacking.API.Settings;
 using WarehousePacking.Shared.DTOs;
-using Microsoft.Extensions.Options;
 
 namespace WarehousePacking.API.Integrations.Couriers.Mapping
 {
@@ -27,7 +27,7 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
                 receiver = MapReceiver(package),
                 parcels = MapParcels(package),
                 proofOfDispatch = MapProofOfDispatch(),
-                remarks = package.References + (package.ShipmentServices.Dropshipping ? "!!! Dropshipping !!!" : ""),
+                remarks = package.Description + (package.ShipmentServices.Dropshipping ? "!!! Dropshipping !!!" : ""),
                 shipmentType = "K",
                 paymentForm = "P",
                 payerType = "1"

@@ -1,9 +1,7 @@
-﻿using WarehousePacking.API.Integrations.Couriers.DPD.DTOs;
-using WarehousePacking.API.Services.Shipment.GLS;
+﻿using Microsoft.Extensions.Options;
+using WarehousePacking.API.Integrations.Couriers.DPD.DTOs;
 using WarehousePacking.API.Settings;
 using WarehousePacking.Shared.DTOs;
-using WarehousePacking.Shared.DTOs.Requests;
-using Microsoft.Extensions.Options;
 
 namespace WarehousePacking.API.Integrations.Couriers.Mapping
 {
