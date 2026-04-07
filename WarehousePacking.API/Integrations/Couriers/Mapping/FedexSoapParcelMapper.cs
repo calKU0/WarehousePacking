@@ -125,7 +125,7 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
                 list.cod = new pobranieV2
                 {
                     codValue = FedexHelper.ToNumberString(package.ShipmentServices.CODAmount),
-                    bankAccountNumber = package.SenderBankAccount,
+                    bankAccountNumber = string.IsNullOrEmpty(package.SenderBankAccount) ? _senderSettings.BankAccountNumber : package.SenderBankAccount,
                     codType = "B"
                 };
 

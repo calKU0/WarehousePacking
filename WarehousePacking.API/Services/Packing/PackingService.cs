@@ -196,7 +196,7 @@ public class PackingService : IPackingService
     public async Task<bool> AddPackedPosition(AddPackedPositionRequest request)
     {
         const string procedure = "kp.AddPackedPosition";
-        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.PackingDocumentId, request.SourceDocumentId, request.SourceDocumentType, request.PositionNumber, request.Quantity, request.Weight, request.Volume, request.ScanDate, request.PackDate, request.Username }, CommandType.StoredProcedure, Connection.ERPConnection);
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.StationNumber, request.PackingDocumentId, request.SourceDocumentId, request.SourceDocumentType, request.PositionNumber, request.Quantity, request.Weight, request.Volume, request.ScanDate, request.PackDate, request.Username }, CommandType.StoredProcedure, Connection.ERPConnection);
         return result > 0;
     }
 
