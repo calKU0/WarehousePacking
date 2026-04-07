@@ -18,7 +18,15 @@
     }
 
     <div class="me-3">
-        <h4>Operator: @Username</h4>
+        @if ((ActiveOperators?.Count ?? 0) <= 1)
+        {
+            <h4>Operator: @Username</h4>
+        }
+        else
+        {
+            <small class="d-block">Główny operator: @MainOperator</small>
+            <small class="d-block">Operatorzy: @string.Join(", ", ActiveOperators)</small>
+        }
     </div>
 
     <div class="flex-grow-1 text-center">
@@ -43,5 +51,8 @@
     [Parameter] public string Username { get; set; }
     [Parameter] public EventCallback<int> OnManagerClick { get; set; }
     [Parameter] public EventCallback OnManagerRequestPassword { get; set; }
+    [Parameter] public bool IsMainOperator { get; set; }
+    [Parameter] public string MainOperator { get; set; } = string.Empty;
+    [Parameter] public List<string> ActiveOperators { get; set; } = new();
     public ManagerControlModal? ManagerModal { get; private set; }
 }

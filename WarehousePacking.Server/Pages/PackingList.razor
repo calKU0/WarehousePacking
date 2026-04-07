@@ -260,6 +260,21 @@
     {
         try
         {
+            await LoadData();
+
+            var refreshedJl = JlList.FirstOrDefault(x =>
+                x.Id == jl.Id ||
+                string.Equals(x.Name, jl.Name, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.Barcode, jl.Barcode, StringComparison.OrdinalIgnoreCase));
+
+            if (refreshedJl == null)
+            {
+                Toast.Show("Nie znaleziono", "Kuweta nie jest już dostępna na liście.", ToastType.Info);
+                return;
+            }
+
+            jl = refreshedJl;
+
             if (jl.Status == 2)
             {
                 var password = await PasswordModal.ShowAsync("Wprowadź hasło do kuwety czerwonej");
@@ -274,9 +289,39 @@
                 }
             }
 
+            int? activePackageId = null;
             if (jl.Status == 3)
             {
-                Toast.Show("Pakowana", "Kuweta jest pakowana na innym stanowisku", ToastType.Error);
+                var inProgress = await PackingService.GetJlListInProgress();
+                var active = inProgress
+                    .Where(x => string.Equals(x.Name, jl.Name, StringComparison.OrdinalIgnoreCase) && x.PackageId > 0)
+                    .OrderByDescending(x => x.Date)
+                    .FirstOrDefault();
+
+                if (active is null)
+                {
+                    Toast.Show("Pakowana", "Kuweta jest oznaczona jako pakowana, ale nie znaleziono aktywnej paczki.", ToastType.Error);
+                    return;
+                }
+
+                var password = await PasswordModal.ShowAsync("Wprowadź hasło aby dołączyć do pakowania");
+                if (password == null)
+                    return;
+
+                bool valid = await AuthService.ValidatePasswordAsync(password);
+                if (!valid)
+                {
+                    Toast.Show("Błąd!", "Błędne hasło");
+                    return;
+                }
+
+                activePackageId = active.PackageId;
+
+                var joinUrl = jl.ClientName == "MIX"
+                    ? $"/kontrola-pakowania/{jl.Name}/single?packTo={activePackageId.Value}"
+                    : $"/kontrola-pakowania/{jl.Name}?packTo={activePackageId.Value}";
+
+                Navigation.NavigateTo(joinUrl);
                 return;
             }
 

@@ -11,6 +11,9 @@
     <PackingHeader JlItems="JlItems"
                    CurrentJl="CurrentJl"
                    Username="@UserSession.Username"
+                   IsMainOperator="@IsMainOperator"
+                   MainOperator="@MainOperator"
+                   ActiveOperators="@ActiveOperators"
                    OnManagerClick="HandleManagerClick"
                    OnManagerRequestPassword="OnManagerButtonClick" />
 
@@ -30,7 +33,8 @@
                     Close="Close"
                     FinishPacking="FinishPacking"
                     PackedItems="PackedItems"
-                    Settings="Settings" />
+                    Settings="Settings"
+                    IsMainOperator="@IsMainOperator" />
 
     <ProductSelectModal @ref=ProductSelectModal FocusOnClose="ScanInputComponent" OnConfirm="PackItem" />
     <JlSelectModal @ref="JlSelectModal" />
@@ -139,7 +143,10 @@
             }
 
             MovedProduct = true;
-            FinishPacking();
+            if (IsMainOperator)
+            {
+                FinishPacking();
+            }
         }
         catch (Exception ex)
         {

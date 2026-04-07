@@ -14,6 +14,9 @@
                    JlItems="JlItems"
                    CurrentJl="CurrentJl"
                    Username="@UserSession.Username"
+                   IsMainOperator="@IsMainOperator"
+                   MainOperator="@MainOperator"
+                   ActiveOperators="@ActiveOperators"
                    OnManagerClick="HandleManagerClick"
                    OnManagerRequestPassword="OnManagerButtonClick" />
 
@@ -32,7 +35,8 @@
                     Close="Close"
                     FinishPacking="FinishPacking"
                     PackedItems="PackedItems"
-                    Settings="Settings" />
+                    Settings="Settings"
+                    IsMainOperator="@IsMainOperator" />
 </div>
 
 
@@ -81,6 +85,7 @@
                 await PackingService.UpdateJlRealization(jlInProgress);
             }
 
+            await InitializeCollaborationSession();
             await LoadCourierConfiguration();
         }
         catch (Exception ex)

@@ -6,6 +6,7 @@
         public int SourceDocumentId { get; set; }
         public int SourceDocumentType { get; set; }
         public int PositionNumber { get; set; }
+        public string? StationNumber { get; set; } = null;
         public string Username { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
         public decimal Weight { get; set; }
