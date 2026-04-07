@@ -14,7 +14,7 @@ namespace WarehousePacking.API.Services.Packing
 
         Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl, PackingLevel location);
 
-        Task<IEnumerable<JlItemDto>> GetPackingJlItemsAsync(string barcode);
+        Task<IEnumerable<JlItemDto>> GetPackingJlItemsAsync(int packageId);
 
         Task<IEnumerable<JlInProgressDto>> GetJlListInProgress();
 

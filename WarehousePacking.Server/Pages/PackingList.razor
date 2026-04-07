@@ -260,12 +260,7 @@
     {
         try
         {
-            await LoadData();
-
-            var refreshedJl = JlList.FirstOrDefault(x =>
-                x.Id == jl.Id ||
-                string.Equals(x.Name, jl.Name, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(x.Barcode, jl.Barcode, StringComparison.OrdinalIgnoreCase));
+            var refreshedJl = await PackingService.GetJlInfoByCode(jl.Name, Settings.PackingLevel);
 
             if (refreshedJl == null)
             {

@@ -1,6 +1,8 @@
 ﻿@using WarehousePacking.Server.Services
+@using WarehousePacking.Shared.DTOs
 @using WarehousePacking.Shared.Enums
 @inject PackingService PackingService
+@inject WorkstationService WorkstationService
 
 @if (Show)
 {
@@ -43,6 +45,9 @@
                                         <td>@jl.Courier</td>
                                         <td>@jl.ClientName</td>
                                         <td>
+                                            <button class="btn btn-sm btn-primary me-2" @onclick="() => ShowPreview(jl)">
+                                                Podgląd
+                                            </button>
                                             <button class="btn btn-sm btn-danger" @onclick="() => ConfirmRemove(jl)">
                                                 Usuń
                                             </button>
@@ -57,27 +62,125 @@
                         <p class="text-muted">Brak kuwet podjętych do realizacji.</p>
                     }
                 </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="Close">Zamknij</button>
-                </div>
             </div>
         </div>
     </div>
 
     <ConfirmDialog @ref="ConfirmDialog" />
 }
+
+@if (ShowPreviewModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content shadow-lg rounded-3">
+                <div class="modal-header">
+                    <h5 class="modal-title">Podgląd pakowania: @PreviewJlName</h5>
+                    <button type="button" class="btn-close" @onclick="ClosePreview"></button>
+                </div>
+
+                <div class="modal-body">
+                    @if (PreviewLoading)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border text-primary"></div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row g-3">
+                            <div class="col-12 col-lg-8">
+                                <div class="card">
+                                    <div class="card-header">Do spakowania</div>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover mb-0">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Kod</th>
+                                                    <th>Ilość</th>
+                                                    <th>Nazwa</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @if (!PreviewNotPackedItems.Any())
+                                                {
+                                                    <tr><td colspan="3" class="text-center text-muted">Brak pozycji</td></tr>
+                                                }
+                                                else
+                                                {
+                                                    @foreach (var item in PreviewNotPackedItems)
+                                                    {
+                                                        <tr>
+                                                            <td>@item.ItemCode</td>
+                                                            <td>@item.JlQuantity</td>
+                                                            <td>@item.ItemName</td>
+                                                        </tr>
+                                                    }
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-lg-4">
+                                <div class="card">
+                                    <div class="card-header">Spakowane</div>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover mb-0">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Kod</th>
+                                                    <th>Ilość</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @if (!PreviewPackedItems.Any())
+                                                {
+                                                    <tr><td colspan="2" class="text-center text-muted">Brak pozycji</td></tr>
+                                                }
+                                                else
+                                                {
+                                                    @foreach (var item in PreviewPackedItems)
+                                                    {
+                                                        <tr>
+                                                            <td>@item.ItemCode</td>
+                                                            <td>@item.JlQuantity</td>
+                                                        </tr>
+                                                    }
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 <Toast @ref="Toast"/>
 
 @code {
     [Parameter] public bool Show { get; set; }
     [Parameter] public EventCallback<bool> ShowChanged { get; set; }
 
-    private List<JlInProgressDto> JlList;
+    private List<JlInProgressDto> JlList = new();
     private ConfirmDialog ConfirmDialog = new();
     private JlInProgressDto? SelectedJl { get; set; }
+    private WorkstationSettings Settings = new();
     private Toast Toast = new();
     private bool IsLoading { get; set; }
+
+    private bool ShowPreviewModal { get; set; }
+    private bool PreviewLoading { get; set; }
+    private string PreviewJlName { get; set; } = string.Empty;
+    private List<JlItemDto> PreviewPackedItems { get; set; } = new();
+    private List<JlItemDto> PreviewNotPackedItems { get; set; } = new();
 
     public async Task ShowModal()
     {
@@ -91,6 +194,7 @@
         try
         {
             IsLoading = true;
+            Settings = await WorkstationService.GetSettingsAsync();
             JlList = await PackingService.GetJlListInProgress();
         }
         catch (Exception ex)
@@ -102,6 +206,143 @@
             IsLoading = false;
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task ShowPreview(JlInProgressDto jl)
+    {
+        try
+        {
+            ShowPreviewModal = true;
+            PreviewLoading = true;
+            PreviewJlName = jl.Name;
+            PreviewPackedItems = new List<JlItemDto>();
+            PreviewNotPackedItems = new List<JlItemDto>();
+            await InvokeAsync(StateHasChanged);
+
+            if (string.IsNullOrWhiteSpace(Settings.StationNumber))
+                Settings = await WorkstationService.GetSettingsAsync();
+
+            var allItems = await PackingService.GetJlItems(jl.Name, Settings.PackingLevel) ?? new List<JlItemDto>();
+            var packedItems = await PackingService.GetPackingJlItems(jl.PackageId) ?? new List<JlItemDto>();
+
+            PreviewPackedItems = packedItems
+                .GroupBy(x => new { x.ItemCode, x.DocumentId, x.ErpPositionNumber })
+                .Select(g =>
+                {
+                    var first = g.First();
+                    first.JlQuantity = g.Sum(x => x.JlQuantity);
+                    return first;
+                })
+                .ToList();
+
+            PreviewNotPackedItems = CalculateNotPacked(allItems, PreviewPackedItems);
+        }
+        catch (Exception ex)
+        {
+            Toast.Show("Błąd!", $"Błąd przy podglądzie zawartości: {ex.Message}");
+            ShowPreviewModal = false;
+        }
+        finally
+        {
+            PreviewLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private static List<JlItemDto> CalculateNotPacked(List<JlItemDto> allItems, List<JlItemDto> packedItems)
+    {
+        var packedLookup = packedItems
+            .GroupBy(x => BuildKey(x.ItemCode, x.DocumentId, x.ErpPositionNumber))
+            .ToDictionary(g => g.Key, g => g.Sum(GetEffectiveQuantity));
+
+        var packedByItemCode = packedItems
+            .GroupBy(x => Normalize(x.ItemCode))
+            .ToDictionary(g => g.Key, g => g.Sum(GetEffectiveQuantity));
+
+        var notPacked = new List<JlItemDto>();
+        foreach (var item in allItems)
+        {
+            var key = BuildKey(item.ItemCode, item.DocumentId, item.ErpPositionNumber);
+            var packedQty = packedLookup.TryGetValue(key, out var value)
+                ? value
+                : packedByItemCode.TryGetValue(Normalize(item.ItemCode), out var byItemCode)
+                    ? byItemCode
+                    : 0;
+
+            var remaining = GetEffectiveQuantity(item) - packedQty;
+            if (remaining <= 0)
+                continue;
+
+            var clone = CloneItem(item);
+            clone.JlQuantity = remaining;
+            notPacked.Add(clone);
+        }
+
+        return notPacked;
+    }
+
+    private static JlItemDto CloneItem(JlItemDto source)
+    {
+        return new JlItemDto
+        {
+            JlCode = source.JlCode,
+            JlEanCode = source.JlEanCode,
+            ItemErpId = source.ItemErpId,
+            ItemWmsId = source.ItemWmsId,
+            ErpPositionNumber = source.ErpPositionNumber,
+            ItemCode = source.ItemCode,
+            ItemName = source.ItemName,
+            ItemEan = source.ItemEan?.ToList() ?? new List<string>(),
+            ItemUnit = source.ItemUnit,
+            ItemType = source.ItemType,
+            ItemImage = source.ItemImage,
+            ItemWeight = source.ItemWeight,
+            ItemVolume = source.ItemVolume,
+            PackedWMS = source.PackedWMS,
+            SupplierCode = source.SupplierCode?.ToList() ?? new List<string>(),
+            ClientErpId = source.ClientErpId,
+            AddressName = source.AddressName,
+            AddressCity = source.AddressCity,
+            AddressStreet = source.AddressStreet,
+            AddressPostalCode = source.AddressPostalCode,
+            AddressCountry = source.AddressCountry,
+            ClientName = source.ClientName,
+            ClientSymbol = source.ClientSymbol,
+            DestinationCountry = source.DestinationCountry,
+            PackingRequirements = source.PackingRequirements,
+            ScanDate = source.ScanDate,
+            CourierName = source.CourierName,
+            Courier = source.Courier,
+            LogoCourier = source.LogoCourier,
+            ShipmentServices = source.ShipmentServices,
+            BatchId = source.BatchId,
+            BatchNumber = source.BatchNumber,
+            TermValidity = source.TermValidity,
+            ErpDocumentId = source.ErpDocumentId,
+            DocumentId = source.DocumentId,
+            DocumentType = source.DocumentType,
+            DocumentQuantity = source.DocumentQuantity,
+            JlQuantity = source.JlQuantity
+        };
+    }
+
+    private static string BuildKey(string itemCode, int documentId, int position)
+        => $"{Normalize(itemCode)}|{documentId}|{position}";
+
+    private static decimal GetEffectiveQuantity(JlItemDto item)
+        => item.JlQuantity > 0 ? item.JlQuantity : item.DocumentQuantity;
+
+    private static string Normalize(string? value)
+        => string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim().ToUpperInvariant();
+
+    private void ClosePreview()
+    {
+        ShowPreviewModal = false;
+        PreviewLoading = false;
+        PreviewPackedItems = new List<JlItemDto>();
+        PreviewNotPackedItems = new List<JlItemDto>();
+        PreviewJlName = string.Empty;
+        StateHasChanged();
     }
 
     private void ConfirmRemove(JlInProgressDto jl)

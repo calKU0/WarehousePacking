@@ -89,18 +89,18 @@ namespace WarehousePacking.API.Controllers
         }
 
         [HttpGet("packing-jl-items")]
-        public async Task<IActionResult> GetPackingJlItems([FromQuery] string barcode)
+        public async Task<IActionResult> GetPackingJlItems([FromQuery] int packageId)
         {
-            _logger.Information("Request: GetPackingJlItems for barcode {Barcode}", barcode);
+            _logger.Information("Request: GetPackingJlItems for package id {PackageId}", packageId);
             try
             {
-                var items = await _packingService.GetPackingJlItemsAsync(barcode);
-                _logger.Information("GetPackingJlItems succeeded for barcode {Barcode} with {Count} items", barcode, items.Count());
+                var items = await _packingService.GetPackingJlItemsAsync(packageId);
+                _logger.Information("GetPackingJlItems succeeded for package id {PackageId} with {Count} items", packageId, items.Count());
                 return Ok(items);
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Error in GetPackingJlItems for barcode {Barcode}", barcode);
+                _logger.Error(ex, "Error in GetPackingJlItems for package id {PackageId}", packageId);
                 return HandleException(ex);
             }
         }

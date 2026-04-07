@@ -86,9 +86,9 @@ namespace WarehousePacking.Server.Services
             throw new Exception(generic);
         }
 
-        public async Task<List<JlItemDto>> GetPackingJlItems(string barcode)
+        public async Task<List<JlItemDto>> GetPackingJlItems(int packageId)
         {
-            var response = await _dbClient.GetAsync($"api/packing/packing-jl-items?barcode={barcode}");
+            var response = await _dbClient.GetAsync($"api/packing/packing-jl-items?packageId={packageId}");
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<List<JlItemDto>>();

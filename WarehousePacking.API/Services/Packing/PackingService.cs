@@ -101,10 +101,10 @@ public class PackingService : IPackingService
         return jlItems;
     }
 
-    public async Task<IEnumerable<JlItemDto>> GetPackingJlItemsAsync(string barcode)
+    public async Task<IEnumerable<JlItemDto>> GetPackingJlItemsAsync(int packageId)
     {
         const string procedure = "kp.GetJlPackingItems";
-        return await _db.QueryAsync<JlItemDto>(procedure, new { barcode }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return await _db.QueryAsync<JlItemDto>(procedure, new { packageId }, CommandType.StoredProcedure, Connection.ERPConnection);
     }
 
     public async Task<IEnumerable<JlInProgressDto>> GetJlListInProgress()
