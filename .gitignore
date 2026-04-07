@@ -236,4 +236,5 @@ _Pvt_Extensions
 # Project
 appsettings.json
 appsettings.Development.json
-cdn_api20241_core.dll
+local.settings.json
+.github
