@@ -27,6 +27,7 @@
                         <table class="table table-striped table-hover">
                             <thead>
                                 <tr>
+                                    <th></th>
                                     <th>Nazwa</th>
                                     <th>Użytkownik</th>
                                     <th>Nr. stanowiska</th>
@@ -39,6 +40,12 @@
                                 @foreach (var jl in JlList)
                                 {
                                     <tr>
+                                        <td>
+                                            <input type="checkbox"
+                                                   class="form-check-input"
+                                                   checked="@SelectedJlNames.Contains(jl.Name)"
+                                                   @onchange="(e) => ToggleSelection(jl.Name, e.Value)" />
+                                        </td>
                                         <td>@jl.Name</td>
                                         <td>@jl.User</td>
                                         <td>@jl.StationNumber</td>
@@ -62,6 +69,15 @@
                         <p class="text-muted">Brak kuwet podjętych do realizacji.</p>
                     }
                 </div>
+
+                @if (SelectedJlNames.Any())
+                {
+                    <div class="modal-footer">
+                        <button class="btn btn-danger" @onclick="ConfirmRemoveSelected">
+                            Usuń zaznaczone (@SelectedJlNames.Count)
+                        </button>
+                    </div>
+                }
             </div>
         </div>
     </div>
@@ -172,6 +188,7 @@
     private List<JlInProgressDto> JlList = new();
     private ConfirmDialog ConfirmDialog = new();
     private JlInProgressDto? SelectedJl { get; set; }
+    private HashSet<string> SelectedJlNames { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     private WorkstationSettings Settings = new();
     private Toast Toast = new();
     private bool IsLoading { get; set; }
@@ -196,6 +213,7 @@
             IsLoading = true;
             Settings = await WorkstationService.GetSettingsAsync();
             JlList = await PackingService.GetJlListInProgress();
+            SelectedJlNames.RemoveWhere(name => !JlList.Any(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase)));
         }
         catch (Exception ex)
         {
@@ -369,6 +387,7 @@
                 finally
                 {
                     SelectedJl = null;
+                    SelectedJlNames.Remove(jl.Name);
                     await LoadData();
                     await InvokeAsync(StateHasChanged);
                 }
@@ -376,6 +395,53 @@
             onCancel: async () =>
             {
                 SelectedJl = null;
+                await InvokeAsync(StateHasChanged);
+            }
+        );
+    }
+
+    private void ToggleSelection(string jlName, object? isChecked)
+    {
+        var value = isChecked is bool b && b;
+        if (value)
+            SelectedJlNames.Add(jlName);
+        else
+            SelectedJlNames.Remove(jlName);
+    }
+
+    private void ConfirmRemoveSelected()
+    {
+        var selectedNames = SelectedJlNames.ToList();
+        if (!selectedNames.Any())
+            return;
+
+        ConfirmDialog.Show(
+            title: "Usuń zaznaczone kuwety",
+            message: $"Czy na pewno chcesz usunąć {selectedNames.Count} zaznaczonych realizacji?",
+            onConfirm: async () =>
+            {
+                try
+                {
+                    foreach (var name in selectedNames)
+                    {
+                        await PackingService.RemoveJlRealization(name, true);
+                    }
+
+                    SelectedJlNames.Clear();
+                    Toast.Show("Sukces!", "Zaznaczone realizacje zostały usunięte.", ToastType.Success);
+                }
+                catch (Exception ex)
+                {
+                    Toast.Show("Błąd!", $"Błąd przy usuwaniu zaznaczonych realizacji: {ex.Message}");
+                }
+                finally
+                {
+                    await LoadData();
+                    await InvokeAsync(StateHasChanged);
+                }
+            },
+            onCancel: async () =>
+            {
                 await InvokeAsync(StateHasChanged);
             }
         );

@@ -16,7 +16,15 @@
                         <h5 class="modal-title">Przyciski Kierownika</h5>
                         <button type="button" class="btn-close" aria-label="Close" @onclick="CloseModal"></button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body position-relative">
+                        @if (IsLoading)
+                        {
+                            <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index: 10;">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Ładowanie...</span>
+                                </div>
+                            </div>
+                        }
                         <div class="container">
                             <div class="row g-3">
                                 @if (ShowPackingButtons)
@@ -26,7 +34,7 @@
                                     </div> *@
 
                                     <div class="col-4">
-                                        <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(2)">Spakuj</button>
+                                        <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(2)" disabled="@IsLoading">Spakuj</button>
                                     </div>
  
                                     @* <div class="col-4">
@@ -34,35 +42,35 @@
                                     </div> *@
 
                                     <div class="col-4">
-                                        <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(4)">Kurier</button>
+                                        <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(4)" disabled="@IsLoading">Kurier</button>
                                     </div>
                                 }
                                 <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(5)">Zalogowani</button>
+                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(5)" disabled="@IsLoading">Zalogowani</button>
                                 </div>
                                 <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(6)">Kuwety podjęte</button>
+                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(6)" disabled="@IsLoading">Kuwety podjęte</button>
                                 </div>
                                 <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(7)">Zamknij paczke</button>
+                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(7)" disabled="@IsLoading">Zamknij paczke</button>
                                 </div>
                                 <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(8)">Zm. magazyn</button>
+                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(8)" disabled="@IsLoading">Zm. magazyn</button>
                                 </div>
                                 <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(9)">Połącz paczki</button>
+                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(9)" disabled="@IsLoading">Połącz paczki</button>
                                 </div>
-                                <div class="col-4">
+                                @* <div class="col-4">
                                     <button class="btn btn-primary w-100 py-3 px-0" @onclick="() => HandleClick(10)">Zabuforuj paczke</button>
-                                </div>
+                                </div> *@
                                 <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(11)">Konf. kurierów</button>
+                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(11)" disabled="@IsLoading">Konf. kurierów</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-secondary" @onclick="CloseModal" id="zamknijBtn">Zamknij</button>
+                        <button class="btn btn-secondary" @onclick="CloseModal" id="zamknijBtn" disabled="@IsLoading">Zamknij</button>
                     </div>
                 </div>
             </div>
@@ -74,6 +82,7 @@
 
 @code {
     private bool IsOpen = false;
+    private bool IsLoading = false;
 
     [Parameter] public EventCallback<int> OnButtonClick { get; set; }
     [Parameter] public EventCallback OnRequestPassword { get; set; }
@@ -105,7 +114,21 @@
 
     private async Task HandleClick(int value)
     {
-        await OnButtonClick.InvokeAsync(value);
+        if (IsLoading)
+            return;
+
+        IsLoading = true;
         IsOpen = false;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await OnButtonClick.InvokeAsync(value);
+        }
+        finally
+        {
+            IsLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 }

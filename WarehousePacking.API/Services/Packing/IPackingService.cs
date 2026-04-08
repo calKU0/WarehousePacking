@@ -10,7 +10,7 @@ namespace WarehousePacking.API.Services.Packing
 
         Task<IEnumerable<JlDto>> GetNotClosedPackagesAsync();
 
-        Task<JlData> GetJlInfoByCodeAsync(string jl, PackingLevel location);
+        Task<JlData?> GetJlInfoByCodeAsync(string jl, PackingLevel location);
 
         Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl, PackingLevel location);
 

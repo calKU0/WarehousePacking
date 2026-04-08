@@ -8,9 +8,17 @@
             <div class="modal-content shadow-lg">
                 <div class="modal-header bg-light">
                     <h5 class="modal-title">Konfiguracja Kurierów</h5>
-                    <button type="button" class="btn-close" @onclick="HandleCancel"></button>
+                    <button type="button" class="btn-close" @onclick="HandleCancel" disabled="@IsLoading"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body position-relative">
+                    @if (IsLoading)
+                    {
+                        <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index: 10;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Ładowanie...</span>
+                            </div>
+                        </div>
+                    }
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
                             <thead class="table-dark">
@@ -29,30 +37,32 @@
                                         <td class="fw-bold">@config.Courier</td>
                                         <td>
                                             <div class="form-check form-switch">
-                                                <input class="form-check-input" type="checkbox" @bind="config.AutomaticFvGeneration">
+                                                <input class="form-check-input" type="checkbox" @bind="config.AutomaticFvGeneration" disabled="@IsLoading">
                                             </div>
                                         </td>
                                         <td>
                                             <div class="input-group input-group-sm">
                                                 <input type="time" step="1" class="form-control"
                                                        value="@(config.AutomaticFvStart?.ToString(@"hh\:mm\:ss"))"
-                                                       @onchange="@(e => config.AutomaticFvStart = HandleTimeChange(e.Value))" />
+                                                       @onchange="@(e => config.AutomaticFvStart = HandleTimeChange(e.Value))"
+                                                       disabled="@IsLoading" />
 
                                                 <input type="time" step="1" class="form-control"
                                                        value="@(config.AutomaticFvEnd?.ToString(@"hh\:mm\:ss"))"
-                                                       @onchange="@(e => config.AutomaticFvEnd = HandleTimeChange(e.Value))" />
+                                                       @onchange="@(e => config.AutomaticFvEnd = HandleTimeChange(e.Value))"
+                                                       disabled="@IsLoading" />
                                             </div>
                                         </td>
                                         <td>
                                             <div class="input-group input-group-sm">
-                                                <input type="number" class="form-control" @bind="config.WeightBottomPL" step="0.01" />
-                                                <input type="number" class="form-control" @bind="config.WeightUpPL" step="0.01" />
+                                                <input type="number" class="form-control" @bind="config.WeightBottomPL" step="0.01" disabled="@IsLoading" />
+                                                <input type="number" class="form-control" @bind="config.WeightUpPL" step="0.01" disabled="@IsLoading" />
                                             </div>
                                         </td>
                                         <td>
                                             <div class="input-group input-group-sm">
-                                                <input type="number" class="form-control" @bind="config.WeightBottomExport" step="0.01" />
-                                                <input type="number" class="form-control" @bind="config.WeightUpExport" step="0.01" />
+                                                <input type="number" class="form-control" @bind="config.WeightBottomExport" step="0.01" disabled="@IsLoading" />
+                                                <input type="number" class="form-control" @bind="config.WeightUpExport" step="0.01" disabled="@IsLoading" />
                                             </div>
                                         </td>
                                     </tr>
@@ -62,8 +72,12 @@
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-outline-secondary" @onclick="HandleCancel">Anuluj</button>
-                    <button type="button" class="btn btn-primary" @onclick="HandleConfirm">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="HandleCancel" disabled="@IsLoading">Anuluj</button>
+                    <button type="button" class="btn btn-primary" @onclick="HandleConfirm" disabled="@IsLoading">
+                        @if (IsLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        }
                         <i class="bi bi-save"></i> Zapisz zmiany
                     </button>
                 </div>
@@ -74,6 +88,7 @@
 
 @code {
     private bool IsVisible { get; set; }
+    private bool IsLoading { get; set; }
     private List<CourierConfiguration> Configurations { get; set; } = new();
 
     private Func<Task>? OnConfirm { get; set; }
@@ -90,12 +105,25 @@
 
     private async Task HandleConfirm()
     {
-        if (OnConfirm != null) await OnConfirm.Invoke();
-        IsVisible = false;
+        try
+        {
+            IsLoading = true;
+            await InvokeAsync(StateHasChanged);
+            if (OnConfirm != null) await OnConfirm.Invoke();
+            IsVisible = false;
+        }
+        finally
+        {
+            IsLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task HandleCancel()
     {
+        if (IsLoading)
+            return;
+
         if (OnCancel != null) await OnCancel.Invoke();
         IsVisible = false;
     }

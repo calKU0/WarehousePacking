@@ -83,6 +83,7 @@ namespace WarehousePacking.Shared.DTOs
 
         public decimal DocumentQuantity { get; set; }
         public decimal JlQuantity { get; set; }
+        public string PackingUser { get; set; } = string.Empty;
 
         private (int documentId, int documentType) ParseErpDocumentId()
         {

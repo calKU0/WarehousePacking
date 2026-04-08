@@ -23,6 +23,15 @@
         }
         else
         {
+            @if (IsLoading)
+            {
+                <div class="text-center mb-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Ładowanie...</span>
+                    </div>
+                </div>
+            }
+
             <EditForm Model="loginDto" OnValidSubmit="HandleLogin" autocomplete="off">
                 <div class="mb-3">
                     <label class="form-label">Nazwa użytkownika</label>
@@ -31,7 +40,8 @@
                            @bind="loginDto.Username"
                            @onkeydown="HandleUsernameKeyDown"
                            autocomplete="off"
-                           placeholder="Wprowadź nazwę użytkownika" />
+                           placeholder="Wprowadź nazwę użytkownika"
+                           disabled="@IsLoading" />
 
                 </div>
 
@@ -42,11 +52,16 @@
                            @bind="loginDto.Password"
                            type="password"
                            autocomplete="new-password"
-                           placeholder="Wprowadź hasło" />
+                           placeholder="Wprowadź hasło"
+                           disabled="@IsLoading" />
                 </div>
 
                 <div class="d-grid">
-                    <button type="submit" class="btn btn-primary btn-lg">
+                    <button type="submit" class="btn btn-primary btn-lg" disabled="@IsLoading">
+                        @if (IsLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        }
                         <i class="bi bi-box-arrow-in-right me-2"></i> Zaloguj
                     </button>
                 </div>
@@ -64,12 +79,21 @@
     private ElementReference UsernameInput;
     private ElementReference PasswordInput;
     private string scannedUsername = "";
+    private bool IsLoading = false;
 
 
     protected override async Task OnInitializedAsync()
     {
-        await UserSession.InitializeAsync();
-        Settings = await WorkstationService.GetSettingsAsync();
+        try
+        {
+            IsLoading = true;
+            await UserSession.InitializeAsync();
+            Settings = await WorkstationService.GetSettingsAsync();
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -96,8 +120,12 @@
 
     private async Task HandleLogin()
     {
+        if (IsLoading)
+            return;
+
         try
         {
+            IsLoading = true;
             loginDto.StationNumber = Settings.StationNumber;
             loginDto.LoginDate = DateTime.Now;
 
@@ -109,6 +137,10 @@
         catch (Exception ex)
         {
             Toast.Show("Błąd!", $"Błąd przy próbie zalogowania: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 

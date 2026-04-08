@@ -99,7 +99,7 @@ namespace WarehousePacking.Server.Services
             };
         }
 
-        public async Task<PackingOperationResult> PackAsync(int packageId, string itemCode, int documentId, int erpPositionNumber, string jlCode, decimal qty, Func<Task<bool>> persistCallback)
+        public async Task<PackingOperationResult> PackAsync(int packageId, string itemCode, int documentId, int erpPositionNumber, string jlCode, decimal qty, string packingUser, Func<Task<bool>> persistCallback)
         {
             if (!_sessions.TryGetValue(packageId, out var session))
                 return new PackingOperationResult { Success = false, ErrorMessage = "Sesja pakowania nie istnieje." };
@@ -118,7 +118,7 @@ namespace WarehousePacking.Server.Services
                 if (!persisted)
                     return new PackingOperationResult { Success = false, ErrorMessage = "Nie udało się zapisać pozycji pakowania." };
 
-                MoveToPacked(session, source, qty);
+                MoveToPacked(session, source, qty, packingUser);
                 var snapshot = CreateSnapshot(session);
 
                 await RaiseEvent(new PackingSessionEvent
@@ -136,7 +136,7 @@ namespace WarehousePacking.Server.Services
             }
         }
 
-        public async Task<PackingOperationResult> UnpackAsync(int packageId, string itemCode, int documentId, int erpPositionNumber, string jlCode, decimal qty, Func<Task<bool>> persistCallback)
+        public async Task<PackingOperationResult> UnpackAsync(int packageId, string itemCode, int documentId, int erpPositionNumber, string jlCode, decimal qty, string packingUser, Func<Task<bool>> persistCallback)
         {
             if (!_sessions.TryGetValue(packageId, out var session))
                 return new PackingOperationResult { Success = false, ErrorMessage = "Sesja pakowania nie istnieje." };
@@ -144,9 +144,11 @@ namespace WarehousePacking.Server.Services
             await session.Gate.WaitAsync();
             try
             {
-                var packed = session.PackedItems.FirstOrDefault(i => Match(i, itemCode, documentId, erpPositionNumber, jlCode));
+                var packed = session.PackedItems.FirstOrDefault(i =>
+                    Match(i, itemCode, documentId, erpPositionNumber, jlCode)
+                    && string.Equals(i.PackingUser, packingUser, StringComparison.OrdinalIgnoreCase));
                 if (packed == null)
-                    return new PackingOperationResult { Success = false, ErrorMessage = "Pozycja została już usunięta przez innego operatora." };
+                    return new PackingOperationResult { Success = false, ErrorMessage = "Możesz usunąć tylko pozycje spakowane przez siebie." };
 
                 if (qty <= 0 || qty > packed.JlQuantity)
                     return new PackingOperationResult { Success = false, ErrorMessage = "Nieprawidłowa ilość do rozpakowania." };
@@ -285,13 +287,17 @@ namespace WarehousePacking.Server.Services
                    && string.Equals(item.JlCode, jlCode, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static void MoveToPacked(SessionState session, JlItemDto item, decimal qty)
+        private static void MoveToPacked(SessionState session, JlItemDto item, decimal qty, string packingUser)
         {
-            var existingPacked = session.PackedItems.FirstOrDefault(p => Match(p, item.ItemCode, item.DocumentId, item.ErpPositionNumber, item.JlCode));
+            var existingPacked = session.PackedItems.FirstOrDefault(p =>
+                Match(p, item.ItemCode, item.DocumentId, item.ErpPositionNumber, item.JlCode)
+                && string.Equals(p.PackingUser, packingUser, StringComparison.OrdinalIgnoreCase));
+
             if (existingPacked == null)
             {
                 existingPacked = CloneItem(item);
                 existingPacked.JlQuantity = 0;
+                existingPacked.PackingUser = packingUser;
                 session.PackedItems.Add(existingPacked);
             }
 
@@ -381,7 +387,8 @@ namespace WarehousePacking.Server.Services
                 DocumentId = source.DocumentId,
                 DocumentType = source.DocumentType,
                 DocumentQuantity = source.DocumentQuantity,
-                JlQuantity = source.JlQuantity
+                JlQuantity = source.JlQuantity,
+                PackingUser = source.PackingUser
             };
         }
 

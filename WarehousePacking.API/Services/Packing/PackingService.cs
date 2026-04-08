@@ -77,6 +77,8 @@ public class PackingService : IPackingService
         if (jlDto == null)
             return null;
 
+        jlDto.Status = await IsJlInProgress(jlDto.JlCode) ? 3 : 1;
+
         return jlDto.ToJlData();
     }
 

@@ -8,6 +8,18 @@
 @inherits PackingPageBase
 
 <div class="container-fluid d-flex flex-column vh-100 p-3 pack-control">
+    @if (IsPageLoading)
+    {
+        <div class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index: 2000;">
+            <div class="text-center">
+                <div class="spinner-border text-primary mb-2" role="status">
+                    <span class="visually-hidden">Ładowanie...</span>
+                </div>
+                <div class="fw-semibold">@(IsFinishingLoading ? "Finalizowanie paczki..." : "Ładowanie danych pakowania...")</div>
+            </div>
+        </div>
+    }
+
     <PackingHeader JlItems="JlItems"
                    CurrentJl="CurrentJl"
                    Username="@UserSession.Username"
@@ -26,6 +38,9 @@
                    OnRowDoubleClick="OpenProductModal"
                    OnPackedItemSelect="SelectPackedItem"
                    CourierConfiguration="CourierConfiguration" 
+                   CurrentUsername="@UserSession.Username"
+                   IsCollaborativePacking="@(ActiveOperators?.Count > 1)"
+                   OnPackedFilterChanged="HandlePackedFilterChanged"
                    Disabled="@MovedProduct" />
 
     <PackingButtons NextPackage="NextPackage"

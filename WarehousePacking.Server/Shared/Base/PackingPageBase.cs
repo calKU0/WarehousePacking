@@ -63,6 +63,9 @@ namespace WarehousePacking.Server.Shared.Base
         protected PackingFlow _currentPackingFlow;
         protected string InternalBarcodeTemp = string.Empty;
         protected bool PackingToBufor = false;
+        protected bool IsInitializingLoading { get; set; }
+        protected bool IsFinishingLoading { get; set; }
+        protected bool IsPageLoading => IsInitializingLoading || IsFinishingLoading;
         protected bool IsMainOperator = true;
         protected string MainOperator = string.Empty;
         protected List<string> ActiveOperators = new();
@@ -72,6 +75,7 @@ namespace WarehousePacking.Server.Shared.Base
 
         protected override async Task OnInitializedAsync()
         {
+            IsInitializingLoading = true;
             try
             {
                 await UserSession.InitializeAsync();
@@ -88,6 +92,11 @@ namespace WarehousePacking.Server.Shared.Base
             catch (Exception ex)
             {
                 Toast.Show("Błąd!", $"Błąd przy inicjalizacji: {ex.Message}");
+            }
+            finally
+            {
+                IsInitializingLoading = false;
+                await InvokeAsync(StateHasChanged);
             }
         }
 
@@ -465,6 +474,7 @@ namespace WarehousePacking.Server.Shared.Base
                 erpPositionNumber: item.ErpPositionNumber,
                 jlCode: item.JlCode,
                 qty: qty,
+                packingUser: UserSession.Username,
                 persistCallback: () => PackingService.AddPackedPosition(request));
 
             if (!result.Success || result.Snapshot == null)
@@ -494,6 +504,13 @@ namespace WarehousePacking.Server.Shared.Base
         {
             if (SelectedPackedItem == null) return;
 
+            if (!string.Equals(SelectedPackedItem.PackingUser, UserSession.Username, StringComparison.OrdinalIgnoreCase))
+            {
+                Toast.Show("Brak uprawnień", "Możesz usunąć tylko pozycje spakowane przez siebie.", ToastType.Error, 3500);
+                await ScanInputComponent.FocusAsync();
+                return;
+            }
+
             var request = new RemovePackedPositionRequest
             {
                 PackingDocumentId = PackageId,
@@ -512,6 +529,7 @@ namespace WarehousePacking.Server.Shared.Base
                 erpPositionNumber: SelectedPackedItem.ErpPositionNumber,
                 jlCode: SelectedPackedItem.JlCode,
                 qty: SelectedPackedItem.JlQuantity,
+                packingUser: SelectedPackedItem.PackingUser,
                 persistCallback: () => PackingService.RemovePackedPosition(request));
 
             if (!result.Success || result.Snapshot == null)
@@ -932,6 +950,11 @@ namespace WarehousePacking.Server.Shared.Base
             SelectedPackedItem = packed;
         }
 
+        protected virtual async Task HandlePackedFilterChanged()
+        {
+            await ScanInputComponent.FocusAsync();
+        }
+
         protected virtual void Close()
         {
             ConfirmDialog.Show(
@@ -1028,6 +1051,9 @@ namespace WarehousePacking.Server.Shared.Base
             if (!EnsureMainOperator("druk etykiety"))
                 return;
 
+            IsFinishingLoading = true;
+            await InvokeAsync(StateHasChanged);
+
             try
             {
                 FinishPackingModal.Hide();
@@ -1085,12 +1111,20 @@ namespace WarehousePacking.Server.Shared.Base
                 Toast.Show("Błąd!", $"Błąd przy próbie wysłania paczki: {ex.Message}.<br/><br/><b>Nadaj numer wewnętrzny!</b>");
                 await OpenPackage();
             }
+            finally
+            {
+                IsFinishingLoading = false;
+                await InvokeAsync(StateHasChanged);
+            }
         }
 
         protected virtual async Task HandleShipmentOkClick((string ScannedCode, string TrackingNumber) data)
         {
             if (!EnsureMainOperator("potwierdzenie wysyłki"))
                 return;
+
+            IsFinishingLoading = true;
+            await InvokeAsync(StateHasChanged);
 
             try
             {
@@ -1115,12 +1149,20 @@ namespace WarehousePacking.Server.Shared.Base
                 ShipmentModal.KeepOpenAfterOk();
                 ShipmentModal.Show(CurrentJl.InternalBarcode, data.TrackingNumber, string.Empty, PrintDataType.ZPL, Settings.PrinterLabel, false, true, data.ScannedCode);
             }
+            finally
+            {
+                IsFinishingLoading = false;
+                await InvokeAsync(StateHasChanged);
+            }
         }
 
         protected virtual async Task HandleInternalBarcode()
         {
             if (!EnsureMainOperator("nadanie numeru wewnętrznego"))
                 return;
+
+            IsFinishingLoading = true;
+            await InvokeAsync(StateHasChanged);
 
             try
             {
@@ -1163,6 +1205,11 @@ namespace WarehousePacking.Server.Shared.Base
             {
                 await OpenPackage();
                 Toast.Show("Błąd!", $"Błąd przy próbie finalizacji pakowania: {ex.Message}");
+            }
+            finally
+            {
+                IsFinishingLoading = false;
+                await InvokeAsync(StateHasChanged);
             }
         }
 
@@ -1211,6 +1258,9 @@ namespace WarehousePacking.Server.Shared.Base
         {
             if (!EnsureMainOperator("zabuforowanie paczki"))
                 return;
+
+            IsFinishingLoading = true;
+            await InvokeAsync(StateHasChanged);
 
             try
             {
@@ -1262,6 +1312,11 @@ namespace WarehousePacking.Server.Shared.Base
             catch (Exception ex)
             {
                 Toast.Show("Błąd!", $"Błąd przy próbie finalizacji pakowania: {ex.Message}");
+            }
+            finally
+            {
+                IsFinishingLoading = false;
+                await InvokeAsync(StateHasChanged);
             }
         }
 

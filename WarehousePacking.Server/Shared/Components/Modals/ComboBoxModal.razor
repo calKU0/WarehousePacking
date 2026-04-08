@@ -18,28 +18,40 @@
                 <div class="modal-body">
                     <p>@Message</p>
 
-                    @for (int i = 0; i < ComboBoxes.Count; i++)
+                    @if (IsLoading)
                     {
-                        var combo = ComboBoxes[i];   // 👈 IMPORTANT
-
-                        <div class="mb-3">
-                            <label class="form-label">@combo.Label</label>
-
-                            <select class="form-select"
-                                    value="@combo.SelectedValue"
-                                    @onchange="e => OnValueChanged(combo, e.Value?.ToString())"
-                                    @onkeydown="HandleKeyDown">
-
-                                <option value="" disabled selected hidden>
-                                    @combo.Placeholder
-                                </option>
-
-                                @foreach (var item in combo.Items)
-                                {
-                                    <option value="@item">@item</option>
-                                }
-                            </select>
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Ładowanie...</span>
+                            </div>
+                            <div class="mt-2">@LoadingMessage</div>
                         </div>
+                    }
+                    else
+                    {
+                        @for (int i = 0; i < ComboBoxes.Count; i++)
+                        {
+                            var combo = ComboBoxes[i];
+
+                            <div class="mb-3">
+                                <label class="form-label">@combo.Label</label>
+
+                                <select class="form-select"
+                                        value="@combo.SelectedValue"
+                                        @onchange="e => OnValueChanged(combo, e.Value?.ToString())"
+                                        @onkeydown="HandleKeyDown">
+
+                                    <option value="" disabled selected hidden>
+                                        @combo.Placeholder
+                                    </option>
+
+                                    @foreach (var item in combo.Items)
+                                    {
+                                        <option value="@item">@item</option>
+                                    }
+                                </select>
+                            </div>
+                        }
                     }
                 </div>
 
@@ -69,7 +81,10 @@
     [Parameter] public EventCallback OnClose { get; set; }
 
     public bool IsVisible { get; set; }
+    public bool IsLoading { get; set; }
+    public string LoadingMessage { get; set; } = "Ładowanie danych...";
     private bool CanConfirm =>
+        !IsLoading &&
         ComboBoxes.Any() &&
         ComboBoxes.All(c => !string.IsNullOrWhiteSpace(c.SelectedValue));
 
@@ -81,6 +96,7 @@
     {
         Title = title;
         Message = message;
+        IsLoading = false;
 
         ComboBoxes = comboBoxes;
 
@@ -92,6 +108,37 @@
 
         _tcs = new TaskCompletionSource<List<string>>();
         return _tcs.Task;
+    }
+
+    public Task<List<string>> ShowLoading(string title, string message, string loadingMessage = "Ładowanie danych...")
+    {
+        Title = title;
+        Message = message;
+        LoadingMessage = loadingMessage;
+        ComboBoxes = new List<ComboBoxDefinition>();
+        IsLoading = true;
+        IsVisible = true;
+        StateHasChanged();
+
+        _tcs = new TaskCompletionSource<List<string>>();
+        return _tcs.Task;
+    }
+
+    public void SetData(List<ComboBoxDefinition> comboBoxes)
+    {
+        ComboBoxes = comboBoxes;
+
+        foreach (var cb in ComboBoxes)
+            cb.SelectedValue = string.Empty;
+
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+    public void CloseModal()
+    {
+        _tcs?.TrySetResult(null);
+        Close();
     }
 
     private void OnValueChanged(ComboBoxDefinition combo, string value)
@@ -123,7 +170,7 @@
 
     private void HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter")
+        if (!IsLoading && e.Key == "Enter")
         {
             Confirm();
         }

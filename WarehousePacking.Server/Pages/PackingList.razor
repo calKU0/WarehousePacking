@@ -20,7 +20,7 @@
 <div class="row">
     <!-- Left side: table -->
     <div class="col-md-8">
-        @if (JlList == null)
+        @if (IsLoading)
         {
             <div class="text-center">
                 <div class="spinner-border text-primary" role="status">
@@ -97,7 +97,11 @@
                        @onkeydown="HandleKeyDown"
                        class="form-control" />
             </div>
-            <button class="btn btn-primary w-100" @onclick="RefreshData">
+            <button class="btn btn-primary w-100" @onclick="RefreshData" disabled="@IsLoading">
+                @if (IsLoading)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                }
                 Odśwież
             </button>
 
@@ -153,9 +157,11 @@
     private int JlReadyToPackCount { get; set; } = 0;
     private int AddressesCount { get; set; } = 0;
     private bool CanPackNotReady = false;
+    private bool IsLoading { get; set; } = true;
 
     protected override async Task OnInitializedAsync()
     {
+        IsLoading = true;
         await UserSession.InitializeAsync();
         await LoadData();
 
@@ -180,6 +186,7 @@
     {
         try
         {
+            IsLoading = true;
             Settings = await WorkstationService.GetSettingsAsync();
             JlList = await PackingService.GetJlList(Settings.PackingLevel);
 
@@ -195,6 +202,7 @@
         }
         finally
         {
+            IsLoading = false;
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -439,6 +447,11 @@
             case 7: /* Zwolnij */
                 try
                 {
+                    var pendingSelection = ComboBoxModal.ShowLoading(
+                        title: "Zamknij paczke",
+                        message: "Wybierz paczke do zamknięcia. Zostanie jej nadany status 'Gotowa do załadunku'",
+                        loadingMessage: "Pobieranie listy paczek...");
+
                     var packages = await PackingService.GetNotClosedPackages();
                     var comboBoxes = new List<ComboBoxDefinition>
                     {
@@ -456,7 +469,8 @@
                         }
                     };
 
-                    var result = await ComboBoxModal.Show("Zamknij paczke", "Wybierz paczke do zamknięcia. Zostanie jej nadany status 'Gotowa do załadunku'", comboBoxes);
+                    ComboBoxModal.SetData(comboBoxes);
+                    var result = await pendingSelection;
 
                     if (result != null)
                     {
@@ -475,6 +489,7 @@
                 }
                 catch (Exception ex)
                 {
+                    ComboBoxModal.CloseModal();
                     Toast.Show("Błąd!", $"Błąd przy próbie zwolnienia paczki: {ex.Message}");
                 }
                 break;

@@ -13,17 +13,26 @@
             <div class="modal-content p-3">
                 <div class="modal-header">
                     <h5 class="modal-title">Zmień magazyn składowania</h5>
-                    <button type="button" class="btn-close" @onclick="Close"></button>
+                    <button type="button" class="btn-close" @onclick="Close" disabled="@IsLoading"></button>
                 </div>
 
-                <div class="modal-body">
+                <div class="modal-body position-relative">
+                    @if (IsLoading)
+                    {
+                        <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index: 10;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Ładowanie...</span>
+                            </div>
+                        </div>
+                    }
                     <!-- Textbox -->
                     <div class="mb-3">
                         <label class="form-label">Kod wewnętrzny:</label>
                         <input class="form-control"
                                @bind="InputText"
                                @ref="InputRef"
-                               @onkeydown="OnEnterKey" />
+                               @onkeydown="OnEnterKey"
+                               disabled="@IsLoading" />
                     </div>
 
                     @if (ShowSelect)
@@ -31,7 +40,7 @@
                         <!-- Enum select -->
                         <div class="mb-3">
                             <label class="form-label">Magazyn składowania:</label>
-                            <select class="form-select" @bind="SelectedWarehouse">
+                            <select class="form-select" @bind="SelectedWarehouse" disabled="@IsLoading">
                                 @foreach (var warehouse in Enum.GetValues(typeof(PackingWarehouse)).Cast<PackingWarehouse>())
                                 {
                                     <option value="@warehouse">@warehouse.GetDescription()</option>
@@ -44,9 +53,9 @@
                 <div class="modal-footer d-flex flex-column gap-2">
                     @if (ShowSelect)
                     {
-                        <button class="btn btn-primary tall-btn w-100" @onclick="Save">Zapisz</button>
+                        <button class="btn btn-primary tall-btn w-100" @onclick="Save" disabled="@IsLoading">Zapisz</button>
                     }
-                    <button class="btn btn-secondary tall-btn w-100" @onclick="Close">Wyjdź</button>
+                    <button class="btn btn-secondary tall-btn w-100" @onclick="Close" disabled="@IsLoading">Wyjdź</button>
                 </div>
             </div>
         </div>
@@ -62,6 +71,7 @@
     private Toast Toast = new();
     private ElementReference InputRef;
     private bool _shouldFocus;
+    private bool IsLoading { get; set; }
 
     public async Task Show()
     {
@@ -87,16 +97,23 @@
         {
             if (e.Key == "Enter")
             {
+                IsLoading = true;
+                await InvokeAsync(StateHasChanged);
+
                 var inputValue = await JSRuntime.InvokeAsync<string>("blazorFocus.getValue", InputRef);
                 PackingWarehouse warehouse = await PackingService.GetPackageWarehouse(InputText);
                 SelectedWarehouse = warehouse;
                 ShowSelect = true;
-                await InvokeAsync(StateHasChanged);
             }
         }
         catch (Exception ex)
         {
             Toast.Show("Błąd!", $"Błąd przy pobieraniu magazynu składowania dla podanego kodu kreskowego: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -104,12 +121,19 @@
     {
         try
         {
+            IsLoading = true;
+            await InvokeAsync(StateHasChanged);
             await PackingService.UpdatePackageWarehouse(InputText, SelectedWarehouse);
             Close();
         }
         catch (Exception ex)
         {
             Toast.Show("Błąd!", $"Błąd przy aktualizacji magazynu składowania dla podanego kodu kreskowego: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
