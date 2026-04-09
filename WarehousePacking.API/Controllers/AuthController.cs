@@ -1,7 +1,7 @@
-﻿using WarehousePacking.API.Services.Auth;
-using WarehousePacking.Shared.DTOs;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Serilog;
+using WarehousePacking.API.Services.Auth;
+using WarehousePacking.Shared.DTOs;
 
 namespace WarehousePacking.API.Controllers
 {
@@ -121,6 +121,29 @@ namespace WarehousePacking.API.Controllers
             catch (Exception ex)
             {
                 _logger.Error(ex, "Unhandled error during password validation");
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("change-manager-password")]
+        public async Task<IActionResult> ChangeManagerPassword([FromBody] string newPassword)
+        {
+            _logger.Information("Password change requested");
+
+            try
+            {
+                await _authService.ChangePassword(newPassword);
+                _logger.Information("Password change successful");
+                return Ok();
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.Warning(ex, "Bad request during password change");
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Unhandled error during password change");
                 return StatusCode(500, ex.Message);
             }
         }

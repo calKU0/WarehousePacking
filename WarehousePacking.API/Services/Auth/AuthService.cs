@@ -1,7 +1,7 @@
-﻿using WarehousePacking.API.Data;
+﻿using System.Data;
+using WarehousePacking.API.Data;
 using WarehousePacking.API.Data.Enums;
 using WarehousePacking.Shared.DTOs;
-using System.Data;
 
 namespace WarehousePacking.API.Services.Auth
 {
@@ -45,6 +45,12 @@ namespace WarehousePacking.API.Services.Auth
             const string procedure = "kp.ValidatePassword";
             var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { password }, CommandType.StoredProcedure, Connection.ERPConnection);
             return result == 1;
+        }
+
+        public async Task ChangePassword(string newPassword)
+        {
+            const string procedure = "kp.ChangeManagerPassword";
+            await _db.QuerySingleOrDefaultAsync<int>(procedure, new { newPassword }, commandType: CommandType.StoredProcedure, connection: Connection.ERPConnection);
         }
     }
 }

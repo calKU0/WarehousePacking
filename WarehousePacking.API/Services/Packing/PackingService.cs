@@ -129,10 +129,10 @@ public class PackingService : IPackingService
         return result > 0;
     }
 
-    public async Task<bool> RemoveJlRealization(string jl, bool packageClose)
+    public async Task<bool> RemoveJlRealization(string jl, string username, bool packageClose)
     {
         const string procedure = "kp.RemoveJlRealization";
-        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { jl, packageClose }, CommandType.StoredProcedure, Connection.ERPConnection);
+        var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { jl, username, packageClose }, CommandType.StoredProcedure, Connection.ERPConnection);
         return result > 0;
     }
 

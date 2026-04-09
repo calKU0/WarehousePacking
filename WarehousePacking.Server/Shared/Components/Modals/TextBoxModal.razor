@@ -14,6 +14,7 @@
                 <div class="modal-body">
                     <p>@Message</p>
                     <input class="form-control"
+                           type="@InputType"
                            @bind="InputValue"
                            @bind:event="oninput"
                            @ref="inputRef"
@@ -33,6 +34,7 @@
     [Parameter] public string Title { get; set; } = "Tytuł";
     [Parameter] public string Message { get; set; } = "Wiadomość";
     [Parameter] public string InputPlaceholder { get; set; } = "Wprowadź tekst...";
+    [Parameter] public string InputType { get; set; } = "text";
     [Parameter] public EventCallback OnClose { get; set; }
 
     public bool IsVisible { get; set; } = false;
@@ -41,11 +43,12 @@
     private TaskCompletionSource<string> _tcs;
     private bool _shouldFocus;
 
-    public Task<string> Show(string title = null, string message = null, string placeholder = null)
+    public Task<string> Show(string title = null, string message = null, string placeholder = null, string inputType = "text")
     {
         if (!string.IsNullOrEmpty(title)) Title = title;
         if (!string.IsNullOrEmpty(message)) Message = message;
         if (!string.IsNullOrEmpty(placeholder)) InputPlaceholder = placeholder;
+        InputType = string.IsNullOrWhiteSpace(inputType) ? "text" : inputType;
 
         InputValue = string.Empty;
         IsVisible = true;

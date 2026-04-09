@@ -63,5 +63,33 @@ namespace WarehousePacking.Server.Services
             bool isValid = await response.Content.ReadFromJsonAsync<bool>();
             return isValid;
         }
+
+        public async Task<bool> ChangeManagerPasswordAsync(string newPassword)
+        {
+            var response = await _dbClient.PostAsJsonAsync(
+                "api/auth/change-manager-password",
+                newPassword
+            );
+
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
     }
 }

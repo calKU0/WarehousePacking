@@ -158,9 +158,9 @@ namespace WarehousePacking.Server.Services
             throw new Exception(generic);
         }
 
-        public async Task<bool> RemoveJlRealization(string jlCode, bool packageClose)
+        public async Task<bool> RemoveJlRealization(string jlCode, string username, bool packageClose)
         {
-            var response = await _dbClient.DeleteAsync($"api/packing/remove-jl-realization?jl={jlCode}&packageClose={packageClose}");
+            var response = await _dbClient.DeleteAsync($"api/packing/remove-jl-realization?jl={jlCode}&username={username}&packageClose={packageClose}");
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<bool>();

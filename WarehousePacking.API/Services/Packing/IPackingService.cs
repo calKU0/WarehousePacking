@@ -22,7 +22,7 @@ namespace WarehousePacking.API.Services.Packing
 
         Task<bool> AddJlRealization(JlInProgressDto jl);
 
-        Task<bool> RemoveJlRealization(string jl, bool packageClose);
+        Task<bool> RemoveJlRealization(string jl, string username, bool packageClose);
 
         Task<bool> UpdateJlRealization(JlInProgressDto jl);
 

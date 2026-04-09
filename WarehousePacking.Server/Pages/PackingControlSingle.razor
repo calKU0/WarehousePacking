@@ -144,6 +144,7 @@
                 PackageId = PackageId
             };
             await PackingService.UpdateJlRealization(jlInProgress);
+            await InitializeCollaborationSession();
             bool moved = await MoveItemToPacked(SelectedItem, qty);
             if (!moved) 
             {

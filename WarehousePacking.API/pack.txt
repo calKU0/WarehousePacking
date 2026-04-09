@@ -4,3 +4,9 @@
 [2026-02-27T07:29:11.0087092Z] Received Response (200)
 {"status":"-1","desc":"Wystąpił błąd: subquery must return only one column ->> OK"}
 
+[2026-04-09T08:31:23.3580614Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=packStock
+{"whsSource":"6","proces":"PCK","Items":[{"locSourceNr":"MOP-A001","locDestNr":"PAK-A1202","luSourceNr":"KK-163","luDestNr":"100004598700","luDestEan":"100004598700","luDestTypeSymbol":"PACZKA","itemNr":"SR637301.01","batchId":null,"itemQty":"1.0"}]}
+
+[2026-04-09T08:31:23.8060353Z] Received Response (200)
+{"status":"1","desc":"OK"}
+

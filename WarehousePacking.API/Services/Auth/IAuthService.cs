@@ -11,5 +11,6 @@ namespace WarehousePacking.API.Services.Auth
         Task<bool> LogoutAsync(string username);
 
         Task<bool> ValidatePasswordAsync(string password);
+        Task ChangePassword(string newPassword);
     }
 }

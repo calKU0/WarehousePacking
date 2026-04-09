@@ -564,6 +564,27 @@
                     }
                 );
                 break;
+            case 12: /* Zmień hasło */
+                try
+                {
+                    var newPassword = await TextBoxModal.Show("Zmień hasło kierownika", "Wprowadź nowe uniwersalne hasło kierownika do wytycznych/czerwonych kuwet itp.", "Nowe hasło", "password");
+                    if (string.IsNullOrEmpty(newPassword))
+                        return;
+
+                    var success = await AuthService.ChangeManagerPasswordAsync(newPassword);
+                    if (!success)
+                    {
+                        Toast.Show("Błąd!", "Nie udało się zmienić hasła. Spróbuj ponownie.");
+                        return;
+                    }
+
+                    Toast.Show("Sukces!", "Hasło zostało zmienione.", ToastType.Success);
+                }
+                catch (Exception ex)
+                {
+                    Toast.Show("Błąd!", $"Błąd przy próbie zmiany hasła: {ex.Message}");
+                }
+                break;
         }
         await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
     }

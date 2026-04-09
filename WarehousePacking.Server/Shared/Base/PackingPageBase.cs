@@ -71,6 +71,7 @@ namespace WarehousePacking.Server.Shared.Base
         protected List<string> ActiveOperators = new();
         private int _collaborationPackageId;
         private bool _sessionInitialized;
+        private bool _collaborationEventsSubscribed;
         private bool _locationCleanupDone;
 
         protected override async Task OnInitializedAsync()
@@ -102,10 +103,17 @@ namespace WarehousePacking.Server.Shared.Base
 
         protected virtual async Task InitializeCollaborationSession()
         {
-            if (PackageId <= 0 || _sessionInitialized)
+            if (PackageId <= 0)
                 return;
 
-            CollaborationService.SessionUpdated += OnCollaborationSessionUpdated;
+            if (_sessionInitialized && _collaborationPackageId == PackageId)
+                return;
+
+            if (!_collaborationEventsSubscribed)
+            {
+                CollaborationService.SessionUpdated += OnCollaborationSessionUpdated;
+                _collaborationEventsSubscribed = true;
+            }
 
             var join = await CollaborationService.JoinSessionAsync(PackageId, UserSession.Username, JlItems, PackedItems);
             ApplySnapshot(join.Snapshot);
@@ -929,6 +937,27 @@ namespace WarehousePacking.Server.Shared.Base
                         }
                     );
                     break;
+                case 12: /* Zmień hasło */
+                    try
+                    {
+                        var newPassword = await TextBoxModal.Show("Zmień hasło kierownika", "Wprowadź nowe uniwersalne hasło kierownika do wytycznych/czerwonych kuwet itp.", "Nowe hasło", "password");
+                        if (string.IsNullOrEmpty(newPassword))
+                            return;
+
+                        var success = await AuthService.ChangeManagerPasswordAsync(newPassword);
+                        if (!success)
+                        {
+                            Toast.Show("Błąd!", "Nie udało się zmienić hasła. Spróbuj ponownie.");
+                            return;
+                        }
+
+                        Toast.Show("Sukces!", "Hasło zostało zmienione.", ToastType.Success);
+                    }
+                    catch (Exception ex)
+                    {
+                        Toast.Show("Błąd!", $"Błąd przy próbie zmiany hasła: {ex.Message}");
+                    }
+                    break;
             }
             await ScanInputComponent.FocusAsync();
         }
@@ -968,10 +997,10 @@ namespace WarehousePacking.Server.Shared.Base
                         await CollaborationService.LeaveSessionAsync(PackageId, UserSession.Username, shouldCloseSession);
 
                         // Remove the JL realization
-                        await PackingService.RemoveJlRealization(CurrentJl.Name, shouldCloseSession);
+                        await PackingService.RemoveJlRealization(CurrentJl.Name, UserSession.Username, shouldCloseSession);
                         foreach (var jl in MergeJls)
                         {
-                            await PackingService.RemoveJlRealization(jl.jlName, shouldCloseSession);
+                            await PackingService.RemoveJlRealization(jl.jlName, UserSession.Username, shouldCloseSession);
                         }
 
                         _locationCleanupDone = true;
@@ -1123,11 +1152,11 @@ namespace WarehousePacking.Server.Shared.Base
             if (!EnsureMainOperator("potwierdzenie wysyłki"))
                 return;
 
-            IsFinishingLoading = true;
-            await InvokeAsync(StateHasChanged);
-
             try
             {
+                IsFinishingLoading = true;
+                await InvokeAsync(StateHasChanged);
+
                 await CloseJlInWMS(CurrentJl.CourierName, data.ScannedCode, data.TrackingNumber, DocumentStatus.Ready);
 
                 switch (_currentPackingFlow)
@@ -1161,9 +1190,6 @@ namespace WarehousePacking.Server.Shared.Base
             if (!EnsureMainOperator("nadanie numeru wewnętrznego"))
                 return;
 
-            IsFinishingLoading = true;
-            await InvokeAsync(StateHasChanged);
-
             try
             {
                 FinishPackingModal.Hide();
@@ -1180,6 +1206,9 @@ namespace WarehousePacking.Server.Shared.Base
                 {
                     dimensions = await DimensionsModal.Show();
                 }
+
+                IsFinishingLoading = true;
+                await InvokeAsync(StateHasChanged);
 
                 await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, internalBarcode, DocumentStatus.Ready);
                 await ClosePackage(internalBarcode, dimensions);
@@ -1329,9 +1358,9 @@ namespace WarehousePacking.Server.Shared.Base
                 await CollaborationService.LeaveSessionAsync(PackageId, UserSession.Username, closeSession: false);
                 foreach (var jl in MergeJls)
                 {
-                    await PackingService.RemoveJlRealization(jl.jlName, false);
+                    await PackingService.RemoveJlRealization(jl.jlName, UserSession.Username, false);
                 }
-                await PackingService.RemoveJlRealization(Jl, false);
+                await PackingService.RemoveJlRealization(Jl, UserSession.Username, false);
                 _locationCleanupDone = true;
             }
         }

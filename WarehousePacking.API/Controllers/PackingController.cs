@@ -157,12 +157,12 @@ namespace WarehousePacking.API.Controllers
         }
 
         [HttpDelete("remove-jl-realization")]
-        public async Task<IActionResult> RemoveJlRealization([FromQuery] string jl, [FromQuery] bool packageClose)
+        public async Task<IActionResult> RemoveJlRealization([FromQuery] string jl, [FromQuery] string username, [FromQuery] bool packageClose)
         {
             _logger.Information("Request: RemoveJlRealization for JL {Jl}", jl);
             try
             {
-                bool success = await _packingService.RemoveJlRealization(jl, packageClose);
+                bool success = await _packingService.RemoveJlRealization(jl, username, packageClose);
                 if (success)
                     _logger.Information("JL {Jl} realization removed successfully", jl);
                 else
