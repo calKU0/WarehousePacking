@@ -157,7 +157,7 @@ namespace WarehousePacking.API.Controllers
         }
 
         [HttpDelete("remove-jl-realization")]
-        public async Task<IActionResult> RemoveJlRealization([FromQuery] string jl, [FromQuery] string username, [FromQuery] bool packageClose)
+        public async Task<IActionResult> RemoveJlRealization([FromQuery] string? jl, [FromQuery] string? username, [FromQuery] bool packageClose)
         {
             _logger.Information("Request: RemoveJlRealization for JL {Jl}", jl);
             try
@@ -522,6 +522,46 @@ namespace WarehousePacking.API.Controllers
             catch (Exception ex)
             {
                 _logger.Error(ex, "Error in GetPackagesInBuforForClient for ClientId {ClientId}", clientId);
+                return HandleException(ex);
+            }
+        }
+
+        [HttpGet("get-document-elements")]
+        public async Task<IActionResult> GetDocumentElements([FromQuery] int documentId, [FromQuery] int documentType)
+        {
+            _logger.Information("Request: GetDocumentElements for DocumentId {DocumentId} and DocumentType {DocumentType}", documentId, documentType);
+            try
+            {
+                var elements = await _packingService.GetDocumentElementsAsync(documentId, documentType);
+                _logger.Information("GetDocumentElements succeeded for DocumentId {DocumentId} and DocumentType {DocumentType} with {Count} elements", documentId, documentType, elements.Count());
+                return Ok(elements);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error in GetDocumentElements for DocumentId {DocumentId} and DocumentType {DocumentType}", documentId, documentType);
+                return HandleException(ex);
+            }
+        }
+
+        [HttpGet("get-document-info")]
+        public async Task<IActionResult> GetDocumentInfo([FromQuery] int documentId, [FromQuery] int documentType)
+        {
+            _logger.Information("Request: GetDocumentInfo for DocumentId {DocumentId} and DocumentType {DocumentType}", documentId, documentType);
+            try
+            {
+                var documentInfo = await _packingService.GetDocumentInfoAsync(documentId, documentType);
+                if (documentInfo == null)
+                {
+                    _logger.Warning("GetDocumentInfo returned no data for DocumentId {DocumentId} and DocumentType {DocumentType}", documentId, documentType);
+                    return NotFound("Nie znaleziono dokumentu.");
+                }
+
+                _logger.Information("GetDocumentInfo succeeded for DocumentId {DocumentId} and DocumentType {DocumentType}", documentId, documentType);
+                return Ok(documentInfo);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error in GetDocumentInfo for DocumentId {DocumentId} and DocumentType {DocumentType}", documentId, documentType);
                 return HandleException(ex);
             }
         }

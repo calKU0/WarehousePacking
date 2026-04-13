@@ -224,6 +224,7 @@
 <PackingListModal @ref="PackingListModal" OnSaveNumber="HandlePackingListSave" OnPrintLabel="HandlePackingListPrint" />
 <PasswordModal @ref="PasswordModal" />
 <DimensionsModal @ref="DimensionsModal" />
+<DocumentElementsSelectModal @ref="DocumentElementsSelectModal" />
 
 @code {
     private string Barcode { get; set; } = string.Empty;
@@ -244,6 +245,7 @@
     private PackingListModal PackingListModal = new();
     private PasswordModal PasswordModal = new();
     private DimensionsModal DimensionsModal = new();
+    private DocumentElementsSelectModal DocumentElementsSelectModal = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -284,9 +286,17 @@
         try
         {
             var response = await ShipmentService.GetShipmentDataByBarcode(Barcode);
+
+            // Handling Barcode for documents. When document barcode is scanned then we need to create package data based on document number and type.
+            if (response == null && Barcode.Length == 19)
+            {
+                await HandleDocumentBarcodeAsync();
+                response = await ShipmentService.GetShipmentDataByBarcode(Barcode);
+            }
+
             if (response == null)
             {
-                Toast.Show("Brak paczki!", $"Nie znalaziono paczki o podanym kodzie kreskowym w systmie");
+                Toast.Show("Brak paczki!", $"Nie znalaziono paczki o podanym kodzie kreskowym w systemie");
                 return;
             }
 
@@ -373,6 +383,107 @@
         {
             Toast.Show("Błąd!", $"Błąd przy próbie wysłania paczki: {ex.Message}", ToastType.Error, 10000);
             await ClearData();
+        }
+    }
+
+    private async Task HandleDocumentBarcodeAsync()
+    {
+        if (!TryParseDocumentBarcode(Barcode, out var documentId, out var documentType))
+        {
+            Toast.Show("Błąd!", "Nieprawidłowy format kodu dokumentu.");
+            return;
+        }
+
+        var documentInfo = await PackingService.GetDocumentInfo(documentId, documentType);
+        if (documentInfo == null || documentInfo.Elements == null || documentInfo.Elements.Count == 0)
+        {
+            Toast.Show("Błąd!", "Nie znaleziono elementów dla tego dokumentu. Upewnij się, że dokument istnieje.");
+            return;
+        }
+
+        documentInfo.Elements = await DocumentElementsSelectModal.ShowAsync(documentInfo.DocumentName, documentInfo.Elements);
+        if (documentInfo.Elements == null)
+            return;
+
+        if (!documentInfo.Elements.Any())
+        {
+            Toast.Show("Informacja", "Nie wybrano żadnych elementów dokumentu.", ToastType.Info);
+            return;
+        }
+
+        await CreatePackageForDocument(documentInfo);
+        Toast.Show("Sukces", $"Stworzono paczkę.", ToastType.Success);
+    }
+
+    private bool TryParseDocumentBarcode(string barcode, out int documentId, out int documentType)
+    {
+        documentId = 0;
+        documentType = 0;
+
+        if (string.IsNullOrWhiteSpace(barcode) || barcode.Length != 19)
+            return false;
+
+        return int.TryParse(barcode.Substring(3, 4), out documentType)
+            && int.TryParse(barcode.Substring(12, 5), out documentId);
+    }
+
+    private async Task CreatePackageForDocument(DocumentInfo document)
+    {
+        try
+        {
+            var request = new CreatePackageRequest
+            {
+                AddressId = document.AddressId,
+                AddressType = document.AddressType,
+
+                ClientId = document.ClientId,
+                Courier = document.Courier,
+
+                Username = UserSession.Username,
+                StationNumber = WorkstationSettings.StationNumber,
+                PackingLevel = WorkstationSettings.PackingLevel,
+                PackageWarehouse = WorkstationSettings.PackingWarehouse,               
+            };
+
+            var packageId = await PackingService.CreatePackage(request);
+            if (packageId == 0)
+            {
+                Toast.Show("Błąd!", "Nie udało się stworzyć paczki.");
+                return;
+            }
+
+            foreach (var element in document.Elements)
+            {
+                var addElementRequest = new AddPackedPositionRequest
+                {
+                    PackDate = DateTime.Now,
+                    ScanDate = DateTime.Now,
+                    PackingDocumentId = packageId,
+                    PositionNumber = element.Lp,
+                    Username = UserSession.Username,
+                    StationNumber = WorkstationSettings.StationNumber,
+                    Volume = element.Volume,
+                    Weight = element.Weight,
+                    Quantity = element.Quantity,
+                    SourceDocumentId = document.Id,
+                    SourceDocumentType = document.Type,
+                };
+
+                await PackingService.AddPackedPosition(addElementRequest);
+            }
+
+            var closePackageRequest = new ClosePackageRequest
+            {
+                DocumentId = packageId,
+                Status = DocumentStatus.Ready,
+                InternalBarcode = Barcode,
+            };
+
+            var result = await PackingService.ClosePackage(closePackageRequest);
+        }
+        catch (Exception ex)
+        {
+            Toast.Show("Błąd!", $"Błąd przy próbie utworzenia paczki z dokumentu: {ex.Message}");
         }
     }
 

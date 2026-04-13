@@ -1,0 +1,167 @@
+@using WarehousePacking.Shared.DTOs
+
+@if (IsVisible)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content shadow-lg rounded-3">
+                <div class="modal-header">
+                    <h5 class="modal-title">Wybór elementów dokumentu @DocumentName</h5>
+                    <button type="button" class="btn-close" @onclick="Cancel"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 80px;">Wybór</th>
+                                    <th>Lp</th>
+                                    <th>Kod</th>
+                                    <th>Nazwa</th>
+                                    <th>Ilość maks.</th>
+                                    <th>Ilość</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var element in Elements)
+                                {
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox"
+                                                   class="form-check-input"
+                                                   checked="@SelectedKeys.Contains(GetElementKey(element))"
+                                                   @onchange="(e) => ToggleSelection(element, e.Value)" />
+                                        </td>
+                                        <td>@element.Lp</td>
+                                        <td>@element.Code</td>
+                                        <td>@element.Name</td>
+                                        <td>@GetMaxQuantity(element)</td>
+                                        <td style="max-width: 150px;">
+                                            <InputNumber @bind-Value="element.Quantity"
+                                                         @bind-Value:event="oninput"
+                                                         @onchange="(_) => EnsureAllowedQuantity(element)"
+                                                         class="form-control"
+                                                         disabled="@(!SelectedKeys.Contains(GetElementKey(element)))"
+                                                         min="0"
+                                                         max="@GetMaxQuantity(element)"
+                                                         step="0.01" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="modal-footer d-flex gap-2 w-100">
+                    <button class="btn btn-outline-primary" @onclick="ToggleSelectAll">@(AreAllSelected ? "Odznacz wszystkie" : "Zaznacz wszystkie")</button>
+                    <button class="btn btn-primary" @onclick="Confirm">Utwórz paczkę z zaznaczonych</button>
+                    <button class="btn btn-secondary" @onclick="Cancel">Anuluj</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool IsVisible { get; set; }
+    private string DocumentName { get; set; }
+    private List<DocumentElement> Elements { get; set; } = new();
+    private HashSet<string> SelectedKeys { get; set; } = new();
+    private Dictionary<string, decimal> MaxQuantities { get; set; } = new();
+    private TaskCompletionSource<List<DocumentElement>?>? _tcs;
+
+    public Task<List<DocumentElement>?> ShowAsync(string documentName, List<DocumentElement> elements)
+    {
+        DocumentName = documentName;
+        Elements = elements.Select(CloneElement).ToList();
+        SelectedKeys = Elements.Select(GetElementKey).ToHashSet();
+        MaxQuantities = Elements.ToDictionary(GetElementKey, x => x.Quantity);
+        IsVisible = true;
+        StateHasChanged();
+
+        _tcs = new TaskCompletionSource<List<DocumentElement>?>();
+        return _tcs.Task;
+    }
+
+    private void ToggleSelection(DocumentElement element, object? value)
+    {
+        var key = GetElementKey(element);
+        var isChecked = value is bool b && b;
+        if (isChecked)
+        {
+            SelectedKeys.Add(key);
+        }
+        else
+        {
+            SelectedKeys.Remove(key);
+        }
+    }
+
+    private bool AreAllSelected => Elements.Any() && Elements.All(x => SelectedKeys.Contains(GetElementKey(x)));
+
+    private void ToggleSelectAll()
+    {
+        if (AreAllSelected)
+        {
+            SelectedKeys.Clear();
+            return;
+        }
+
+        SelectedKeys = Elements.Select(GetElementKey).ToHashSet();
+    }
+
+    private decimal GetMaxQuantity(DocumentElement element)
+    {
+        var key = GetElementKey(element);
+        return MaxQuantities.TryGetValue(key, out var max) ? max : element.Quantity;
+    }
+
+    private void EnsureAllowedQuantity(DocumentElement element)
+    {
+        var max = GetMaxQuantity(element);
+        if (element.Quantity < 0)
+        {
+            element.Quantity = 0;
+        }
+
+        if (element.Quantity > max)
+        {
+            element.Quantity = max;
+        }
+    }
+
+    private void Confirm()
+    {
+        var selected = Elements
+            .Where(x => SelectedKeys.Contains(GetElementKey(x)))
+            .Select(CloneElement)
+            .ToList();
+
+        IsVisible = false;
+        _tcs?.TrySetResult(selected);
+        StateHasChanged();
+    }
+
+    private void Cancel()
+    {
+        IsVisible = false;
+        _tcs?.TrySetResult(null);
+        StateHasChanged();
+    }
+
+    private static string GetElementKey(DocumentElement element) => $"{element.Lp}:{element.Id}";
+
+    private static DocumentElement CloneElement(DocumentElement element) => new()
+    {
+        Lp = element.Lp,
+        Id = element.Id,
+        Code = element.Code,
+        Name = element.Name,
+        Quantity = element.Quantity,
+        Weight = element.Weight,
+        Volume = element.Volume
+    };
+}

@@ -1,12 +1,12 @@
-﻿using WarehousePacking.API.Integrations.Couriers;
+﻿using Microsoft.AspNetCore.Mvc;
+using Serilog;
+using WarehousePacking.API.Integrations.Couriers;
 using WarehousePacking.API.Integrations.Email;
 using WarehousePacking.API.Services.Shipment;
 using WarehousePacking.Shared.DTOs;
 using WarehousePacking.Shared.DTOs.Requests;
 using WarehousePacking.Shared.Enums;
 using WarehousePacking.Shared.Helpers;
-using Microsoft.AspNetCore.Mvc;
-using Serilog;
 
 namespace WarehousePacking.API.Controllers
 {
@@ -35,12 +35,6 @@ namespace WarehousePacking.API.Controllers
             try
             {
                 var result = await _shipmentService.GetShipmentDataByBarcode(barcode);
-
-                if (result == null)
-                {
-                    _logger.Warning("No shipment found for barcode {Barcode}", barcode);
-                    return NotFound("Brak paczki w systemie.");
-                }
 
                 _logger.Information("Shipment data retrieved successfully for barcode {Barcode}", barcode);
                 return Ok(result);

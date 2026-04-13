@@ -15,6 +15,8 @@ namespace WarehousePacking.API.Services.Packing
         Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl, PackingLevel location);
 
         Task<IEnumerable<JlItemDto>> GetPackingJlItemsAsync(int packageId);
+        Task<IEnumerable<DocumentElement>> GetDocumentElementsAsync(int documentId, int documentType);
+        Task<DocumentInfo?> GetDocumentInfoAsync(int documentId, int documentType);
 
         Task<IEnumerable<JlInProgressDto>> GetJlListInProgress();
 
@@ -22,7 +24,7 @@ namespace WarehousePacking.API.Services.Packing
 
         Task<bool> AddJlRealization(JlInProgressDto jl);
 
-        Task<bool> RemoveJlRealization(string jl, string username, bool packageClose);
+        Task<bool> RemoveJlRealization(string? jl, string? username, bool packageClose);
 
         Task<bool> UpdateJlRealization(JlInProgressDto jl);
 

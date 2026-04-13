@@ -158,7 +158,7 @@ namespace WarehousePacking.Server.Services
             throw new Exception(generic);
         }
 
-        public async Task<bool> RemoveJlRealization(string jlCode, string username, bool packageClose)
+        public async Task<bool> RemoveJlRealization(string? jlCode, string? username, bool packageClose)
         {
             var response = await _dbClient.DeleteAsync($"api/packing/remove-jl-realization?jl={jlCode}&username={username}&packageClose={packageClose}");
             if (response.IsSuccessStatusCode)
@@ -545,6 +545,32 @@ namespace WarehousePacking.Server.Services
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<bool>();
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
+
+        public async Task<List<DocumentElement>> GetDocumentElements(int documentId, int documentType)
+        {
+            var response = await _dbClient.GetAsync($"api/packing/get-document-elements?documentId={documentId}&documentType={documentType}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<List<DocumentElement>>();
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
+
+        public async Task<DocumentInfo> GetDocumentInfo(int documentId, int documentType)
+        {
+            var response = await _dbClient.GetAsync($"api/packing/get-document-info?documentId={documentId}&documentType={documentType}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<DocumentInfo>();
             }
 
             var generic = await response.Content.ReadAsStringAsync();

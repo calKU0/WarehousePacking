@@ -129,7 +129,7 @@ public class PackingService : IPackingService
         return result > 0;
     }
 
-    public async Task<bool> RemoveJlRealization(string jl, string username, bool packageClose)
+    public async Task<bool> RemoveJlRealization(string? jl, string? username, bool packageClose)
     {
         const string procedure = "kp.RemoveJlRealization";
         var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { jl, username, packageClose }, CommandType.StoredProcedure, Connection.ERPConnection);
@@ -192,7 +192,7 @@ public class PackingService : IPackingService
     {
         const string procedure = "kp.CreatePackageDocument";
         string courier = request.Courier.GetDescription();
-        return await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.Username, courier, request.ClientId, request.AddressName, request.AddressCity, request.AddressCountry, request.AddressPostalCode, request.AddressStreet }, CommandType.StoredProcedure, Connection.ERPConnection);
+        return await _db.QuerySingleOrDefaultAsync<int>(procedure, new { request.Username, courier, request.ClientId, request.AddressName, request.AddressCity, request.AddressCountry, request.AddressPostalCode, request.AddressStreet, request.AddressId, request.AddressType }, CommandType.StoredProcedure, Connection.ERPConnection);
     }
 
     public async Task<bool> AddPackedPosition(AddPackedPositionRequest request)
@@ -410,5 +410,45 @@ public class PackingService : IPackingService
         const string procedure = "kp.BufferPackage";
         var result = await _db.QuerySingleOrDefaultAsync<int>(procedure, new { barcode }, CommandType.StoredProcedure, Connection.ERPConnection);
         return true;
+    }
+
+    public async Task<IEnumerable<DocumentElement>> GetDocumentElementsAsync(int documentId, int documentType)
+    {
+        const string procedure = "kp.GetDocumentElements";
+        return await _db.QueryAsync<DocumentElement>(procedure, new { documentId, documentType }, CommandType.StoredProcedure, Connection.ERPConnection);
+    }
+
+    public async Task<DocumentInfo?> GetDocumentInfoAsync(int documentId, int documentType)
+    {
+        const string procedure = "kp.GetDocumentInfo";
+
+        var documents = new Dictionary<string, DocumentInfo>(StringComparer.OrdinalIgnoreCase);
+
+        await _db.QuerySingleOrDefaultAsync<DocumentInfo, DocumentElement>(
+            procedure,
+            (header, element) =>
+            {
+                var key = $"{header.DocumentName}|{header.AddressId}|{header.AddressType}|{header.ClientId}";
+                if (!documents.TryGetValue(key, out var document))
+                {
+                    document = header;
+                    document.Courier = CourierHelper.GetCourierFromName(document.CourierName);
+                    document.Elements = new List<DocumentElement>();
+                    documents[key] = document;
+                }
+
+                if (element != null)
+                {
+                    document.Elements.Add(element);
+                }
+
+                return document;
+            },
+            splitOn: "Lp",
+            param: new { documentId, documentType },
+            commandType: CommandType.StoredProcedure,
+            connectionName: Connection.ERPConnection);
+
+        return documents.Values.FirstOrDefault();
     }
 }

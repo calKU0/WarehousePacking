@@ -8,7 +8,7 @@
 {
     <div class="modal-backdrop fade show"></div>
     <div class="modal fade show d-block" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content shadow-lg rounded-3">
                 <div class="modal-header">
                     <h5 class="modal-title">Kuwety podjęte do realizacji</h5>
@@ -400,7 +400,7 @@
         );
     }
 
-    private void ToggleSelection(string jlName, string username, object? isChecked)
+    private void ToggleSelection(string? jlName, string? username, object? isChecked)
     {
         var selectionKey = BuildSelectionKey(jlName, username);
         var value = isChecked is bool b && b;
@@ -418,7 +418,6 @@
                 var parts = key.Split('|', 2);
                 return new { Name = parts.ElementAtOrDefault(0) ?? string.Empty, User = parts.ElementAtOrDefault(1) ?? string.Empty };
             })
-            .Where(x => !string.IsNullOrWhiteSpace(x.Name) && !string.IsNullOrWhiteSpace(x.User))
             .ToList();
 
         if (!selectedRealizations.Any())
@@ -456,7 +455,7 @@
         );
     }
 
-    private static string BuildSelectionKey(string jlName, string username)
+    private static string BuildSelectionKey(string? jlName, string? username)
         => $"{jlName}|{username}";
 
     private void Close()

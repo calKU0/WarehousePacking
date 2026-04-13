@@ -82,6 +82,11 @@
 
     private void Close()
     {
+        if (_tcs is { Task.IsCompleted: false })
+        {
+            _tcs.SetResult(null);
+        }
+
         InputValue = string.Empty;
         IsVisible = false;
         StateHasChanged();

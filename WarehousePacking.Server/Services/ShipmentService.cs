@@ -20,6 +20,11 @@ namespace WarehousePacking.Server.Services
 
             if (response.IsSuccessStatusCode)
             {
+                if (response.StatusCode == HttpStatusCode.NoContent || response.Content.Headers.ContentLength == 0)
+                {
+                    return null;
+                }
+
                 return await response.Content.ReadFromJsonAsync<PackageData?>();
             }
 
