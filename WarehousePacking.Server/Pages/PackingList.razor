@@ -295,6 +295,12 @@
             int? activePackageId = null;
             if (jl.Status == 3)
             {
+                if (jl.ClientName == "MIX")
+                {
+                    Toast.Show("Pakowanie pojedyncze", "Ta kuweta jest już pakowana w trybie pojedynczym i nie można do niej dołączyć.", ToastType.Info);
+                    return;
+                }
+
                 var inProgress = await PackingService.GetJlListInProgress();
                 var active = inProgress
                     .Where(x => string.Equals(x.Name, jl.Name, StringComparison.OrdinalIgnoreCase) && x.PackageId > 0)

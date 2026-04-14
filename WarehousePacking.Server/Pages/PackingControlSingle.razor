@@ -135,6 +135,10 @@
         try
         {
             if (SelectedItem == null || JlItems == null) return;
+
+            if (!await EnsureSinglePackingLock())
+                return;
+
             FillJlData(SelectedItem);
             await LoadCourierConfiguration();
             await CreatePackage();
@@ -144,8 +148,7 @@
                 PackageId = PackageId
             };
             await PackingService.UpdateJlRealization(jlInProgress);
-            await InitializeCollaborationSession();
-            bool moved = await MoveItemToPacked(SelectedItem, qty);
+            bool moved = await MoveItemToPackedSingle(SelectedItem, qty);
             if (!moved) 
             {
                 ClearJlData();
@@ -159,10 +162,7 @@
             }
 
             MovedProduct = true;
-            if (IsMainOperator)
-            {
-                FinishPacking();
-            }
+            FinishPacking();
         }
         catch (Exception ex)
         {
@@ -174,6 +174,118 @@
             await ScanInputComponent.FocusAsync();
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task<bool> EnsureSinglePackingLock()
+    {
+        var inProgress = await PackingService.GetJlListInProgress();
+        var blockedByOtherUser = inProgress.Any(x =>
+            string.Equals(x.Name, Jl, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(x.User, UserSession.Username, StringComparison.OrdinalIgnoreCase)
+            && x.PackageId > 0);
+
+        if (!blockedByOtherUser)
+            return true;
+
+        Toast.Show("Błąd!", "Ta kuweta jest już pakowana w trybie pojedynczym przez innego operatora.", ToastType.Error, 3500);
+        await Task.Delay(1500);
+        Navigation.NavigateTo("/kontrola-pakowania");
+        return false;
+    }
+
+    private async Task<bool> MoveItemToPackedSingle(JlItemDto item, decimal qty)
+    {
+        if (item == null)
+            return false;
+
+        if (CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier) && PackedItems.Sum(w => w.ItemWeight * w.JlQuantity) + (item.ItemWeight * qty) > CourierConfiguration.MaxPackageWeight)
+        {
+            Toast.Show("Błąd!", $"Przekroczona waga, dopuszczalna: {CourierConfiguration.MaxPackageWeight}");
+            return false;
+        }
+
+        var request = new AddPackedPositionRequest
+        {
+            PackingDocumentId = PackageId,
+            SourceDocumentId = item.DocumentId,
+            SourceDocumentType = item.DocumentType,
+            PositionNumber = item.ErpPositionNumber,
+            StationNumber = Settings.StationNumber,
+            Username = UserSession.Username,
+            Quantity = qty,
+            Weight = item.ItemWeight,
+            Volume = item.ItemVolume,
+            ScanDate = item.ScanDate,
+            PackDate = DateTime.Now
+        };
+
+        var persisted = await PackingService.AddPackedPosition(request);
+        if (!persisted)
+        {
+            Toast.Show("Błąd!", "Nie udało się dodać spakowanej pozycji.");
+            return false;
+        }
+
+        var existingPacked = PackedItems.FirstOrDefault(p =>
+            p.ItemCode == item.ItemCode
+            && p.DocumentId == item.DocumentId
+            && p.ErpPositionNumber == item.ErpPositionNumber
+            && p.JlCode == item.JlCode);
+
+        if (existingPacked == null)
+        {
+            existingPacked = new JlItemDto
+            {
+                JlCode = item.JlCode,
+                JlEanCode = item.JlEanCode,
+                ItemErpId = item.ItemErpId,
+                ItemWmsId = item.ItemWmsId,
+                ErpPositionNumber = item.ErpPositionNumber,
+                ItemCode = item.ItemCode,
+                ItemName = item.ItemName,
+                ItemEan = item.ItemEan?.ToList() ?? new(),
+                ItemUnit = item.ItemUnit,
+                ItemType = item.ItemType,
+                ItemImage = item.ItemImage,
+                ItemWeight = item.ItemWeight,
+                ItemVolume = item.ItemVolume,
+                PackedWMS = item.PackedWMS,
+                SupplierCode = item.SupplierCode?.ToList() ?? new(),
+                ClientErpId = item.ClientErpId,
+                AddressName = item.AddressName,
+                AddressCity = item.AddressCity,
+                AddressStreet = item.AddressStreet,
+                AddressPostalCode = item.AddressPostalCode,
+                AddressCountry = item.AddressCountry,
+                ClientName = item.ClientName,
+                ClientSymbol = item.ClientSymbol,
+                DestinationCountry = item.DestinationCountry,
+                PackingRequirements = item.PackingRequirements,
+                ScanDate = item.ScanDate,
+                CourierName = item.CourierName,
+                Courier = item.Courier,
+                LogoCourier = item.LogoCourier,
+                ShipmentServices = item.ShipmentServices,
+                BatchId = item.BatchId,
+                BatchNumber = item.BatchNumber,
+                TermValidity = item.TermValidity,
+                ErpDocumentId = item.ErpDocumentId,
+                DocumentId = item.DocumentId,
+                DocumentType = item.DocumentType,
+                DocumentQuantity = item.DocumentQuantity,
+                JlQuantity = 0,
+                PackingUser = UserSession.Username
+            };
+            PackedItems.Add(existingPacked);
+        }
+
+        existingPacked.JlQuantity += qty;
+        item.JlQuantity -= qty;
+
+        if (item.JlQuantity <= 0)
+            JlItems.Remove(item);
+
+        return true;
     }
 
     protected override async Task UnpackItem()
