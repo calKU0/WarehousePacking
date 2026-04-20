@@ -46,6 +46,16 @@ a, .btn-link {
     padding-top: 1.1rem;
 }
 
+body.monitor-mode,
+body.monitor-mode .page,
+body.monitor-mode main,
+body.monitor-mode article.content {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+
 h1:focus {
     outline: none;
 }
@@ -74,4 +84,255 @@ h1:focus {
 
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
+}
+
+.monitor-switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.monitor-tab-button {
+    cursor: pointer;
+}
+
+.monitor-slider {
+    overflow: hidden;
+    border-radius: 0.75rem;
+}
+
+.monitor-page {
+    height: 100%;
+    max-height: 100%;
+    max-height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 0.25rem 0.50rem;
+    box-sizing: border-box;
+}
+
+.monitor-slider-fill {
+    flex: 1;
+    min-height: 0;
+}
+
+.monitor-track {
+    display: flex;
+    width: 500%;
+    transition: transform 700ms ease-in-out;
+    height: 100%;
+}
+
+.monitor-slide {
+    width: 20%;
+    padding: 0.15rem;
+    height: 100%;
+    overflow: hidden;
+}
+
+.monitor-packing-panel {
+    min-height: 0;
+}
+
+.monitor-main-row {
+    min-height: 0;
+}
+
+.monitor-main-row > [class*="col-"] {
+    min-height: 0;
+}
+
+.monitor-main-row .card {
+    min-height: 0;
+    flex: 1;
+}
+
+.monitor-courier-body,
+.monitor-scroll-host {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.monitor-scroll-host {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.monitor-courier-body {
+    max-height: 100%;
+}
+
+.monitor-courier-segment {
+    min-height: 0;
+    flex: 1;
+}
+
+.monitor-kpi-card {
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 0.85rem;
+}
+
+.monitor-kpi-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.06);
+    color: #495057;
+    flex-shrink: 0;
+}
+
+.monitor-kpi-icon i {
+    font-size: 1.35rem;
+}
+
+.monitor-kpi-primary .monitor-kpi-icon {
+    background: rgba(13, 110, 253, 0.15);
+    color: #0d6efd;
+}
+
+.monitor-kpi-info .monitor-kpi-icon {
+    background: rgba(13, 202, 240, 0.2);
+    color: #0aa2c0;
+}
+
+.monitor-kpi-warning .monitor-kpi-icon {
+    background: rgba(255, 193, 7, 0.2);
+    color: #b58100;
+}
+
+.monitor-kpi-success .monitor-kpi-icon {
+    background: rgba(25, 135, 84, 0.2);
+    color: #198754;
+}
+
+.monitor-table thead th {
+    white-space: nowrap;
+}
+
+.monitor-table-fixed {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.monitor-table .progress {
+    min-width: 70px;
+    height: 0.75rem;
+}
+
+.monitor-scroll-fill {
+    min-height: 0;
+    flex: 1;
+}
+
+.monitor-auto-scroll {
+    overflow-y: auto !important;
+}
+
+.monitor-kpi-card .display-6 {
+    line-height: 1.3;
+    padding-bottom: 0.14em;
+    overflow: visible;
+}
+
+.monitor-roll-wrap {
+    display: inline-flex;
+    align-items: baseline;
+    overflow: hidden;
+    line-height: inherit;
+    padding-bottom: 0.08em;
+    max-width: 100%;
+}
+
+.monitor-kpi-card .monitor-roll-wrap {
+    overflow: visible;
+    align-items: center;
+    padding-bottom: 0.06em;
+}
+
+.monitor-roll-value {
+    display: inline-block;
+    animation: monitor-value-roll-up 220ms cubic-bezier(.22, .61, .36, 1);
+    animation-fill-mode: both;
+    will-change: transform, opacity;
+}
+
+@keyframes monitor-value-roll-up {
+    0% {
+        opacity: 1;
+        transform: translateY(6px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.monitor-share-bar {
+    transition: width 420ms ease;
+}
+
+.monitor-share-cell {
+    vertical-align: middle;
+}
+
+.monitor-share-wrap {
+    width: 100%;
+    justify-content: center;
+}
+
+.monitor-share-wrap .progress {
+    max-width: 220px;
+}
+
+.monitor-time-text {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.monitor-elapsed-cell {
+    width: 112px;
+    min-width: 112px;
+}
+
+.monitor-elapsed-badge {
+    min-width: 78px;
+    text-align: center;
+}
+
+.monitor-row-enter {
+    animation: monitor-row-enter 320ms ease-out;
+}
+
+.monitor-row-leave {
+    animation: monitor-row-leave 320ms ease-in forwards;
+}
+
+@keyframes monitor-row-enter {
+    0% {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes monitor-row-leave {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
 }

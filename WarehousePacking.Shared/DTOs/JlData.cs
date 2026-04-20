@@ -26,6 +26,8 @@ namespace WarehousePacking.Shared.DTOs
         }
 
         public string LogoCourier { get; set; } = string.Empty;
+        public PackingLevel Level { get; set; }
+        public PackingWarehouse Warehouse { get; set; }
         public ShipmentServices ShipmentServices { get; set; } = new();
         public int Priority { get; set; }
         public int Sorting { get; set; }

@@ -6,13 +6,13 @@ namespace WarehousePacking.API.Services.Packing
 {
     public interface IPackingService
     {
-        Task<IEnumerable<JlData>> GetJlListAsync(PackingLevel location);
+        Task<IEnumerable<JlData>> GetJlListAsync(PackingLevel? location = null);
 
         Task<IEnumerable<JlDto>> GetNotClosedPackagesAsync();
 
-        Task<JlData?> GetJlInfoByCodeAsync(string jl, PackingLevel location);
+        Task<JlData?> GetJlInfoByCodeAsync(string jl);
 
-        Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl, PackingLevel location);
+        Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl);
 
         Task<IEnumerable<JlItemDto>> GetPackingJlItemsAsync(int packageId);
         Task<IEnumerable<DocumentElement>> GetDocumentElementsAsync(int documentId, int documentType);

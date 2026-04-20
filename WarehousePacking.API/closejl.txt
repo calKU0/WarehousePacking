@@ -4,3 +4,9 @@
 [2026-04-09T08:31:24.1669725Z] Received Response (200)
 {"status":"1","desc":"OK"}
 
+[2026-04-20T07:27:51.4501762Z] Sending Request to wms-int-api/companies/62/integrations/own/service?integrationName=closeLu
+{"whsSource":"6","proces":"PCK","destStatusLuId":"14","Items":[{"luNr":"1000004598984","luDestNr":null,"luDestTypeSymbol":null,"locDestNr":"A - Za\u0142adunek-1-1-1"}]}
+
+[2026-04-20T07:27:52.7235863Z] Received Response (200)
+{"status":"1","desc":"OK"}
+

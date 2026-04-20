@@ -6,6 +6,33 @@ namespace WarehousePacking.API.Services.Packing.Mapping
 {
     public static class JlMapping
     {
+        private const string UpDestinationZone = "A-Pak. góra";
+        private const string RollotokLocationCode = "Rolotok";
+
+        private static PackingLevel MapPackingLevel(string destinationZone)
+            => string.Equals(destinationZone, UpDestinationZone, StringComparison.OrdinalIgnoreCase)
+                ? PackingLevel.Up
+                : PackingLevel.Bottom;
+
+        private static PackingWarehouse MapPackingWarehouse(string locationCode)
+        {
+            if (string.Equals(locationCode, RollotokLocationCode, StringComparison.OrdinalIgnoreCase))
+                return PackingWarehouse.A;
+
+            if (!string.IsNullOrWhiteSpace(locationCode))
+            {
+                var dashIndex = locationCode.IndexOf('-');
+                if (dashIndex >= 0 && locationCode.Length > dashIndex + 1)
+                {
+                    var warehouseSymbol = char.ToUpperInvariant(locationCode[dashIndex + 1]);
+                    if (warehouseSymbol == 'B')
+                        return PackingWarehouse.B;
+                }
+            }
+
+            return PackingWarehouse.A;
+        }
+
         public static IEnumerable<JlData> ToJlData(this IEnumerable<JlDto> jlList)
         {
             foreach (var jl in jlList)
@@ -31,6 +58,8 @@ namespace WarehousePacking.API.Services.Packing.Mapping
                         Barcode = jl.JlEanCode,
                         Name = jl.JlCode,
                         Destination = jl.DestZone,
+                        Level = MapPackingLevel(jl.DestZone),
+                        Warehouse = MapPackingWarehouse(jl.LocationCode),
                         ReadyToPack = jl.ReadyToPack,
                         Status = status,
                         Weight = jl.Weight,
@@ -58,6 +87,8 @@ namespace WarehousePacking.API.Services.Packing.Mapping
                         Id = jl.JlId,
                         Barcode = jl.JlEanCode,
                         Destination = jl.DestZone,
+                        Level = MapPackingLevel(jl.DestZone),
+                        Warehouse = MapPackingWarehouse(jl.LocationCode),
                         LocationCode = jl.LocationCode,
                         ReadyToPack = jl.ReadyToPack,
                         Name = jl.JlCode,
@@ -122,6 +153,8 @@ namespace WarehousePacking.API.Services.Packing.Mapping
                     Id = jlDto.JlId,
                     LocationCode = jlDto.LocationCode,
                     Destination = jlDto.DestZone,
+                    Level = MapPackingLevel(jlDto.DestZone),
+                    Warehouse = MapPackingWarehouse(jlDto.LocationCode),
                     Barcode = jlDto.JlEanCode,
                     ReadyToPack = jlDto.ReadyToPack,
                     Name = jlDto.JlCode,
@@ -150,6 +183,8 @@ namespace WarehousePacking.API.Services.Packing.Mapping
                 Id = jlDto.JlId,
                 Barcode = jlDto.JlEanCode,
                 Destination = jlDto.DestZone,
+                Level = MapPackingLevel(jlDto.DestZone),
+                Warehouse = MapPackingWarehouse(jlDto.LocationCode),
                 Name = jlDto.JlCode,
                 Status = status,
                 ReadyToPack = jlDto.ReadyToPack,

@@ -1,13 +1,45 @@
 ﻿@page "/"
 @using WarehousePacking.Server.Services
+@using WarehousePacking.Shared.Enums
 @inject UserSessionService UserSession
-@inject IJSRuntime JSRuntime
-@inherits ProtectedPageBase
+@inject WorkstationService WorkstationService
+@inject NavigationManager Navigation
 
-<h3>Main Page</h3>
-
-<h4>Tu nic nie będzie</h4>
+<div class="container py-4">
+    <div class="text-muted">Przekierowywanie...</div>
+</div>
 
 @code {
+    protected override async Task OnInitializedAsync()
+    {
+        var settings = await WorkstationService.GetSettingsAsync();
+        if (settings is null || string.IsNullOrWhiteSpace(settings.StationNumber))
+        {
+            Navigation.NavigateTo("/settings", true);
+            return;
+        }
 
+        if (settings.StationType == StationType.Monitoring)
+        {
+            Navigation.NavigateTo("/monitor", true);
+            return;
+        }
+
+        await UserSession.InitializeAsync();
+        if (string.IsNullOrWhiteSpace(UserSession.Username))
+        {
+            Navigation.NavigateTo("/login", true);
+            return;
+        }
+
+        var route = settings.StationType switch
+        {
+            StationType.Packing => "/kontrola-pakowania",
+            StationType.Shipping => "/wysylka-paczek",
+            StationType.Monitoring => "/monitor",
+            _ => "/login"
+        };
+
+        Navigation.NavigateTo(route, true);
+    }
 }

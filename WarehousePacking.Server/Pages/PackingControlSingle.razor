@@ -371,14 +371,14 @@
             if (string.IsNullOrEmpty(internalBarcode)) return;
 
             Dimensions dimensions = new();
-            if (Settings.PackingLevel == PackingLevel.Dół && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
+            if (Settings.PackingLevel == PackingLevel.Bottom && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
             {
                 dimensions = await DimensionsModal.Show();
             }
 
             await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, internalBarcode, DocumentStatus.Ready);
             await ClosePackage(internalBarcode, dimensions);
-            if (Settings.PackingLevel == PackingLevel.Dół && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
+            if (Settings.PackingLevel == PackingLevel.Bottom && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
             {
                 await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", internalBarcode } });
             }

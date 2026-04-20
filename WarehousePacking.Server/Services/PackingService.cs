@@ -14,9 +14,13 @@ namespace WarehousePacking.Server.Services
             _dbClient = httpFactory.CreateClient("Database");
         }
 
-        public async Task<List<JlData>> GetJlList(PackingLevel packingLocation)
+        public async Task<List<JlData>> GetJlList(PackingLevel? packingLocation = null)
         {
-            var response = await _dbClient.GetAsync($"api/packing/jl-list?location={packingLocation}");
+            var endpoint = packingLocation.HasValue
+                ? $"api/packing/jl-list?location={packingLocation.Value}"
+                : "api/packing/jl-list";
+
+            var response = await _dbClient.GetAsync(endpoint);
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<List<JlData>>();
@@ -50,9 +54,9 @@ namespace WarehousePacking.Server.Services
             throw new Exception(generic);
         }
 
-        public async Task<JlData> GetJlInfoByCode(string jlCode, PackingLevel packingLocation)
+        public async Task<JlData> GetJlInfoByCode(string jlCode)
         {
-            var response = await _dbClient.GetAsync($"api/packing/jl-info?jl={jlCode}&location={packingLocation}");
+            var response = await _dbClient.GetAsync($"api/packing/jl-info?jl={jlCode}");
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<JlData>();
@@ -68,9 +72,9 @@ namespace WarehousePacking.Server.Services
             throw new Exception(generic);
         }
 
-        public async Task<List<JlItemDto>> GetJlItems(string jlCode, PackingLevel packingLocation)
+        public async Task<List<JlItemDto>> GetJlItems(string jlCode)
         {
-            var response = await _dbClient.GetAsync($"api/packing/jl-items?jl={jlCode}&location={packingLocation}");
+            var response = await _dbClient.GetAsync($"api/packing/jl-items?jl={jlCode}");
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<List<JlItemDto>>();

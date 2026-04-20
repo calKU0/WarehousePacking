@@ -1,18 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 
 namespace WarehousePacking.Shared.Enums
 {
     public enum PackingWarehouse
     {
         [Description("Magazyn A")]
-        Magazyn_A,
+        A,
 
         [Description("Magazyn B")]
-        Magazyn_B
+        B
     }
 }

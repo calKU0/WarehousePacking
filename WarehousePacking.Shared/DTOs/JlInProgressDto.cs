@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace WarehousePacking.Shared.DTOs
+﻿namespace WarehousePacking.Shared.DTOs
 {
     public class JlInProgressDto
     {
@@ -15,5 +9,6 @@ namespace WarehousePacking.Shared.DTOs
         public string ClientName { get; set; } = string.Empty;
         public int PackageId { get; set; }
         public DateTime Date { get; set; }
+        public DateTime LastScanDate { get; set; }
     }
 }

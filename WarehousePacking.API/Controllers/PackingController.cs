@@ -21,7 +21,7 @@ namespace WarehousePacking.API.Controllers
         }
 
         [HttpGet("jl-list")]
-        public async Task<IActionResult> GetJlList([FromQuery] PackingLevel location)
+        public async Task<IActionResult> GetJlList([FromQuery] PackingLevel? location = null)
         {
             _logger.Information("Request: GetJlList for location {Location}", location);
             try
@@ -55,29 +55,29 @@ namespace WarehousePacking.API.Controllers
         }
 
         [HttpGet("jl-info")]
-        public async Task<IActionResult> GetJlInfo([FromQuery] string jl, [FromQuery] PackingLevel location)
+        public async Task<IActionResult> GetJlInfo([FromQuery] string jl)
         {
-            _logger.Information("Request: GetJlInfo for JL {Jl} at location {Location}", jl, location);
+            _logger.Information("Request: GetJlInfo for JL {Jl}", jl);
             try
             {
-                var info = await _packingService.GetJlInfoByCodeAsync(jl, location);
+                var info = await _packingService.GetJlInfoByCodeAsync(jl);
                 _logger.Information("GetJlInfo succeeded for JL {Jl}", jl);
                 return Ok(info);
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Error in GetJlInfo for JL {Jl} at location {Location}", jl, location);
+                _logger.Error(ex, "Error in GetJlInfo for JL {Jl}", jl);
                 return HandleException(ex);
             }
         }
 
         [HttpGet("jl-items")]
-        public async Task<IActionResult> GetJlItems([FromQuery] string jl, [FromQuery] PackingLevel location)
+        public async Task<IActionResult> GetJlItems([FromQuery] string jl)
         {
-            _logger.Information("Request: GetJlItems for JL {Jl} at location {Location}", jl, location);
+            _logger.Information("Request: GetJlItems for JL {Jl}", jl);
             try
             {
-                var items = await _packingService.GetJlItemsAsync(jl, location);
+                var items = await _packingService.GetJlItemsAsync(jl);
                 _logger.Information("GetJlItems succeeded for JL {Jl} with {Count} items", jl, items.Count());
                 return Ok(items);
             }

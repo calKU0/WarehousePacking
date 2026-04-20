@@ -163,6 +163,13 @@
     {
         IsLoading = true;
         await UserSession.InitializeAsync();
+
+        if (string.IsNullOrWhiteSpace(UserSession.Username))
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
         await LoadData();
 
         // Auto-refresh every 1 minute
@@ -268,7 +275,7 @@
     {
         try
         {
-            var refreshedJl = await PackingService.GetJlInfoByCode(jl.Name, Settings.PackingLevel);
+            var refreshedJl = await PackingService.GetJlInfoByCode(jl.Name);
 
             if (refreshedJl == null)
             {
@@ -334,7 +341,7 @@
                 return;
             }
 
-            if (Settings.PackingLevel != PackingLevel.Dół)
+            if (Settings.PackingLevel != PackingLevel.Bottom)
             {
                 // upper level logic
                 if (jl.ClientName == "MIX")

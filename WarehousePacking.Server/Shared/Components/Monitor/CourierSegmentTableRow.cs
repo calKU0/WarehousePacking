@@ -1,0 +1,14 @@
+namespace WarehousePacking.Server.Shared.Components.Monitor
+{
+    public sealed class CourierSegmentTableRow
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Courier { get; set; } = string.Empty;
+        public int Jls { get; set; }
+        public decimal Weight { get; set; }
+        public decimal Elements { get; set; }
+        public int SharePercent { get; set; }
+        public string ShareClass { get; set; } = string.Empty;
+        public string AnimationClass { get; set; } = string.Empty;
+    }
+}

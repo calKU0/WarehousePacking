@@ -11,6 +11,7 @@
 @inject ClientPrinterService ClientPrinterService
 @inject AuthService AuthService
 @inject IOptions<AppSettings> AppOptions
+@inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 
@@ -251,6 +252,13 @@
     {
         try
         {
+            await UserSession.InitializeAsync();
+            if (string.IsNullOrWhiteSpace(UserSession.Username))
+            {
+                Navigation.NavigateTo("/login", forceLoad: true);
+                return;
+            }
+
             WorkstationSettings = await WorkstationService.GetSettingsAsync();
 
             // Auto-refresh every 1 minute.

@@ -22,16 +22,15 @@ public class PackingService : IPackingService
         _wmsApi = wmsApi;
     }
 
-    public async Task<IEnumerable<JlData>> GetJlListAsync(PackingLevel location)
+    public async Task<IEnumerable<JlData>> GetJlListAsync(PackingLevel? location = null)
     {
         var jlList = await _wmsApi.GetJlListAsync();
         var jlToPack = jlList
             .Where(x =>
                 x.Status == 12 &&
-                (
-                    (location == PackingLevel.Góra && x.DestZone == "A-Pak. góra") ||
-                    (location == PackingLevel.Dół && x.DestZone != "A-Pak. góra")
-                )
+                (!location.HasValue ||
+                    (location == PackingLevel.Up && x.DestZone == "A-Pak. góra") ||
+                    (location == PackingLevel.Bottom && x.DestZone != "A-Pak. góra"))
             )
             .ToList();
 
@@ -58,6 +57,7 @@ public class PackingService : IPackingService
         return jlToPack.ToJlData().OrderBy(jl => jl.Status).ThenBy(c => c.CourierName).ThenBy(c => c.ClientSymbol);
     }
 
+
     public async Task<IEnumerable<JlDto>> GetNotClosedPackagesAsync()
     {
         var jlList = await _wmsApi.GetJlListAsync();
@@ -67,7 +67,7 @@ public class PackingService : IPackingService
         return jlToPack;
     }
 
-    public async Task<JlData?> GetJlInfoByCodeAsync(string jlCode, PackingLevel location)
+    public async Task<JlData?> GetJlInfoByCodeAsync(string jlCode)
     {
         var jlList = await _wmsApi.GetJlListAsync();
 
@@ -82,7 +82,7 @@ public class PackingService : IPackingService
         return jlDto.ToJlData();
     }
 
-    public async Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl, PackingLevel location)
+    public async Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl)
     {
         var jlItems = await _wmsApi.GetJlItemsAsync(jl);
         foreach (var item in jlItems)
@@ -365,12 +365,12 @@ public class PackingService : IPackingService
 
     private async Task<string> GetPackageDestination(string courier, PackingLevel level, PackingWarehouse warehouse)
     {
-        if (level == PackingLevel.Dół)
+        if (level == PackingLevel.Bottom)
         {
-            if (warehouse == PackingWarehouse.Magazyn_A)
+            if (warehouse == PackingWarehouse.A)
                 return "A - Załadunek-1-1-1";
 
-            if (warehouse == PackingWarehouse.Magazyn_B)
+            if (warehouse == PackingWarehouse.B)
                 return "B - Załadunek-1-1-1";
         }
 

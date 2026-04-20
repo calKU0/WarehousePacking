@@ -1,0 +1,19 @@
+@using WarehousePacking.Shared.Enums
+@using WarehousePacking.Shared.Helpers
+
+<div class="monitor-switch">
+    @foreach (var panel in Panels)
+    {
+        <button type="button"
+                class="badge rounded-pill border-0 monitor-tab-button @(ActivePanel == panel ? "text-bg-primary" : "text-bg-secondary")"
+                @onclick="() => OnPanelSelected.InvokeAsync(panel)">
+            @panel.GetDescription()
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<MonitorPanel> Panels { get; set; } = Array.Empty<MonitorPanel>();
+    [Parameter] public MonitorPanel ActivePanel { get; set; }
+    [Parameter] public EventCallback<MonitorPanel> OnPanelSelected { get; set; }
+}

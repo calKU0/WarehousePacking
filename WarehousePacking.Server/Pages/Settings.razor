@@ -3,6 +3,7 @@
 @using WarehousePacking.Shared.Enums
 @using WarehousePacking.Shared.Helpers
 @inject WorkstationService WorkstationService
+@inject UserSessionService UserSession
 @inject NavigationManager NavigationManager
 @layout EmptyLayout
 
@@ -38,13 +39,28 @@ else
 
         if (!string.IsNullOrWhiteSpace(settings.StationNumber))
         {
+            await UserSession.InitializeAsync();
+            if (string.IsNullOrWhiteSpace(UserSession.Username))
+            {
+                NavigationManager.NavigateTo("/login", true);
+                return;
+            }
+
             WorkStationSettings = settings;
+            WorkStationSettings.MonitorRefreshIntervalSeconds = WorkStationSettings.MonitorRefreshIntervalSeconds > 0
+                ? WorkStationSettings.MonitorRefreshIntervalSeconds
+                : WorkstationSettings.DefaultMonitorRefreshIntervalSeconds;
+            WorkStationSettings.MonitorSlideIntervalSeconds = WorkStationSettings.MonitorSlideIntervalSeconds > 0
+                ? WorkStationSettings.MonitorSlideIntervalSeconds
+                : WorkstationSettings.DefaultMonitorSlideIntervalSeconds;
             IsFirstSave = false;
         }
         else
         {
             // first-time setup
             IsFirstSave = true;
+            WorkStationSettings.MonitorRefreshIntervalSeconds = WorkstationSettings.DefaultMonitorRefreshIntervalSeconds;
+            WorkStationSettings.MonitorSlideIntervalSeconds = WorkstationSettings.DefaultMonitorSlideIntervalSeconds;
         }
     }
 
@@ -92,6 +108,27 @@ else
                         </select>
                     </div>
 
+                     @if (WorkStationSettings.StationType == StationType.Monitoring)
+                     {
+                         <div class="mb-3">
+                             <label class="form-label">Odświeżanie danych (sekundy):</label>
+                             <input type="number"
+                                    min="1"
+                                    class="form-control"
+                                    @bind="WorkStationSettings.MonitorRefreshIntervalSeconds"
+                                    placeholder="Domyślnie 15" />
+                         </div>
+
+                         <div class="mb-3">
+                             <label class="form-label">Zmiana slajdu (sekundy):</label>
+                             <input type="number"
+                                    min="1"
+                                    class="form-control"
+                                    @bind="WorkStationSettings.MonitorSlideIntervalSeconds"
+                                    placeholder="Domyślnie 30" />
+                         </div>
+                     }
+
                     <div class="mb-3">
                         <label class="form-label">Typ stanowiska:</label>
                         <select class="form-select" @bind="WorkStationSettings.StationType">
@@ -134,12 +171,26 @@ else
     {
         try
         {
+            if (WorkStationSettings.StationType == StationType.Monitoring)
+            {
+                if (WorkStationSettings.MonitorRefreshIntervalSeconds <= 0)
+                {
+                    WorkStationSettings.MonitorRefreshIntervalSeconds = WorkstationSettings.DefaultMonitorRefreshIntervalSeconds;
+                }
+
+                if (WorkStationSettings.MonitorSlideIntervalSeconds <= 0)
+                {
+                    WorkStationSettings.MonitorSlideIntervalSeconds = WorkstationSettings.DefaultMonitorSlideIntervalSeconds;
+                }
+            }
+
             await WorkstationService.SaveSettingsAsync(WorkStationSettings);
             Toast.Show("Sukces!", "Ustawienia zapisane!", ToastType.Success, 2000);
 
             if (IsFirstSave)
             {
-                NavigationManager.NavigateTo("/login", forceLoad: true);
+                var firstRoute = WorkStationSettings.StationType == StationType.Monitoring ? "/monitor" : "/login";
+                NavigationManager.NavigateTo(firstRoute, forceLoad: true);
             }
         }
         catch (Exception ex)

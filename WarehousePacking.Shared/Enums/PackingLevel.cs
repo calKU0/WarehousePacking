@@ -1,18 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 
 namespace WarehousePacking.Shared.Enums
 {
     public enum PackingLevel
     {
         [Description("Góra")]
-        Góra,
+        Up,
 
         [Description("Dół")]
-        Dół
+        Bottom
     }
 }

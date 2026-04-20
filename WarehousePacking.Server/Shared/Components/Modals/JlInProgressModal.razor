@@ -240,7 +240,7 @@
             if (string.IsNullOrWhiteSpace(Settings.StationNumber))
                 Settings = await WorkstationService.GetSettingsAsync();
 
-            var allItems = await PackingService.GetJlItems(jl.Name, Settings.PackingLevel) ?? new List<JlItemDto>();
+            var allItems = await PackingService.GetJlItems(jl.Name) ?? new List<JlItemDto>();
             var packedItems = await PackingService.GetPackingJlItems(jl.PackageId) ?? new List<JlItemDto>();
 
             PreviewPackedItems = packedItems
