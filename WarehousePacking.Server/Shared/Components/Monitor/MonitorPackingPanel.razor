@@ -5,7 +5,7 @@
 <div class="monitor-packing-panel h-100 d-flex flex-column">
 <div class="row g-3 mb-3">
     <div class="col-12 col-md-3">
-        <MonitorStatCard Title="Dokumenty / Towary"
+        <MonitorStatCard Title="Jl / Towary"
                          Subtitle="Do spakowania"
                          Value="@($"{PackingDocumentsCount} / {FormatQuantity(PackingElementsTotal)}")"
                          IconClass="bi bi-box-seam"
@@ -35,7 +35,7 @@
 </div>
 
 <div class="row g-3 monitor-main-row flex-grow-1">
-    <div class="col-12 col-xl-7 d-flex">
+    <div class="col-12 col-xl-6 d-flex">
         <div class="card shadow-sm h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-truck me-2"></i>Do spakowania</span>
@@ -47,7 +47,7 @@
         </div>
     </div>
 
-    <div class="col-12 col-xl-5 d-flex">
+    <div class="col-12 col-xl-6 d-flex">
         <div class="card shadow-sm h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-person-workspace me-2"></i>Pakowane</span>
@@ -55,18 +55,13 @@
             </div>
             <div class="card-body p-0 mb-0 monitor-scroll-host">
                 <div class="table-responsive monitor-auto-scroll monitor-scroll-fill flex-grow-1">
-                    <table class="table table-striped table-hover mb-0 monitor-table monitor-table-fixed">
-                        <colgroup>
-                            <col style="width: 23%;" />
-                            <col style="width: 21%;" />
-                            <col style="width: 15%;" />
-                            <col style="width: 17%;" />
-                            <col style="width: 24%;" />
-                        </colgroup>
+                    <table class="table table-striped table-hover mb-0 monitor-table monitor-table-auto">
                         <thead class="table-dark">
                             <tr>
                                 <th>Jl</th>
                                 <th>Operator</th>
+                                <th>Kurier</th>
+                                <th>Klient</th>
                                 <th>Stanowisko</th>
                                 <th>Od podjęcia</th>
                                 <th>Od ost. skanu</th>
@@ -76,7 +71,7 @@
                             @if (!InProgressRows.Any())
                             {
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-3">
+                                    <td colspan="7" class="text-center text-muted py-3">
                                         @if (IsLoading)
                                         {
                                             <span>Ładowanie danych...</span>
@@ -96,6 +91,8 @@
                                     <tr class="@($"{GetElapsedRowClass(row.Date)} {rowState.AnimationClass}".Trim())" @key="rowState.Key">
                                         <td>@row.Name</td>
                                         <td>@row.User</td>
+                                        <td>@row.Courier</td>
+                                        <td>@row.ClientName</td>
                                         <td>@row.StationNumber</td>
                                         <td class="monitor-elapsed-cell">
                                             <span class="badge @GetElapsedBadgeClass(row.Date) monitor-elapsed-badge monitor-time-text">
@@ -260,7 +257,7 @@
 
     private void SyncInProgressRows()
     {
-        var latest = InProgress.OrderBy(x => x.Date).Take(15).ToList();
+        var latest = InProgress.OrderBy(x => x.Date).ToList();
         var latestKeys = latest.Select(GetInProgressKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         foreach (var item in latest)

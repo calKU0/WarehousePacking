@@ -214,9 +214,43 @@ h1:focus {
     white-space: nowrap;
 }
 
-.monitor-table-fixed {
+.monitor-courier-segment .monitor-table tbody td {
+    vertical-align: middle;
+}
+
+.monitor-courier-table {
     width: 100%;
-    table-layout: fixed;
+    table-layout: auto;
+}
+
+.monitor-courier-table .monitor-courier-col-content {
+    width: 1%;
+}
+
+.monitor-courier-table .monitor-courier-col-fill {
+    width: auto;
+}
+
+.monitor-courier-table th,
+.monitor-courier-table td {
+    white-space: nowrap;
+}
+
+.monitor-table-auto {
+    width: 100%;
+    table-layout: auto;
+}
+
+.monitor-table-auto th:not(:first-child),
+.monitor-table-auto td:not(:first-child) {
+    width: 1%;
+    white-space: nowrap;
+}
+
+.monitor-table-auto th:first-child,
+.monitor-table-auto td:first-child {
+    width: auto;
+    white-space: normal;
 }
 
 .monitor-table .progress {
