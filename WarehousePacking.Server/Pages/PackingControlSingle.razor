@@ -292,6 +292,13 @@
     {
         if (SelectedPackedItem == null) return;
 
+        if (SelectedPackedItem.PackedWMS)
+        {
+            Toast.Show("Błąd!", "Nie można usunąć pozycji, która została już wysłana do WMS.", ToastType.Error, 3500);
+            await ScanInputComponent.FocusAsync();
+            return;
+        }
+
         var request = new RemovePackedPositionRequest
         {
             PackingDocumentId = PackageId,
@@ -331,8 +338,14 @@
 
     protected override async Task HandleShipmentOkClick((string ScannedCode, string TrackingNumber) data)
     {
+        if (IsFinishingLoading)
+            return;
+
         try
         {
+            IsFinishingLoading = true;
+            await InvokeAsync(StateHasChanged);
+
             switch (_currentPackingFlow)
             {
                 case PackingFlow.FinishPacking:
@@ -359,10 +372,18 @@
             Toast.Show("Błąd!", $"Błąd przy próbie finalizacji pakowania: {ex.Message}");
             await ScanInputComponent.FocusAsync();
         }
+        finally
+        {
+            IsFinishingLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     protected override async Task HandleInternalBarcode()
     {
+        if (IsFinishingLoading)
+            return;
+
         try
         {
             FinishPackingModal.Hide();
@@ -375,6 +396,9 @@
             {
                 dimensions = await DimensionsModal.Show();
             }
+
+            IsFinishingLoading = true;
+            await InvokeAsync(StateHasChanged);
 
             await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, internalBarcode, DocumentStatus.Ready);
             await ClosePackage(internalBarcode, dimensions);
@@ -403,6 +427,11 @@
         {
             Toast.Show("Błąd!", $"Błąd przy próbie finalizacji pakowania: {ex.Message}");
             await ScanInputComponent.FocusAsync();
+        }
+        finally
+        {
+            IsFinishingLoading = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 }

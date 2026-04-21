@@ -161,7 +161,14 @@ public class PackingService : IPackingService
     public async Task<IEnumerable<PackageData>> GetPackagesForClient(int clientId, string? addressName, string? addressCity, string? addressStreet, string? addressPostalCode, string? addressCountry, DocumentStatus status)
     {
         const string procedure = "kp.GetPackagesForClient";
-        return await _db.QueryAsync<PackageData>(procedure, new { clientId, addressName, addressCity, addressStreet, addressPostalCode, addressCountry, status }, CommandType.StoredProcedure, Connection.ERPConnection);
+        var packages = await _db.QueryAsync<PackageData>(procedure, new { clientId, addressName, addressCity, addressStreet, addressPostalCode, addressCountry, status }, CommandType.StoredProcedure, Connection.ERPConnection);
+
+        foreach (var package in packages)
+        {
+            package.Courier = CourierHelper.GetCourierFromName(package.CourierName);
+        }
+
+        return packages;
     }
 
     public async Task<IEnumerable<CourierConfiguration>> GetCourierConfiguration(string? courierName, PackingLevel? level, string? country)
@@ -173,7 +180,7 @@ public class PackingService : IPackingService
         if (string.IsNullOrEmpty(courierName) || level == null || string.IsNullOrEmpty(country))
             configuration = await _db.QueryAsync<CourierConfiguration>(procedure, null, CommandType.StoredProcedure, Connection.ERPConnection);
         else
-            configuration = await _db.QueryAsync<CourierConfiguration>(procedure, new { courierName, level = level.ToString(), country }, CommandType.StoredProcedure, Connection.ERPConnection);
+            configuration = await _db.QueryAsync<CourierConfiguration>(procedure, new { courierName, level = level.GetDescription(), country }, CommandType.StoredProcedure, Connection.ERPConnection);
 
         return configuration;
     }

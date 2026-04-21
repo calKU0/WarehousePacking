@@ -367,7 +367,7 @@
                 jl.AddressCountry,
                 DocumentStatus.Bufor);
 
-            if (packagesInBufor?.Where(p => p.CourierName == jl.CourierName).Any() == true)
+            if (packagesInBufor?.Where(p => p.Courier == jl.Courier).Any() == true)
             {
                 selectedPackage = await PackagesInBuforModal.Show(packagesInBufor);
             }

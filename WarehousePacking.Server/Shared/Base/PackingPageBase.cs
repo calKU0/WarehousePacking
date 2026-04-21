@@ -514,6 +514,13 @@ namespace WarehousePacking.Server.Shared.Base
         {
             if (SelectedPackedItem == null) return;
 
+            if (SelectedPackedItem.PackedWMS)
+            {
+                Toast.Show("Błąd!", "Nie można usunąć pozycji, która została już wysłana do WMS.", ToastType.Error, 3500);
+                await ScanInputComponent.FocusAsync();
+                return;
+            }
+
             if (!string.Equals(SelectedPackedItem.PackingUser, UserSession.Username, StringComparison.OrdinalIgnoreCase))
             {
                 Toast.Show("Brak uprawnień", "Możesz usunąć tylko pozycje spakowane przez siebie.", ToastType.Error, 3500);
@@ -1092,6 +1099,9 @@ namespace WarehousePacking.Server.Shared.Base
             if (!EnsureMainOperator("druk etykiety"))
                 return;
 
+            if (IsFinishingLoading)
+                return;
+
             IsFinishingLoading = true;
             await InvokeAsync(StateHasChanged);
 
@@ -1164,6 +1174,9 @@ namespace WarehousePacking.Server.Shared.Base
             if (!EnsureMainOperator("potwierdzenie wysyłki"))
                 return;
 
+            if (IsFinishingLoading)
+                return;
+
             try
             {
                 IsFinishingLoading = true;
@@ -1200,6 +1213,9 @@ namespace WarehousePacking.Server.Shared.Base
         protected virtual async Task HandleInternalBarcode()
         {
             if (!EnsureMainOperator("nadanie numeru wewnętrznego"))
+                return;
+
+            if (IsFinishingLoading)
                 return;
 
             try
@@ -1298,6 +1314,9 @@ namespace WarehousePacking.Server.Shared.Base
         protected virtual async Task HandleBufor()
         {
             if (!EnsureMainOperator("zabuforowanie paczki"))
+                return;
+
+            if (IsFinishingLoading)
                 return;
 
             try
