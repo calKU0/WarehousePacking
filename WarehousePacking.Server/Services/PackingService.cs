@@ -1,7 +1,7 @@
 ﻿using System.Net;
-using WarehousePacking.Shared.DTOs;
-using WarehousePacking.Shared.DTOs.Requests;
-using WarehousePacking.Shared.Enums;
+using WarehousePacking.Contracts.Data.Enums;
+using WarehousePacking.Contracts.DTOs;
+using WarehousePacking.Contracts.DTOs.Requests;
 
 namespace WarehousePacking.Server.Services
 {
@@ -543,7 +543,6 @@ namespace WarehousePacking.Server.Services
 
         public async Task<bool> BufferPackage(string barcode)
         {
-
             var response = await _dbClient.PatchAsJsonAsync($"api/packing/buffer-package", barcode);
 
             if (response.IsSuccessStatusCode)

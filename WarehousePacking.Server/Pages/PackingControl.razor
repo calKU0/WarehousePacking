@@ -1,7 +1,7 @@
-﻿@using WarehousePacking.Server.Services
-@using WarehousePacking.Shared.DTOs.Requests
-@using WarehousePacking.Shared.Enums
-@using WarehousePacking.Shared.Helpers
+﻿@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Server.Helpers
+@using WarehousePacking.Server.Services
+@using WarehousePacking.Contracts.Data.Enums
 
 @page "/kontrola-pakowania/{jl}"
 @inherits PackingPageBase
@@ -69,7 +69,7 @@
 <FinishPackingModal @ref="FinishPackingModal"
             Courier="@CurrentJl.Courier"
             Country="@CurrentJl.Country"
-            CourierSrc="@CurrentJl.LogoCourier"
+            CourierSrc="@CourierHelper.GetCourierLogo(CurrentJl.ShipmentServices, CurrentJl.Courier)"
             PackingLevel="Settings.PackingLevel"
             OnCourierLabel="HandleCourierLabel"
             OnBufor="HandleBufor"

@@ -1,5 +1,5 @@
-﻿@using WarehousePacking.Shared.Enums
-@using WarehousePacking.Shared.Helpers
+﻿@using WarehousePacking.Contracts.Data.Enums
+@using WarehousePacking.Server.Helpers
 @inherits ComponentBase
 
 @if (IsVisible)
@@ -9,7 +9,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-3 shadow-lg">
                 <div class="modal-header border-0 d-flex flex-column align-items-center">
-                    <img src="@Utils.GetCourierSrc(CourierSrc)" alt="Courier" class="img-fluid mb-3" style="max-height:120px;" />
+                    <img src="@CourierSrc" alt="Courier" class="img-fluid mb-3" style="max-height:120px;" />
                     @if (!string.IsNullOrEmpty(Country) && Country != "PL")
                     {
                         <div class="header-image-placeholder mt-1">

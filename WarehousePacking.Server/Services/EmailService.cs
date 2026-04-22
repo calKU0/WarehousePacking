@@ -1,5 +1,4 @@
-﻿using WarehousePacking.Shared.DTOs.Requests;
-using System.Net.Http;
+﻿using WarehousePacking.Contracts.DTOs.Requests;
 
 namespace WarehousePacking.Server.Services
 {

@@ -1,5 +1,5 @@
-﻿using WarehousePacking.Server.Services;
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
+using WarehousePacking.Server.Services;
 
 namespace WarehousePacking.Server.Shared.Base
 {

@@ -1,7 +1,7 @@
-﻿using WarehousePacking.Shared.DTOs;
-using WarehousePacking.Shared.DTOs.Requests;
-using WarehousePacking.Shared.Enums;
-using System.Net;
+﻿using System.Net;
+using WarehousePacking.Contracts.Data.Enums;
+using WarehousePacking.Contracts.DTOs;
+using WarehousePacking.Contracts.DTOs.Requests;
 
 namespace WarehousePacking.Server.Services
 {

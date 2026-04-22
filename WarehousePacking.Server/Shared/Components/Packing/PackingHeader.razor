@@ -1,6 +1,7 @@
-﻿@using WarehousePacking.Server.Shared.Components.Modals
-@using WarehousePacking.Shared.Enums
-@using WarehousePacking.Shared.Helpers
+﻿@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Server.Helpers
+@using WarehousePacking.Server.Shared.Components.Modals
+@using WarehousePacking.Contracts.Data.Enums
 
 <div class="d-flex align-items-center mb-3 header-row w-100">
     @if (JlItems != null && JlItems.Any() && CurrentJl.Country != "PL" && CurrentJl.ClientName != "MIX" && CurrentJl.Country != string.Empty && CurrentJl.CourierName != "MIX")
@@ -13,7 +14,7 @@
     @if (CurrentJl != null && CurrentJl.Courier != Courier.Unknown)
     {
         <div class="header-image-placeholder me-3">
-            <img src="@Utils.GetCourierSrc(CurrentJl.LogoCourier)" alt="@CurrentJl.LogoCourier" />
+            <img src="@CourierHelper.GetCourierLogo(CurrentJl.ShipmentServices, CurrentJl.Courier)" alt="@CurrentJl.Courier.GetDescription()" />
         </div>
     }
 

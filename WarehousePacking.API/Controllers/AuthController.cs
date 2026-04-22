@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Serilog;
-using WarehousePacking.API.Services.Auth;
-using WarehousePacking.Shared.DTOs;
+using WarehousePacking.Contracts.DTOs;
+using WarehousePacking.Contracts.Services;
 
 namespace WarehousePacking.API.Controllers
 {
@@ -10,18 +9,18 @@ namespace WarehousePacking.API.Controllers
     public class AuthController : Controller
     {
         private readonly IAuthService _authService;
-        private readonly Serilog.ILogger _logger;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, ILogger<AuthController> logger)
         {
             _authService = authService;
-            _logger = Log.ForContext<AuthController>();
+            _logger = logger;
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto login)
         {
-            _logger.Information("Login attempt for user {@Username}", login?.Username);
+            _logger.LogInformation("Login attempt for user {Username}", login?.Username);
 
             try
             {
@@ -29,11 +28,11 @@ namespace WarehousePacking.API.Controllers
 
                 if (!string.IsNullOrEmpty(username))
                 {
-                    _logger.Information("User {@Username} logged in successfully", username);
+                    _logger.LogInformation("User {Username} logged in successfully", username);
                 }
                 else
                 {
-                    _logger.Warning("Invalid login credentials for user {@Username}", login?.Username);
+                    _logger.LogWarning("Invalid login credentials for user {Username}", login?.Username);
                     return Unauthorized("Nieprawidłowa nazwa użytkownika lub hasło.");
                 }
 
@@ -41,12 +40,12 @@ namespace WarehousePacking.API.Controllers
             }
             catch (ArgumentException ex)
             {
-                _logger.Warning(ex, "Bad request while logging in user {@Username}", login?.Username);
+                _logger.LogWarning(ex, "Bad request while logging in user {Username}", login?.Username);
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Unhandled error while logging in user {@Username}", login?.Username);
+                _logger.LogError(ex, "Unhandled error while logging in user {Username}", login?.Username);
                 return StatusCode(500, ex.Message);
             }
         }
@@ -54,22 +53,22 @@ namespace WarehousePacking.API.Controllers
         [HttpGet("get-logged-users")]
         public async Task<IActionResult> GetLoggedOperators()
         {
-            _logger.Information("Fetching logged users list");
+            _logger.LogInformation("Fetching logged users list");
 
             try
             {
                 var items = await _authService.GetLoggedUsersAsync();
-                _logger.Information("Fetched {Count} logged users", items?.Count());
+                _logger.LogInformation("Fetched {Count} logged users", items?.Count());
                 return Ok(items);
             }
             catch (ArgumentException ex)
             {
-                _logger.Warning(ex, "Bad request while fetching logged users");
+                _logger.LogWarning(ex, "Bad request while fetching logged users");
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Unhandled error while fetching logged users");
+                _logger.LogError(ex, "Unhandled error while fetching logged users");
                 return StatusCode(500, ex.Message);
             }
         }
@@ -77,27 +76,27 @@ namespace WarehousePacking.API.Controllers
         [HttpDelete("logout")]
         public async Task<IActionResult> Logout([FromQuery] string username)
         {
-            _logger.Information("Logout request for user {@Username}", username);
+            _logger.LogInformation("Logout request for user {Username}", username);
 
             try
             {
                 bool success = await _authService.LogoutAsync(username);
 
                 if (success)
-                    _logger.Information("User {@Username} logged out successfully", username);
+                    _logger.LogInformation("User {Username} logged out successfully", username);
                 else
-                    _logger.Warning("Logout failed for user {@Username}", username);
+                    _logger.LogWarning("Logout failed for user {Username}", username);
 
                 return Ok(success);
             }
             catch (ArgumentException ex)
             {
-                _logger.Warning(ex, "Bad request during logout for user {@Username}", username);
+                _logger.LogWarning(ex, "Bad request during logout for user {Username}", username);
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Unhandled error during logout for user {@Username}", username);
+                _logger.LogError(ex, "Unhandled error during logout for user {Username}", username);
                 return StatusCode(500, ex.Message);
             }
         }
@@ -105,22 +104,22 @@ namespace WarehousePacking.API.Controllers
         [HttpGet("validate-password")]
         public async Task<IActionResult> ValidatePassword([FromQuery] string password)
         {
-            _logger.Information("Password validation requested");
+            _logger.LogInformation("Password validation requested");
 
             try
             {
                 bool isValid = await _authService.ValidatePasswordAsync(password);
-                _logger.Information("Password validation result: {IsValid}", isValid);
+                _logger.LogInformation("Password validation result: {IsValid}", isValid);
                 return Ok(isValid);
             }
             catch (ArgumentException ex)
             {
-                _logger.Warning(ex, "Bad request during password validation");
+                _logger.LogWarning(ex, "Bad request during password validation");
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Unhandled error during password validation");
+                _logger.LogError(ex, "Unhandled error during password validation");
                 return StatusCode(500, ex.Message);
             }
         }
@@ -128,22 +127,22 @@ namespace WarehousePacking.API.Controllers
         [HttpPost("change-manager-password")]
         public async Task<IActionResult> ChangeManagerPassword([FromBody] string newPassword)
         {
-            _logger.Information("Password change requested");
+            _logger.LogInformation("Password change requested");
 
             try
             {
                 await _authService.ChangePassword(newPassword);
-                _logger.Information("Password change successful");
+                _logger.LogInformation("Password change successful");
                 return Ok();
             }
             catch (ArgumentException ex)
             {
-                _logger.Warning(ex, "Bad request during password change");
+                _logger.LogWarning(ex, "Bad request during password change");
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Unhandled error during password change");
+                _logger.LogError(ex, "Unhandled error during password change");
                 return StatusCode(500, ex.Message);
             }
         }

@@ -1,8 +1,7 @@
-﻿using WarehousePacking.Server.Settings;
-using WarehousePacking.Shared.DTOs;
-using WarehousePacking.Shared.Enums;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
+using WarehousePacking.Contracts.DTOs;
+using WarehousePacking.Server.Settings;
 
 namespace WarehousePacking.Server.Services
 {

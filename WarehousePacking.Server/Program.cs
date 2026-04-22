@@ -1,8 +1,8 @@
 using Blazored.LocalStorage;
+using Microsoft.Extensions.Options;
 using WarehousePacking.Server;
 using WarehousePacking.Server.Services;
 using WarehousePacking.Server.Settings;
-using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +22,7 @@ builder.Services.AddBlazoredLocalStorage();
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
 builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("Apis"));
 builder.Services.Configure<CrystalReportsOptions>(builder.Configuration.GetSection("CrystalReports"));
+builder.Services.AddTransient<DatabaseClientHeadersHandler>();
 
 // Database client
 builder.Services.AddHttpClient("Database", (serviceProvider, client) =>
@@ -31,7 +32,8 @@ builder.Services.AddHttpClient("Database", (serviceProvider, client) =>
     client.DefaultRequestHeaders.Add("Accept", "application/json");
     client.DefaultRequestHeaders.Add("X-Api-Key", settings.Database.ApiKey);
     client.Timeout = TimeSpan.FromSeconds(200);
-});
+})
+.AddHttpMessageHandler<DatabaseClientHeadersHandler>();
 
 // Scopes
 builder.Services.AddScoped<PrintAgentStatusService>();

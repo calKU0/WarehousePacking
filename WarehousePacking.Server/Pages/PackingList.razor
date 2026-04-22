@@ -1,10 +1,11 @@
 ﻿@page "/kontrola-pakowania"
+@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs.Requests
+@using WarehousePacking.Server.Helpers
 @using WarehousePacking.Server.Services
 @using WarehousePacking.Server.Settings
 @using WarehousePacking.Server.Shared
-@using WarehousePacking.Shared.DTOs.Requests
-@using WarehousePacking.Shared.Enums
-@using WarehousePacking.Shared.Helpers
+@using WarehousePacking.Contracts.Data.Enums
 @using Microsoft.Extensions.Options
 @inject PackingService PackingService
 @inject WorkstationService WorkstationService

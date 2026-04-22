@@ -1,14 +1,14 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Components.Web;
+using WarehousePacking.Contracts.Data.Enums;
+using WarehousePacking.Contracts.DTOs;
+using WarehousePacking.Contracts.DTOs.Requests;
+using WarehousePacking.Server.Helpers;
 using WarehousePacking.Server.Services;
 using WarehousePacking.Server.Shared.Components;
 using WarehousePacking.Server.Shared.Components.Modals;
 using WarehousePacking.Server.Shared.Components.Packing;
-using WarehousePacking.Shared.DTOs;
-using WarehousePacking.Shared.DTOs.Requests;
-using WarehousePacking.Shared.Enums;
-using WarehousePacking.Shared.Helpers;
 
 namespace WarehousePacking.Server.Shared.Base
 {
@@ -888,6 +888,7 @@ namespace WarehousePacking.Server.Shared.Base
                 case 8: /* Zmień magazyn */
                     await ChangePackingWarehouseModal.Show();
                     break;
+
                 case 9: /* Połącz paczki */
                     try
                     {
@@ -904,6 +905,7 @@ namespace WarehousePacking.Server.Shared.Base
                         Toast.Show("Błąd!", $"Błąd przy próbie łącznia paczek: {ex.Message}");
                     }
                     break;
+
                 case 10: /* Do bufora */
                     try
                     {
@@ -925,6 +927,7 @@ namespace WarehousePacking.Server.Shared.Base
                         Toast.Show("Błąd!", $"Błąd przy próbie zabuforowania paczki: {ex.Message}");
                     }
                     break;
+
                 case 11: /* Konfiguracja kurierów */
                     List<CourierConfiguration> courierConfigurations;
                     try
@@ -956,6 +959,7 @@ namespace WarehousePacking.Server.Shared.Base
                         }
                     );
                     break;
+
                 case 12: /* Zmień hasło */
                     try
                     {

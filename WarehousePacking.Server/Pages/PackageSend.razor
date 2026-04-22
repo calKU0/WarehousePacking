@@ -1,8 +1,9 @@
 ﻿@page "/wysylka-paczek"
+@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs.Requests
+@using WarehousePacking.Server.Helpers
 @using WarehousePacking.Server.Settings
-@using WarehousePacking.Shared.DTOs.Requests
-@using WarehousePacking.Shared.Enums
-@using WarehousePacking.Shared.Helpers
+@using WarehousePacking.Contracts.Data.Enums
 @using Microsoft.Extensions.Options
 @inject UserSessionService UserSession
 @inject ShipmentService ShipmentService
@@ -89,13 +90,10 @@
                 </div>
 
                 <div class="col-md-3 d-flex justify-content-center align-items-center">
-                    @if (!string.IsNullOrEmpty(Package.CourierLogo))
-                    {
-                        <img src="@Utils.GetCourierSrc(Package.CourierLogo)"
-                             alt="Courier Logo"
-                             class="img-fluid"
-                             style="max-height:120px;" />
-                    }
+                    <img src="@CourierHelper.GetCourierLogo(Package.ShipmentServices, Package.Courier)"
+                            alt="Courier Logo"
+                            class="img-fluid"
+                            style="max-height:120px;" />              
                 </div>
 
                 <div class="col-md-6">

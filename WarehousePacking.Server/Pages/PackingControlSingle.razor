@@ -1,7 +1,8 @@
-﻿@using WarehousePacking.Server.Services
-@using WarehousePacking.Shared.DTOs.Requests
-@using WarehousePacking.Shared.Enums
-@using WarehousePacking.Shared.Helpers
+﻿@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs.Requests
+@using WarehousePacking.Server.Helpers
+@using WarehousePacking.Server.Services
+@using WarehousePacking.Contracts.Data.Enums
 
 @page "/kontrola-pakowania/{jl}/single"
 @layout NoNavLayout
@@ -65,7 +66,7 @@
     <FinishPackingModal @ref="FinishPackingModal"
                         Courier="@CurrentJl.Courier"
                         Country="@CurrentJl.Country"
-                        CourierSrc="@CurrentJl.LogoCourier"
+                        CourierSrc="@CourierHelper.GetCourierLogo(CurrentJl.ShipmentServices, CurrentJl.Courier)"
                         OnCourierLabel="HandleCourierLabel"
                         OnBufor="HandleBufor"
                         OnInternalBarcode="HandleInternalBarcode" />
@@ -113,7 +114,6 @@
     {
         CurrentJl.Courier = Courier.Unknown;
         CurrentJl.CourierName = "MIX";
-        CurrentJl.LogoCourier = string.Empty;
         CurrentJl.ShipmentServices = new();
         CurrentJl.ClientSymbol = "MIX";
         CurrentJl.Country = string.Empty;

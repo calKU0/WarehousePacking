@@ -1,5 +1,5 @@
-﻿using WarehousePacking.Shared.DTOs;
-using Microsoft.JSInterop;
+﻿using Microsoft.JSInterop;
+using WarehousePacking.Contracts.DTOs;
 
 namespace WarehousePacking.Server.Services
 {

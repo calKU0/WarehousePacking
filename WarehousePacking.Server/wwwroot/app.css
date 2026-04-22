@@ -55,7 +55,6 @@ body.monitor-mode article.content {
     overflow: hidden;
 }
 
-
 h1:focus {
     outline: none;
 }
@@ -139,14 +138,14 @@ h1:focus {
     min-height: 0;
 }
 
-.monitor-main-row > [class*="col-"] {
-    min-height: 0;
-}
+    .monitor-main-row > [class*="col-"] {
+        min-height: 0;
+    }
 
-.monitor-main-row .card {
-    min-height: 0;
-    flex: 1;
-}
+    .monitor-main-row .card {
+        min-height: 0;
+        flex: 1;
+    }
 
 .monitor-courier-body,
 .monitor-scroll-host {
@@ -186,9 +185,9 @@ h1:focus {
     flex-shrink: 0;
 }
 
-.monitor-kpi-icon i {
-    font-size: 1.35rem;
-}
+    .monitor-kpi-icon i {
+        font-size: 1.35rem;
+    }
 
 .monitor-kpi-primary .monitor-kpi-icon {
     background: rgba(13, 110, 253, 0.15);
@@ -223,35 +222,35 @@ h1:focus {
     table-layout: auto;
 }
 
-.monitor-courier-table .monitor-courier-col-content {
-    width: 1%;
-}
+    .monitor-courier-table .monitor-courier-col-content {
+        width: 1%;
+    }
 
-.monitor-courier-table .monitor-courier-col-fill {
-    width: auto;
-}
+    .monitor-courier-table .monitor-courier-col-fill {
+        width: auto;
+    }
 
-.monitor-courier-table th,
-.monitor-courier-table td {
-    white-space: nowrap;
-}
+    .monitor-courier-table th,
+    .monitor-courier-table td {
+        white-space: nowrap;
+    }
 
 .monitor-table-auto {
     width: 100%;
     table-layout: auto;
 }
 
-.monitor-table-auto th:not(:first-child),
-.monitor-table-auto td:not(:first-child) {
-    width: 1%;
-    white-space: nowrap;
-}
+    .monitor-table-auto th:not(:first-child),
+    .monitor-table-auto td:not(:first-child) {
+        width: 1%;
+        white-space: nowrap;
+    }
 
-.monitor-table-auto th:first-child,
-.monitor-table-auto td:first-child {
-    width: auto;
-    white-space: normal;
-}
+    .monitor-table-auto th:first-child,
+    .monitor-table-auto td:first-child {
+        width: auto;
+        white-space: normal;
+    }
 
 .monitor-table .progress {
     min-width: 70px;
@@ -320,9 +319,9 @@ h1:focus {
     justify-content: center;
 }
 
-.monitor-share-wrap .progress {
-    max-width: 220px;
-}
+    .monitor-share-wrap .progress {
+        max-width: 220px;
+    }
 
 .monitor-time-text {
     white-space: nowrap;

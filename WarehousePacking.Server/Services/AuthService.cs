@@ -1,5 +1,5 @@
 ﻿using System.Net;
-using WarehousePacking.Shared.DTOs;
+using WarehousePacking.Contracts.DTOs;
 
 namespace WarehousePacking.Server.Services
 {

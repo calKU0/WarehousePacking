@@ -1,5 +1,7 @@
-@using WarehousePacking.Shared.DTOs
-@using WarehousePacking.Shared.Helpers
+@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.Data.Enums
+@using WarehousePacking.Server.Helpers
+
 @implements IAsyncDisposable
 
 <div class="monitor-packing-panel h-100 d-flex flex-column">
@@ -129,7 +131,7 @@
         WarehouseBDown
     }
 
-    private sealed record CourierPackingSummary(CourierSegment Segment, string Courier, int Jls, decimal Weight, decimal Elements);
+    private sealed record CourierPackingSummary(CourierSegment Segment, Courier Courier, string CourierName, string CourierSrc, int Jls, decimal Weight, decimal Elements);
 
     private sealed class CourierRowView
     {
@@ -165,20 +167,26 @@
         .Select(x => new
         {
             Segment = ResolveCourierSegment(x),
-            Courier = string.IsNullOrWhiteSpace(x.CourierName) ? "Brak" : x.CourierName,
+            Courier = x.Courier,
+            CourierName = x.Courier == WarehousePacking.Contracts.Data.Enums.Courier.Unknown
+                ? (string.Equals(x.CourierName, "MIX", StringComparison.OrdinalIgnoreCase) ? "MIX" : "Brak")
+                : x.Courier.GetDescription(),
+            CourierSrc = CourierHelper.GetCourierLogo(x.ShipmentServices, x.Courier),
             Weight = x.Weight,
             Elements = GetJlElements(x.Name)
         })
         .Where(x => x.Segment.HasValue)
-        .GroupBy(x => new { Segment = x.Segment!.Value, x.Courier })
+        .GroupBy(x => new { Segment = x.Segment!.Value, x.Courier, x.CourierName })
         .Select(g => new CourierPackingSummary(
             g.Key.Segment,
             g.Key.Courier,
+            g.Key.CourierName,
+            g.Select(x => x.CourierSrc).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? string.Empty,
             g.Count(),
             g.Sum(x => x.Weight),
             g.Sum(x => x.Elements)))
         .OrderByDescending(x => GetCourierShare(x.Segment, x.Jls))
-        .ThenBy(x => x.Courier)
+        .ThenBy(x => x.CourierName)
         .ToList();
 
     private int PackingOperatorsCount => InProgress
@@ -395,9 +403,9 @@
     {
         return (jl.Warehouse, jl.Level) switch
         {
-            (WarehousePacking.Shared.Enums.PackingWarehouse.A, WarehousePacking.Shared.Enums.PackingLevel.Up) => CourierSegment.WarehouseAUp,
-            (WarehousePacking.Shared.Enums.PackingWarehouse.A, WarehousePacking.Shared.Enums.PackingLevel.Bottom) => CourierSegment.WarehouseADown,
-            (WarehousePacking.Shared.Enums.PackingWarehouse.B, WarehousePacking.Shared.Enums.PackingLevel.Bottom) => CourierSegment.WarehouseBDown,
+            (WarehousePacking.Contracts.Data.Enums.PackingWarehouse.A, WarehousePacking.Contracts.Data.Enums.PackingLevel.Up) => CourierSegment.WarehouseAUp,
+            (WarehousePacking.Contracts.Data.Enums.PackingWarehouse.A, WarehousePacking.Contracts.Data.Enums.PackingLevel.Bottom) => CourierSegment.WarehouseADown,
+            (WarehousePacking.Contracts.Data.Enums.PackingWarehouse.B, WarehousePacking.Contracts.Data.Enums.PackingLevel.Bottom) => CourierSegment.WarehouseBDown,
             _ => null
         };
     }
@@ -417,7 +425,8 @@
             .Select(rowState => new CourierSegmentTableRow
             {
                 Key = rowState.Key,
-                Courier = rowState.Data.Courier,
+                Courier = rowState.Data.CourierName,
+                CourierSrc = rowState.Data.CourierSrc,
                 Jls = rowState.Data.Jls,
                 Weight = rowState.Data.Weight,
                 Elements = rowState.Data.Elements,

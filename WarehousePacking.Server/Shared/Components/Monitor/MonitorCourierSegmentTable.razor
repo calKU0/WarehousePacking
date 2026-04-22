@@ -1,4 +1,5 @@
-@using WarehousePacking.Shared.Helpers
+@using WarehousePacking.Server.Helpers
+
 
 <div class="border rounded-3 overflow-hidden monitor-courier-segment d-flex flex-column">
     <div class="table-responsive monitor-auto-scroll monitor-scroll-fill">
@@ -56,12 +57,9 @@
                                 <tr class="@row.AnimationClass" @key="row.Key">
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
-                                            @{
-                                                var courierSrc = Utils.GetCourierSrc(row.Courier);
-                                            }
-                                            @if (!string.IsNullOrEmpty(courierSrc))
+                                            @if (!string.IsNullOrEmpty(row.CourierSrc))
                                             {
-                                                <img src="@courierSrc" alt="@row.Courier" style="max-height: 48px; max-width: 60px; object-fit: contain;" />
+                                                <img src="@row.CourierSrc" alt="@row.Courier" style="max-height: 48px; max-width: 60px; object-fit: contain;" />
                                             }
                                             else
                                             {

@@ -1,8 +1,8 @@
+using Serilog;
 using Serilog.Core;
 using Serilog.Events;
 using System.Collections.Concurrent;
 using System.Globalization;
-using Serilog;
 using SerilogLogger = Serilog.ILogger;
 
 namespace WarehousePacking.API.Logging;
@@ -53,7 +53,8 @@ public sealed class PerIpFileSink : ILogEventSink, IDisposable
                 path: Path.Combine(ipFolder, "log-.txt"),
                 rollingInterval: rollingInterval,
                 retainedFileCountLimit: retainedFileCountLimit,
-                buffered: buffered)
+                buffered: buffered,
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [IP:{ClientIp}] [MACHINE:{ClientMachine}] {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
     }
 
