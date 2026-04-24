@@ -45,6 +45,7 @@ builder.Services.AddScoped<PackingService>();
 builder.Services.AddScoped<UserSessionService>();
 builder.Services.AddScoped<ShipmentService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<DashboardService>();
 builder.Services.AddSingleton<PackingCollaborationService>();
 
 var app = builder.Build();

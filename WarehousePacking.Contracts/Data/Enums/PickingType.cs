@@ -5,10 +5,10 @@ namespace WarehousePacking.Contracts.Data.Enums
     public enum PickingType
     {
         [Description("Picking")]
-        Picking,
-        [Description("Multipicking One")]
-        Multipicking_One,
+        Picking = 1,
         [Description("Multipicking")]
-        Multipicking
+        Multipicking = 2,
+        [Description("Multipicking One")]
+        Multipicking_One = 3
     }
 }

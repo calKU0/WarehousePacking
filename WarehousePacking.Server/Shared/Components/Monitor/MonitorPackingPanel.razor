@@ -9,28 +9,28 @@
     <div class="col-12 col-md-3">
         <MonitorStatCard Title="Jl / Towary"
                          Subtitle="Do spakowania"
-                         Value="@($"{PackingDocumentsCount} / {FormatQuantity(PackingElementsTotal)}")"
+                         Value="@($"{FormatHelper.FormatQuantity(PackingDocumentsCount)} / {FormatHelper.FormatQuantity(PackingElementsTotal)}")"
                          IconClass="bi bi-box-seam"
                          AccentClass="monitor-kpi-primary" />
     </div>
     <div class="col-12 col-md-3">
         <MonitorStatCard Title="Waga"
                          Subtitle="Do spakowania"
-                         Value="@($"{PackingWeightRoundedTotal} kg")"
+                         Value="@FormatHelper.FormatQuantity(PackingWeightRoundedTotal, "kg", "F0")"
                          IconClass="bi bi-speedometer2"
                          AccentClass="monitor-kpi-info" />
     </div>
     <div class="col-12 col-md-3">
         <MonitorStatCard Title="Jl"
                          Subtitle="Aktualnie pakowane"
-                         Value="@PackingInProgressCount.ToString()"
+                         Value="@FormatHelper.FormatQuantity(PackingInProgressCount)"
                          IconClass="bi bi-inboxes"
                          AccentClass="monitor-kpi-warning" />
     </div>
     <div class="col-12 col-md-3">
         <MonitorStatCard Title="Operatorzy"
                          Subtitle="Aktualnie pakujący"
-                         Value="@PackingOperatorsCount.ToString()"
+                         Value="@FormatHelper.FormatQuantity(PackingOperatorsCount)"
                          IconClass="bi bi-people"
                          AccentClass="monitor-kpi-success" />
     </div>
@@ -98,12 +98,12 @@
                                         <td>@row.StationNumber</td>
                                         <td class="monitor-elapsed-cell">
                                             <span class="badge @GetElapsedBadgeClass(row.Date) monitor-elapsed-badge monitor-time-text">
-                                                <MonitorAnimatedValue Text="@FormatElapsed(row.Date)" CssClass="monitor-time-text" />
+                                                <MonitorAnimatedValue Text="@FormatHelper.FormatElapsed(row.Date)" CssClass="monitor-time-text" />
                                             </span>
                                         </td>
                                         <td class="monitor-elapsed-cell">
                                             <span class="badge @GetElapsedBadgeClass(row.LastScanDate) monitor-elapsed-badge monitor-time-text">
-                                                <MonitorAnimatedValue Text="@FormatElapsed(row.LastScanDate)" CssClass="monitor-time-text" />
+                                                <MonitorAnimatedValue Text="@FormatHelper.FormatElapsed(row.LastScanDate)" CssClass="monitor-time-text" />
                                             </span>
                                         </td>
                                     </tr>
@@ -199,7 +199,7 @@
     private int PackingWeightRoundedTotal => (int)Math.Round(Queue.Sum(x => x.Weight));
     private decimal PackingElementsTotal => Queue.Sum(x => GetJlElements(x.Name));
     private int PackingInProgressCount => InProgress.Count;
-    private string LongestActiveElapsed => InProgressRows.Any() ? FormatElapsed(InProgressRows.Min(x => x.Data.Date)) : "-";
+    private string LongestActiveElapsed => InProgressRows.Any() ? FormatHelper.FormatElapsed(InProgressRows.Min(x => x.Data.Date)) : "-";
 
     protected override void OnParametersSet()
     {
@@ -457,27 +457,6 @@
                 Rows = GetCourierSegmentRows(CourierSegment.WarehouseBDown)
             }
         };
-    }
-
-    private static string FormatQuantity(decimal value)
-    {
-        return value % 1 == 0 ? value.ToString("F0") : value.ToString("F2");
-    }
-
-    private string FormatElapsed(DateTime start)
-    {
-        var elapsed = _now - start;
-        if (elapsed.TotalDays >= 1)
-        {
-            return $"{(int)elapsed.TotalDays}d {(int)elapsed.TotalHours % 24}h";
-        }
-
-        if (elapsed.TotalHours >= 1)
-        {
-            return $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
-        }
-
-        return $"{Math.Max(0, elapsed.Minutes)}m {Math.Max(0, elapsed.Seconds)}s";
     }
 
     private string GetElapsedBadgeClass(DateTime start)

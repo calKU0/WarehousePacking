@@ -11,7 +11,7 @@ namespace WarehousePacking.Contracts.DTOs
         public int ZoneId { get; set; }
         public string DestinationZone { get; set; } = string.Empty;
         public int DestinationZoneId { get; set; }
-        public WarehouseTaskStatus TaskStatus { get; set; }
+        public WarehouseTaskStatus Status { get; set; }
         public DateTime Date { get; set; }
         public DateTime RealizingDate { get; set; }
     }

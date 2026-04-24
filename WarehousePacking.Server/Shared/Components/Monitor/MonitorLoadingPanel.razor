@@ -1,24 +1,24 @@
-@using WarehousePacking.Contracts.Data.Enums
+﻿@using WarehousePacking.Contracts.Data.Enums
 @using WarehousePacking.Contracts.DTOs
 @using WarehousePacking.Server.Helpers
 
 @implements IAsyncDisposable
 
-<div class="monitor-sorting-panel h-100 d-flex flex-column">
-    <div class="row g-3 mb-3">
+<div class="monitor-loading-panel h-100 d-flex flex-column">
+    <div class="row g-3 mb-3 flex-shrink-0">
         <div class="col-12 col-md-3">
             <MonitorStatCard Title="Dokumenty"
-                             Subtitle="Do sortowania"
-                             Value="@FormatHelper.FormatQuantity(Documents.Count())"
+                             Subtitle="Do załadowania"
+                             Value="@FormatHelper.FormatQuantity(TotalDocumentsCount)"
                              IconClass="bi bi-file-earmark-text"
                              AccentClass="monitor-kpi-primary" />
         </div>
         <div class="col-12 col-md-3">
-            <MonitorStatCard Title="Towary"
-                             Subtitle="Do sortowania"
-                             Value="@FormatHelper.FormatQuantity(RemainingQuantityTotal)"
-                             IconClass="bi bi-boxes"
-                             AccentClass="monitor-kpi-info" />
+            <MonitorStatCard Title="Paczki / Palety"
+                             Subtitle="Do załadowania"
+                             Value="@($"{FormatHelper.FormatQuantity(ParcelsCount)} / {FormatHelper.FormatQuantity(PaletsCount)}")"
+                             IconClass="bi bi-file-earmark-text"
+                             AccentClass="monitor-kpi-primary" />
         </div>
         <div class="col-12 col-md-3">
             <MonitorStatCard Title="Waga / Objętość"
@@ -35,12 +35,12 @@
                              AccentClass="monitor-kpi-success" />
         </div>
     </div>
-
+    
     <div class="row g-3 monitor-main-row flex-grow-1">
         <div class="col-12 col-xl-6 d-flex">
             <div class="card shadow-sm h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-truck me-2"></i>@MonitorPanel.Sorting.GetDescription() - Kurierzy</span>
+                    <span><i class="bi bi-truck me-2"></i>@MonitorPanel.Loading.GetDescription() - Kurierzy</span>
                 </div>
                 <div class="card-body p-0 mb-0 monitor-scroll-host">
                     <div class="table-responsive monitor-auto-scroll monitor-scroll-fill flex-grow-1">
@@ -66,7 +66,7 @@
                                             }
                                             else
                                             {
-                                                <span>Brak danych sortowania.</span>
+                                                <span>Brak danych załadunku.</span>
                                             }
                                         </td>
                                     </tr>
@@ -107,7 +107,7 @@
         <div class="col-12 col-xl-6 d-flex">
             <div class="card shadow-sm h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-list-check me-2"></i>@MonitorPanel.Sorting.GetDescription() - Dokumenty</span>
+                    <span><i class="bi bi-list-check me-2"></i>@MonitorPanel.Loading.GetDescription() - Dokumenty</span>
                 </div>
                 <div class="card-body p-0 mb-0 monitor-scroll-host">
                     <div class="table-responsive monitor-auto-scroll monitor-scroll-fill flex-grow-1">
@@ -134,7 +134,7 @@
                                             }
                                             else
                                             {
-                                                <span>Brak dokumentów sortowania.</span>
+                                                <span>Brak dokumentów załadunku.</span>
                                             }
                                         </td>
                                     </tr>
@@ -175,10 +175,11 @@
     </div>
 </div>
 
+
 @code {
     private const int RowAnimationDelayMs = 280;
 
-    private sealed record SortingCourierSummary(
+    private sealed record LoadingCourierSummary(
         Courier Courier,
         string CourierName,
         string CourierSrc,
@@ -189,15 +190,15 @@
         int OperatorsCount,
         string OperatorsList);
 
-    private sealed class SortingRowView
+    private sealed class LoadingRowView
     {
         public string Key { get; set; } = string.Empty;
-        public SortingCourierSummary Data { get; set; } = null!;
+        public LoadingCourierSummary Data { get; set; } = null!;
         public string AnimationClass { get; set; } = string.Empty;
         public bool IsLeaving { get; set; }
     }
 
-    private sealed record SortingDocumentSummary(
+    private sealed record LoadingDocumentSummary(
         string Key,
         string Code,
         string CourierName,
@@ -208,10 +209,10 @@
         decimal RemainingVolume,
         string OperatorsList);
 
-    private sealed class SortingDocumentRowView
+    private sealed class LoadingDocumentRowView
     {
         public string Key { get; set; } = string.Empty;
-        public SortingDocumentSummary Data { get; set; } = null!;
+        public LoadingDocumentSummary Data { get; set; } = null!;
         public string AnimationClass { get; set; } = string.Empty;
         public bool IsLeaving { get; set; }
     }
@@ -220,8 +221,8 @@
     [Parameter] public List<WarehouseOperation> RecentOperations { get; set; } = new();
     [Parameter] public bool IsLoading { get; set; }
 
-    private List<SortingRowView> CourierRows { get; set; } = new();
-    private List<SortingDocumentRowView> DocumentRows { get; set; } = new();
+    private List<LoadingRowView> CourierRows { get; set; } = new();
+    private List<LoadingDocumentRowView> DocumentRows { get; set; } = new();
 
     private decimal RemainingQuantityTotal => CourierRows.Sum(x => x.Data.RemainingQuantity);
     private decimal RemainingWeightTotal => CourierRows.Sum(x => x.Data.RemainingWeight);
@@ -231,6 +232,10 @@
         .Where(x => !string.IsNullOrWhiteSpace(x))
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .Count();
+
+    private int TotalDocumentsCount => Documents.Count;
+    private int PaletsCount => Documents.Count(p => p.Weight >= 30);
+    private int ParcelsCount => Documents.Count(p => p.Weight < 30);
 
     protected override void OnParametersSet()
     {
@@ -249,7 +254,7 @@
             var existing = CourierRows.FirstOrDefault(x => string.Equals(x.Key, itemKey, StringComparison.OrdinalIgnoreCase));
             if (existing is null)
             {
-                var added = new SortingRowView
+                var added = new LoadingRowView
                 {
                     Key = itemKey,
                     Data = item,
@@ -283,7 +288,7 @@
         CourierRows = orderedActive.Concat(leaving).ToList();
     }
 
-    private List<SortingCourierSummary> BuildSummaries()
+    private List<LoadingCourierSummary> BuildSummaries()
     {
         return Documents
             .GroupBy(x => x.Courier)
@@ -303,7 +308,7 @@
                 var courierName = group.Key == Courier.Unknown ? "Brak" : group.Key.GetDescription();
                 var courierSrc = CourierHelper.GetCourierLogo(new ShipmentServices(), group.Key);
 
-                return new SortingCourierSummary(
+                return new LoadingCourierSummary(
                     group.Key,
                     courierName,
                     courierSrc,
@@ -320,12 +325,12 @@
             .ToList();
     }
 
-    private static string GetRowKey(SortingCourierSummary row)
+    private static string GetRowKey(LoadingCourierSummary row)
     {
         return row.Courier.ToString();
     }
 
-    private List<SortingDocumentSummary> BuildDocumentSummaries()
+    private List<LoadingDocumentSummary> BuildDocumentSummaries()
     {
         return Documents
             .Select(doc =>
@@ -343,7 +348,7 @@
                 var courierName = doc.Courier == Courier.Unknown ? "Brak" : doc.Courier.GetDescription();
                 var courierSrc = CourierHelper.GetCourierLogo(new ShipmentServices(), doc.Courier);
 
-                return new SortingDocumentSummary(
+                return new LoadingDocumentSummary(
                     doc.Id.ToString(),
                     doc.Code,
                     courierName,
@@ -370,7 +375,7 @@
             var existing = DocumentRows.FirstOrDefault(x => string.Equals(x.Key, item.Key, StringComparison.OrdinalIgnoreCase));
             if (existing is null)
             {
-                var added = new SortingDocumentRowView
+                var added = new LoadingDocumentRowView
                 {
                     Key = item.Key,
                     Data = item,
@@ -404,7 +409,7 @@
         DocumentRows = orderedActive.Concat(leaving).ToList();
     }
 
-    private async Task ClearDocumentEnterClassAsync(SortingDocumentRowView row)
+    private async Task ClearDocumentEnterClassAsync(LoadingDocumentRowView row)
     {
         await Task.Delay(RowAnimationDelayMs);
         if (row.IsLeaving)
@@ -416,7 +421,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task RemoveDocumentRowAsync(SortingDocumentRowView row)
+    private async Task RemoveDocumentRowAsync(LoadingDocumentRowView row)
     {
         await Task.Delay(RowAnimationDelayMs);
         if (!row.IsLeaving)
@@ -428,7 +433,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task ClearEnterClassAsync(SortingRowView row)
+    private async Task ClearEnterClassAsync(LoadingRowView row)
     {
         await Task.Delay(RowAnimationDelayMs);
         if (row.IsLeaving)
@@ -440,7 +445,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task RemoveRowAsync(SortingRowView row)
+    private async Task RemoveRowAsync(LoadingRowView row)
     {
         await Task.Delay(RowAnimationDelayMs);
         if (!row.IsLeaving)

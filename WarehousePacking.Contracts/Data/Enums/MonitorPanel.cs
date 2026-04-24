@@ -13,10 +13,13 @@ namespace WarehousePacking.Contracts.Data.Enums
         [Description("Pakowanie")]
         Packing = 2,
 
-        [Description("Przyjęcia")]
-        Receiving = 3,
+        [Description("Załadunek")]
+        Loading = 3,
+
+        [Description("Przyjęcie")]
+        Receiving = 4,
 
         [Description("Zatowarowanie")]
-        Stocking = 4,
+        Stocking = 5,
     }
 }

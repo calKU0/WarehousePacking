@@ -1,10 +1,13 @@
 ﻿@page "/monitor"
 @using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs.Requests
+@using WarehousePacking.Server.Helpers
 @using WarehousePacking.Server.Services
 @using WarehousePacking.Server.Shared.Base
 @using WarehousePacking.Server.Shared.Components.Monitor
 @using WarehousePacking.Contracts.Data.Enums
 @inject PackingService PackingService
+@inject DashboardService DashboardService
 @inject WorkstationService WorkstationService
 @inject UserSessionService UserSession
 @inject NavigationManager Navigation
@@ -15,6 +18,12 @@
     <div class="d-flex justify-content-between align-items-end mb-3 gap-2">
         <div>
             <MonitorPanelTabs Panels="PanelOrder" ActivePanel="ActivePanel" OnPanelSelected="SelectPanelAsync" />
+        </div>
+
+        <div class="flex-grow-1 d-flex justify-content-center">
+            <h1 class="mb-0 text-primary fw-semibold">
+                @(ActivePanel.GetDescription())
+            </h1>
         </div>
 
         <div class="d-flex flex-column align-items-end gap-2">
@@ -66,7 +75,9 @@
                             <MonitorPickingPanel />
                             break;
                         case MonitorPanel.Sorting:
-                            <MonitorSortingPanel />
+                            <MonitorSortingPanel Documents="SortingDocuments"
+                                                RecentOperations="SortingRecentOperations"
+                                                IsLoading="IsSortingLoading" />
                             break;
                         case MonitorPanel.Packing:
                             <MonitorPackingPanel Queue="PackingQueue"
@@ -74,8 +85,15 @@
                                                 ElementsByJl="PackingElementsByJl"
                                                 IsLoading="IsPackingLoading" />
                             break;
+                        case MonitorPanel.Loading:
+                            <MonitorLoadingPanel Documents="LoadingDocuments"
+                                                 RecentOperations="LoadingRecentOperations"
+                                                 IsLoading="IsLoadingLoading"/>
+                            break;
                         case MonitorPanel.Receiving:
-                            <MonitorReceivingPanel />
+                            <MonitorReceivingPanel Documents="ReceivingDocuments"
+                                                   RecentOperations="ReceivingRecentOperations"
+                                                   IsLoading="IsReceivingLoading" />
                             break;
                         case MonitorPanel.Stocking:
                             <MonitorStockingPanel />
@@ -103,22 +121,42 @@
 
     private int RefreshIntervalSeconds = DefaultRefreshIntervalSeconds;
     private int SlideIntervalSeconds = DefaultSlideIntervalSeconds;
-    private MonitorPanel ActivePanel = MonitorPanel.Packing;
+    private MonitorPanel ActivePanel = MonitorPanel.Sorting;
     private bool IsSliderRunning = true;
 
     private bool IsPackingLoading;
+    private bool IsLoadingLoading;
+    private bool IsSortingLoading;
+    private bool IsReceivingLoading;
     private bool _isDisposed;
-    private DateTime? PackingLastRefresh;
+    private DateTime? LastRefresh;
+
     private List<JlData> PackingQueue = new();
     private List<JlInProgressDto> PackingInProgress = new();
     private Dictionary<string, decimal> PackingElementsByJl = new(StringComparer.OrdinalIgnoreCase);
 
-    private bool IsCurrentPanelLoading => ActivePanel == MonitorPanel.Packing && IsPackingLoading;
+    private List<WarehouseDocument> LoadingDocuments = new();
+    private List<WarehouseOperation> LoadingRecentOperations = new();
+
+    private List<WarehouseDocument> SortingDocuments = new();
+    private List<WarehouseOperation> SortingRecentOperations = new();
+
+    private List<WarehouseDocument> ReceivingDocuments = new();
+    private List<WarehouseOperation> ReceivingRecentOperations = new();
+   
+
+    private bool IsCurrentPanelLoading => ActivePanel switch
+    {
+        MonitorPanel.Sorting => IsSortingLoading,
+        MonitorPanel.Packing => IsPackingLoading,
+        MonitorPanel.Loading => IsLoadingLoading,
+        MonitorPanel.Receiving => IsReceivingLoading,
+        _ => false
+    };
     private int ActivePanelIndex => Array.IndexOf(PanelOrder, ActivePanel);
     private DateTime? CurrentPanelDataTime => ActivePanel switch
     {
-        MonitorPanel.Packing => PackingLastRefresh,
-        _ => null
+        _ => LastRefresh
     };
 
     protected override async Task OnInitializedAsync()
@@ -289,9 +327,24 @@
                 return;
             }
 
+                        if (ActivePanel == MonitorPanel.Sorting)
+            {
+                await LoadSortingDataAsync(force);
+            }
+
             if (ActivePanel == MonitorPanel.Packing)
             {
                 await LoadPackingDataAsync(force);
+            }
+
+            if (ActivePanel == MonitorPanel.Loading)
+            {
+                await LoadLoadingDataAsync(force);
+            }
+
+            if (ActivePanel == MonitorPanel.Receiving)
+            {
+                await LoadReceivingDataAsync(force);
             }
         }
         finally
@@ -335,7 +388,7 @@
             PackingQueue = queueTask.Result ?? new List<JlData>();
             PackingInProgress = inProgressTask.Result ?? new List<JlInProgressDto>();
             PackingElementsByJl = await LoadPackingElementsByJlAsync(PackingQueue);
-            PackingLastRefresh = DateTime.Now;
+            LastRefresh = DateTime.Now;
         }
         finally
         {
@@ -347,9 +400,173 @@
         }
     }
 
+    private async Task LoadLoadingDataAsync(bool force)
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        if (!force && LoadingDocuments.Any())
+        {
+            return;
+        }
+
+        IsLoadingLoading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var documentsTask = DashboardService.GetWarehouseDocuments(new GetWarehouseDocumentsRequest
+            {
+                Types = [WarehouseDocumentType.Loading],
+                Statuses =
+                [
+                    WarehouseTaskStatus.New,
+                    WarehouseTaskStatus.InExecution,
+                    WarehouseTaskStatus.Processing,
+                    WarehouseTaskStatus.ReadyForExecution
+                ]
+            });
+
+            var operationsTask = DashboardService.GetWarehouseOperations(new GetWarehouseOperationsRequest
+            {
+                Types = [WarehouseDocumentType.Loading],
+                Date = DateTime.Now.AddMinutes(-5)
+            });
+
+            await Task.WhenAll(documentsTask, operationsTask);
+
+            LoadingDocuments = documentsTask.Result ?? new List<WarehouseDocument>();
+            LoadingRecentOperations = operationsTask.Result ?? new List<WarehouseOperation>();
+
+            LastRefresh = DateTime.Now;
+        }
+        finally
+        {
+            IsLoadingLoading = false;
+            if (!_isDisposed)
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private async Task LoadSortingDataAsync(bool force)
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        if (!force && SortingDocuments.Any())
+        {
+            return;
+        }
+
+        IsSortingLoading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var documentsTask = DashboardService.GetWarehouseDocuments(new GetWarehouseDocumentsRequest
+            {
+                Types = [WarehouseDocumentType.Sorting],
+                Statuses =
+                [
+                    WarehouseTaskStatus.New,
+                    WarehouseTaskStatus.InExecution,
+                    WarehouseTaskStatus.Processing,
+                    WarehouseTaskStatus.ReadyForExecution
+                ]
+            });
+
+            var operationsTask = DashboardService.GetWarehouseOperations(new GetWarehouseOperationsRequest
+            {
+                Types = [WarehouseDocumentType.Sorting],
+                Date = DateTime.Now.AddMinutes(-5)
+            });
+
+            await Task.WhenAll(documentsTask, operationsTask);
+
+            SortingDocuments = documentsTask.Result ?? new List<WarehouseDocument>();
+            SortingRecentOperations = operationsTask.Result ?? new List<WarehouseOperation>();
+
+            LastRefresh = DateTime.Now;
+        }
+        finally
+        {
+            IsSortingLoading = false;
+            if (!_isDisposed)
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private async Task LoadReceivingDataAsync(bool force)
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        if (!force && ReceivingDocuments.Any())
+        {
+            return;
+        }
+
+        IsReceivingLoading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var documentsTask = DashboardService.GetWarehouseDocuments(new GetWarehouseDocumentsRequest
+            {
+                Types = [WarehouseDocumentType.Receipt],
+                Statuses =
+                [
+                    WarehouseTaskStatus.New,
+                    WarehouseTaskStatus.InExecution,
+                    WarehouseTaskStatus.Processing,
+                    WarehouseTaskStatus.ReadyForExecution
+                ]
+            });
+
+            var operationsTask = DashboardService.GetWarehouseOperations(new GetWarehouseOperationsRequest
+            {
+                Types = [WarehouseDocumentType.Receipt],
+                Date = DateTime.Now.AddMinutes(-5)
+            });
+
+            await Task.WhenAll(documentsTask, operationsTask);
+
+            ReceivingDocuments = documentsTask.Result ?? new List<WarehouseDocument>();
+            ReceivingRecentOperations = operationsTask.Result ?? new List<WarehouseOperation>();
+
+            LastRefresh = DateTime.Now;
+        }
+        finally
+        {
+            IsReceivingLoading = false;
+            if (!_isDisposed)
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
     private string GetTrackStyle()
     {
-        return $"transform: translateX(-{ActivePanelIndex * 20}%);";
+        int panelCount = PanelOrder.Length;
+    
+        int trackWidth = panelCount * 100;
+    
+        double step = 100.0 / panelCount;
+    
+        string translateValue = (ActivePanelIndex * step).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        return $"width: {trackWidth}%; transform: translateX(-{translateValue}%);";
     }
 
     private async Task<Dictionary<string, decimal>> LoadPackingElementsByJlAsync(IEnumerable<JlData> queue)

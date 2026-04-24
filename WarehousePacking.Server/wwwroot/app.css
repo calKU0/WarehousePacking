@@ -118,13 +118,12 @@ h1:focus {
 
 .monitor-track {
     display: flex;
-    width: 500%;
     transition: transform 700ms ease-in-out;
     height: 100%;
 }
 
 .monitor-slide {
-    width: 20%;
+    flex: 1;
     padding: 0.15rem;
     height: 100%;
     overflow: hidden;
@@ -240,14 +239,14 @@ h1:focus {
     table-layout: auto;
 }
 
-    .monitor-table-auto th:not(:first-child),
-    .monitor-table-auto td:not(:first-child) {
+    .monitor-table-auto th:first-child,
+    .monitor-table-auto td:first-child {
         width: 1%;
         white-space: nowrap;
     }
 
-    .monitor-table-auto th:first-child,
-    .monitor-table-auto td:first-child {
+    .monitor-table-auto th:not(:first-child),
+    .monitor-table-auto td:not(:first-child) {
         width: auto;
         white-space: normal;
     }
@@ -278,8 +277,13 @@ h1:focus {
     overflow: hidden;
     line-height: inherit;
     padding-bottom: 0.08em;
+    white-space: pre;
     max-width: 100%;
 }
+    .monitor-roll-wrap span {
+        flex-shrink: 0;
+        display: inline-block;
+    }
 
 .monitor-kpi-card .monitor-roll-wrap {
     overflow: visible;
@@ -336,6 +340,13 @@ h1:focus {
 .monitor-elapsed-badge {
     min-width: 78px;
     text-align: center;
+}
+
+.monitor-operators-cell {
+    max-width: 360px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .monitor-row-enter {
