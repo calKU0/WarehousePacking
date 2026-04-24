@@ -1,4 +1,5 @@
 ﻿@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Server.Helpers
 @using WarehousePacking.Server.Services
 @using WarehousePacking.Contracts.Data.Enums
 @inject PackingService PackingService
@@ -49,7 +50,7 @@
                                         <td>@jl.Name</td>
                                         <td>@jl.User</td>
                                         <td>@jl.StationNumber</td>
-                                        <td>@jl.Courier</td>
+                                        <td>@jl.Courier.GetDescription()</td>
                                         <td>@jl.ClientName</td>
                                         <td>
                                             <button class="btn btn-sm btn-primary me-2" @onclick="() => ShowPreview(jl)">

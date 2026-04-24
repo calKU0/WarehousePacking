@@ -320,7 +320,7 @@ namespace WarehousePacking.Server.Shared.Base
             await PackingService.AddJlRealization(new JlInProgressDto
             {
                 Name = CurrentJl.Name,
-                Courier = CurrentJl.CourierName,
+                Courier = CurrentJl.Courier,
                 ClientName = CurrentJl.ClientSymbol,
                 StationNumber = Settings.StationNumber,
                 Date = DateTime.Now,
@@ -334,7 +334,7 @@ namespace WarehousePacking.Server.Shared.Base
                 await PackingService.AddJlRealization(new JlInProgressDto
                 {
                     Name = jl.jlName,
-                    Courier = CurrentJl.CourierName,
+                    Courier = CurrentJl.Courier,
                     ClientName = CurrentJl.ClientSymbol,
                     StationNumber = Settings.StationNumber,
                     Date = DateTime.Now,

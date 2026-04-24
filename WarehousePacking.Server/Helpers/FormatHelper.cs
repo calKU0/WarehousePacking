@@ -8,7 +8,10 @@
             {
                 format = value % 1 == 0 ? "F0" : "F2";
             }
-            return value.ToString(format) + unit;
+
+            return string.IsNullOrEmpty(unit)
+                ? value.ToString(format)
+                : $"{value.ToString(format)} {unit}";
         }
         public static string FormatElapsed(DateTime start)
         {

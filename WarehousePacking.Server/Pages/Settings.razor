@@ -48,20 +48,20 @@ else
             }
 
             WorkStationSettings = settings;
-            WorkStationSettings.MonitorRefreshIntervalSeconds = WorkStationSettings.MonitorRefreshIntervalSeconds > 0
-                ? WorkStationSettings.MonitorRefreshIntervalSeconds
-                : WorkstationSettings.DefaultMonitorRefreshIntervalSeconds;
-            WorkStationSettings.MonitorSlideIntervalSeconds = WorkStationSettings.MonitorSlideIntervalSeconds > 0
-                ? WorkStationSettings.MonitorSlideIntervalSeconds
-                : WorkstationSettings.DefaultMonitorSlideIntervalSeconds;
+            WorkStationSettings.DashboardRefreshIntervalSeconds = WorkStationSettings.DashboardRefreshIntervalSeconds > 0
+                ? WorkStationSettings.DashboardRefreshIntervalSeconds
+                : WorkstationSettings.DefaultDashboardRefreshIntervalSeconds;
+            WorkStationSettings.DashboardSlideIntervalSeconds = WorkStationSettings.DashboardSlideIntervalSeconds > 0
+                ? WorkStationSettings.DashboardSlideIntervalSeconds
+                : WorkstationSettings.DefaultDashboardSlideIntervalSeconds;
             IsFirstSave = false;
         }
         else
         {
             // first-time setup
             IsFirstSave = true;
-            WorkStationSettings.MonitorRefreshIntervalSeconds = WorkstationSettings.DefaultMonitorRefreshIntervalSeconds;
-            WorkStationSettings.MonitorSlideIntervalSeconds = WorkstationSettings.DefaultMonitorSlideIntervalSeconds;
+            WorkStationSettings.DashboardRefreshIntervalSeconds = WorkstationSettings.DefaultDashboardRefreshIntervalSeconds;
+            WorkStationSettings.DashboardSlideIntervalSeconds = WorkstationSettings.DefaultDashboardSlideIntervalSeconds;
         }
     }
 
@@ -109,14 +109,14 @@ else
                         </select>
                     </div>
 
-                     @if (WorkStationSettings.StationType == StationType.Monitoring)
+                     @if (WorkStationSettings.StationType == StationType.Dashboard)
                      {
                          <div class="mb-3">
                              <label class="form-label">Odświeżanie danych (sekundy):</label>
                              <input type="number"
                                     min="1"
                                     class="form-control"
-                                    @bind="WorkStationSettings.MonitorRefreshIntervalSeconds"
+                                    @bind="WorkStationSettings.DashboardRefreshIntervalSeconds"
                                     placeholder="Domyślnie 15" />
                          </div>
 
@@ -125,7 +125,7 @@ else
                              <input type="number"
                                     min="1"
                                     class="form-control"
-                                    @bind="WorkStationSettings.MonitorSlideIntervalSeconds"
+                                    @bind="WorkStationSettings.DashboardSlideIntervalSeconds"
                                     placeholder="Domyślnie 30" />
                          </div>
                      }
@@ -172,16 +172,16 @@ else
     {
         try
         {
-            if (WorkStationSettings.StationType == StationType.Monitoring)
+            if (WorkStationSettings.StationType == StationType.Dashboard)
             {
-                if (WorkStationSettings.MonitorRefreshIntervalSeconds <= 0)
+                if (WorkStationSettings.DashboardRefreshIntervalSeconds <= 0)
                 {
-                    WorkStationSettings.MonitorRefreshIntervalSeconds = WorkstationSettings.DefaultMonitorRefreshIntervalSeconds;
+                    WorkStationSettings.DashboardRefreshIntervalSeconds = WorkstationSettings.DefaultDashboardRefreshIntervalSeconds;
                 }
 
-                if (WorkStationSettings.MonitorSlideIntervalSeconds <= 0)
+                if (WorkStationSettings.DashboardSlideIntervalSeconds <= 0)
                 {
-                    WorkStationSettings.MonitorSlideIntervalSeconds = WorkstationSettings.DefaultMonitorSlideIntervalSeconds;
+                    WorkStationSettings.DashboardSlideIntervalSeconds = WorkstationSettings.DefaultDashboardSlideIntervalSeconds;
                 }
             }
 
@@ -190,7 +190,7 @@ else
 
             if (IsFirstSave)
             {
-                var firstRoute = WorkStationSettings.StationType == StationType.Monitoring ? "/monitor" : "/login";
+                var firstRoute = WorkStationSettings.StationType == StationType.Dashboard ? "/monitor" : "/login";
                 NavigationManager.NavigateTo(firstRoute, forceLoad: true);
             }
         }

@@ -5,46 +5,46 @@ namespace WarehousePacking.Contracts.Data.Enums
     public enum Courier
     {
         [Description("DPD")]
-        DPD,
+        DPD = 22,
 
         [Description("GLS")]
-        GLS,
+        GLS = 23,
 
         [Description("Fedex")]
-        Fedex,
-
-        [Description("DPD-Romania")]
-        DPD_Romania,
-
-        [Description("Schenker")]
-        Schenker,
+        Fedex = 24,
 
         [Description("Hellmann")]
-        Hellmann,
+        Hellmann = 25,
+
+        [Description("DPD-Romania")]
+        DPD_Romania = 26,
+
+        [Description("Schenker")]
+        Schenker = 27,
 
         [Description("Odbiór własny")]
-        Personal_Collection,
+        Personal_Collection = 29,
 
         [Description("Raben")]
-        Raben,
+        Raben = 29,
 
         [Description("Trans. na zlecenie")]
-        Transport_On_Request,
+        Transport_On_Request = 30,
 
         [Description("Transport odbiorcy")]
-        Recipient_Transport,
-
-        [Description("Transport dostawcy")]
-        Supplier_Transport,
-
-        [Description("Diera")]
-        Diera,
-
-        [Description("Dachser")]
-        Dachser,
+        Recipient_Transport = 31,
 
         [Description("Suus")]
-        Suus,
+        Suus = 32,
+
+        [Description("Dachser")]
+        Dachser = 33,
+
+        [Description("Diera")]
+        Diera = 34,
+
+        [Description("Transport dostawcy")]
+        Supplier_Transport = 35,
 
         [Description("Nieznany")]
         Unknown,

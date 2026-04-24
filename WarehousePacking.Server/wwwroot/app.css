@@ -46,10 +46,10 @@ a, .btn-link {
     padding-top: 1.1rem;
 }
 
-body.monitor-mode,
-body.monitor-mode .page,
-body.monitor-mode main,
-body.monitor-mode article.content {
+body.dashboard-mode,
+body.dashboard-mode .page,
+body.dashboard-mode main,
+body.dashboard-mode article.content {
     height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
@@ -85,22 +85,22 @@ h1:focus {
     border-color: #929292;
 }
 
-.monitor-switch {
+.dashboard-switch {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
 }
 
-.monitor-tab-button {
+.dashboard-tab-button {
     cursor: pointer;
 }
 
-.monitor-slider {
+.dashboard-slider {
     overflow: hidden;
     border-radius: 0.75rem;
 }
 
-.monitor-page {
+.dashboard-page {
     height: 100%;
     max-height: 100%;
     max-height: 100dvh;
@@ -111,68 +111,68 @@ h1:focus {
     box-sizing: border-box;
 }
 
-.monitor-slider-fill {
+.dashboard-slider-fill {
     flex: 1;
     min-height: 0;
 }
 
-.monitor-track {
+.dashboard-track {
     display: flex;
     transition: transform 700ms ease-in-out;
     height: 100%;
 }
 
-.monitor-slide {
+.dashboard-slide {
     flex: 1;
     padding: 0.15rem;
     height: 100%;
     overflow: hidden;
 }
 
-.monitor-packing-panel {
+.dashboard-packing-panel {
     min-height: 0;
 }
 
-.monitor-main-row {
+.dashboard-main-row {
     min-height: 0;
 }
 
-    .monitor-main-row > [class*="col-"] {
+    .dashboard-main-row > [class*="col-"] {
         min-height: 0;
     }
 
-    .monitor-main-row .card {
+    .dashboard-main-row .card {
         min-height: 0;
         flex: 1;
     }
 
-.monitor-courier-body,
-.monitor-scroll-host {
+.dashboard-courier-body,
+.dashboard-scroll-host {
     min-height: 0;
     overflow: hidden;
 }
 
-.monitor-scroll-host {
+.dashboard-scroll-host {
     display: flex;
     flex-direction: column;
     flex: 1;
 }
 
-.monitor-courier-body {
+.dashboard-courier-body {
     max-height: 100%;
 }
 
-.monitor-courier-segment {
+.dashboard-courier-segment {
     min-height: 0;
     flex: 1;
 }
 
-.monitor-kpi-card {
+.dashboard-kpi-card {
     border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: 0.85rem;
 }
 
-.monitor-kpi-icon {
+.dashboard-kpi-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -184,94 +184,94 @@ h1:focus {
     flex-shrink: 0;
 }
 
-    .monitor-kpi-icon i {
+    .dashboard-kpi-icon i {
         font-size: 1.35rem;
     }
 
-.monitor-kpi-primary .monitor-kpi-icon {
+.dashboard-kpi-primary .dashboard-kpi-icon {
     background: rgba(13, 110, 253, 0.15);
     color: #0d6efd;
 }
 
-.monitor-kpi-info .monitor-kpi-icon {
+.dashboard-kpi-info .dashboard-kpi-icon {
     background: rgba(13, 202, 240, 0.2);
     color: #0aa2c0;
 }
 
-.monitor-kpi-warning .monitor-kpi-icon {
+.dashboard-kpi-warning .dashboard-kpi-icon {
     background: rgba(255, 193, 7, 0.2);
     color: #b58100;
 }
 
-.monitor-kpi-success .monitor-kpi-icon {
+.dashboard-kpi-success .dashboard-kpi-icon {
     background: rgba(25, 135, 84, 0.2);
     color: #198754;
 }
 
-.monitor-table thead th {
+.dashboard-table thead th {
     white-space: nowrap;
 }
 
-.monitor-courier-segment .monitor-table tbody td {
+.dashboard-courier-segment .dashboard-table tbody td {
     vertical-align: middle;
 }
 
-.monitor-courier-table {
+.dashboard-courier-table {
     width: 100%;
     table-layout: auto;
 }
 
-    .monitor-courier-table .monitor-courier-col-content {
+    .dashboard-courier-table .dashboard-courier-col-content {
         width: 1%;
     }
 
-    .monitor-courier-table .monitor-courier-col-fill {
+    .dashboard-courier-table .dashboard-courier-col-fill {
         width: auto;
     }
 
-    .monitor-courier-table th,
-    .monitor-courier-table td {
+    .dashboard-courier-table th,
+    .dashboard-courier-table td {
         white-space: nowrap;
     }
 
-.monitor-table-auto {
+.dashboard-table-auto {
     width: 100%;
     table-layout: auto;
 }
 
-    .monitor-table-auto th:first-child,
-    .monitor-table-auto td:first-child {
+    .dashboard-table-auto th:first-child,
+    .dashboard-table-auto td:first-child {
         width: 1%;
         white-space: nowrap;
     }
 
-    .monitor-table-auto th:not(:first-child),
-    .monitor-table-auto td:not(:first-child) {
+    .dashboard-table-auto th:not(:first-child),
+    .dashboard-table-auto td:not(:first-child) {
         width: auto;
         white-space: normal;
     }
 
-.monitor-table .progress {
+.dashboard-table .progress {
     min-width: 70px;
     height: 0.75rem;
 }
 
-.monitor-scroll-fill {
+.dashboard-scroll-fill {
     min-height: 0;
     flex: 1;
 }
 
-.monitor-auto-scroll {
+.dashboard-auto-scroll {
     overflow-y: auto !important;
 }
 
-.monitor-kpi-card .display-6 {
+.dashboard-kpi-card .display-6 {
     line-height: 1.3;
     padding-bottom: 0.14em;
     overflow: visible;
 }
 
-.monitor-roll-wrap {
+.dashboard-roll-wrap {
     display: inline-flex;
     align-items: baseline;
     overflow: hidden;
@@ -280,25 +280,25 @@ h1:focus {
     white-space: pre;
     max-width: 100%;
 }
-    .monitor-roll-wrap span {
+    .dashboard-roll-wrap span {
         flex-shrink: 0;
         display: inline-block;
     }
 
-.monitor-kpi-card .monitor-roll-wrap {
+.dashboard-kpi-card .dashboard-roll-wrap {
     overflow: visible;
     align-items: center;
     padding-bottom: 0.06em;
 }
 
-.monitor-roll-value {
+.dashboard-roll-value {
     display: inline-block;
-    animation: monitor-value-roll-up 220ms cubic-bezier(.22, .61, .36, 1);
+    animation: dashboard-value-roll-up 220ms cubic-bezier(.22, .61, .36, 1);
     animation-fill-mode: both;
     will-change: transform, opacity;
 }
 
-@keyframes monitor-value-roll-up {
+@keyframes dashboard-value-roll-up {
     0% {
         opacity: 1;
         transform: translateY(6px);
@@ -310,54 +310,54 @@ h1:focus {
     }
 }
 
-.monitor-share-bar {
+.dashboard-share-bar {
     transition: width 420ms ease;
 }
 
-.monitor-share-cell {
+.dashboard-share-cell {
     vertical-align: middle;
 }
 
-.monitor-share-wrap {
+.dashboard-share-wrap {
     width: 100%;
     justify-content: center;
 }
 
-    .monitor-share-wrap .progress {
+    .dashboard-share-wrap .progress {
         max-width: 220px;
     }
 
-.monitor-time-text {
+.dashboard-time-text {
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
 
-.monitor-elapsed-cell {
+.dashboard-elapsed-cell {
     width: 112px;
     min-width: 112px;
 }
 
-.monitor-elapsed-badge {
+.dashboard-elapsed-badge {
     min-width: 78px;
     text-align: center;
 }
 
-.monitor-operators-cell {
+.dashboard-operators-cell {
     max-width: 360px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.monitor-row-enter {
-    animation: monitor-row-enter 320ms ease-out;
+.dashboard-row-enter {
+    animation: dashboard-row-enter 320ms ease-out;
 }
 
-.monitor-row-leave {
-    animation: monitor-row-leave 320ms ease-in forwards;
+.dashboard-row-leave {
+    animation: dashboard-row-leave 320ms ease-in forwards;
 }
 
-@keyframes monitor-row-enter {
+@keyframes dashboard-row-enter {
     0% {
         opacity: 0;
         transform: translateY(8px);
@@ -369,7 +369,7 @@ h1:focus {
     }
 }
 
-@keyframes monitor-row-leave {
+@keyframes dashboard-row-leave {
     0% {
         opacity: 1;
         transform: translateY(0);

@@ -19,9 +19,9 @@
             return;
         }
 
-        if (settings.StationType == StationType.Monitoring)
+        if (settings.StationType == StationType.Dashboard)
         {
-            Navigation.NavigateTo("/monitor", true);
+            Navigation.NavigateTo("/dashboard", true);
             return;
         }
 
@@ -36,7 +36,7 @@
         {
             StationType.Packing => "/kontrola-pakowania",
             StationType.Shipping => "/wysylka-paczek",
-            StationType.Monitoring => "/monitor",
+            StationType.Dashboard => "/dashboard",
             _ => "/login"
         };
 

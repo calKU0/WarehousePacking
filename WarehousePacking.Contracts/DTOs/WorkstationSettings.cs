@@ -4,8 +4,8 @@ namespace WarehousePacking.Contracts.DTOs
 {
     public class WorkstationSettings
     {
-        public const int DefaultMonitorRefreshIntervalSeconds = 15;
-        public const int DefaultMonitorSlideIntervalSeconds = 30;
+        public const int DefaultDashboardRefreshIntervalSeconds = 15;
+        public const int DefaultDashboardSlideIntervalSeconds = 30;
 
         public string PrinterLabel { get; set; } = "";
         public string PrinterInvoice { get; set; } = "";
@@ -13,7 +13,7 @@ namespace WarehousePacking.Contracts.DTOs
         public PackingLevel PackingLevel { get; set; }
         public StationType StationType { get; set; }
         public string StationNumber { get; set; } = "";
-        public int MonitorRefreshIntervalSeconds { get; set; } = DefaultMonitorRefreshIntervalSeconds;
-        public int MonitorSlideIntervalSeconds { get; set; } = DefaultMonitorSlideIntervalSeconds;
+        public int DashboardRefreshIntervalSeconds { get; set; } = DefaultDashboardRefreshIntervalSeconds;
+        public int DashboardSlideIntervalSeconds { get; set; } = DefaultDashboardSlideIntervalSeconds;
     }
 }

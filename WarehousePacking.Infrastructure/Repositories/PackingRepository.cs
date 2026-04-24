@@ -59,7 +59,7 @@ namespace WarehousePacking.Infrastructure.Repositories
                 parameters.Add("User", jl.User);
             if (!string.IsNullOrEmpty(jl.ClientName))
                 parameters.Add("ClientName", jl.ClientName);
-            if (!string.IsNullOrEmpty(jl.Courier))
+            if (jl.Courier != Courier.Unknown)
                 parameters.Add("Courier", jl.Courier);
             if (jl.PackageId != 0)
                 parameters.Add("PackageId", jl.PackageId);

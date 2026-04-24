@@ -1,0 +1,95 @@
+<span class="dashboard-roll-wrap @CssClass">
+    @foreach (var part in _parts)
+    {
+        if (part.Animate)
+        {
+            <span class="dashboard-roll-value" @key="part.Key">@part.Text</span>
+        }
+        else
+        {
+            <span>@part.Text</span>
+        }
+    }
+</span>
+
+@code {
+    private sealed record AnimatedPart(string Text, bool Animate, string Key);
+
+    [Parameter] public string Text { get; set; } = string.Empty;
+    [Parameter] public string CssClass { get; set; } = string.Empty;
+
+    private string _lastText = string.Empty;
+    private int _version;
+    private IReadOnlyList<AnimatedPart> _parts = Array.Empty<AnimatedPart>();
+
+    protected override void OnParametersSet()
+    {
+        var newText = Text ?? string.Empty;
+
+        if (string.Equals(_lastText, newText, StringComparison.Ordinal))
+        {
+            if (_parts.Count == 0)
+            {
+                _parts = [new AnimatedPart(newText, false, "static")];
+            }
+
+            return;
+        }
+
+        _version++;
+        _parts = BuildParts(_lastText, newText, _version);
+        _lastText = newText;
+    }
+
+    private static IReadOnlyList<AnimatedPart> BuildParts(string oldValue, string newValue, int version)
+    {
+        if (string.IsNullOrEmpty(oldValue))
+        {
+            return [new AnimatedPart(newValue, false, $"initial-{version}")];
+        }
+
+        var prefixLength = 0;
+        while (prefixLength < oldValue.Length &&
+               prefixLength < newValue.Length &&
+               oldValue[prefixLength] == newValue[prefixLength])
+        {
+            prefixLength++;
+        }
+
+        var suffixLength = 0;
+        while (suffixLength < oldValue.Length - prefixLength &&
+               suffixLength < newValue.Length - prefixLength &&
+               oldValue[oldValue.Length - 1 - suffixLength] == newValue[newValue.Length - 1 - suffixLength])
+        {
+            suffixLength++;
+        }
+
+        var prefix = prefixLength > 0 ? newValue[..prefixLength] : string.Empty;
+        var changedLength = newValue.Length - prefixLength - suffixLength;
+        var changed = changedLength > 0 ? newValue.Substring(prefixLength, changedLength) : string.Empty;
+        var suffix = suffixLength > 0 ? newValue[^suffixLength..] : string.Empty;
+
+        var result = new List<AnimatedPart>(3);
+        if (!string.IsNullOrEmpty(prefix))
+        {
+            result.Add(new AnimatedPart(prefix, false, $"prefix-{version}"));
+        }
+
+        if (!string.IsNullOrEmpty(changed))
+        {
+            result.Add(new AnimatedPart(changed, true, $"changed-{version}-{changed}"));
+        }
+
+        if (!string.IsNullOrEmpty(suffix))
+        {
+            result.Add(new AnimatedPart(suffix, false, $"suffix-{version}"));
+        }
+
+        if (result.Count == 0)
+        {
+            result.Add(new AnimatedPart(newValue, true, $"fallback-{version}"));
+        }
+
+        return result;
+    }
+}

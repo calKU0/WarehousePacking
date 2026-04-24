@@ -1,0 +1,464 @@
+﻿@using WarehousePacking.Contracts.Data.Enums
+@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Server.Helpers
+
+@implements IAsyncDisposable
+
+<div class="dashboard-loading-panel h-100 d-flex flex-column">
+    <div class="row g-3 mb-3 flex-shrink-0">
+        <div class="col-12 col-md-3">
+            <DashboardStatCard Title="Dokumenty"
+                             Subtitle="Do załadowania"
+                             Value="@FormatHelper.FormatQuantity(TotalDocumentsCount)"
+                             IconClass="bi bi-file-earmark-text"
+                             AccentClass="dashboard-kpi-primary" />
+        </div>
+        <div class="col-12 col-md-3">
+            <DashboardStatCard Title="Paczki / Palety"
+                             Subtitle="Do załadowania"
+                             Value="@($"{FormatHelper.FormatQuantity(ParcelsCount)} / {FormatHelper.FormatQuantity(PaletsCount)}")"
+                             IconClass="bi bi-file-earmark-text"
+                             AccentClass="dashboard-kpi-primary" />
+        </div>
+        <div class="col-12 col-md-3">
+            <DashboardStatCard Title="Waga / Objętość"
+                             Subtitle="Pozostało"
+                             Value="@($"{FormatHelper.FormatQuantity(RemainingWeightTotal, "kg", "F0")} / {FormatHelper.FormatQuantity(RemainingVolumeTotal, "m³")}")"
+                             IconClass="bi bi-speedometer2"
+                             AccentClass="dashboard-kpi-warning" />
+        </div>
+        <div class="col-12 col-md-3">
+            <DashboardStatCard Title="Operatorzy"
+                             Subtitle="Aktywni (5 min)"
+                             Value="@FormatHelper.FormatQuantity(ActiveOperatorsCount)"
+                             IconClass="bi bi-people"
+                             AccentClass="dashboard-kpi-success" />
+        </div>
+    </div>
+    
+    <div class="row g-3 dashboard-main-row flex-grow-1">
+        <div class="col-12 col-xl-6 d-flex">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-truck me-2"></i>@DashboardPanel.Loading.GetDescription() - Kurierzy</span>
+                </div>
+                <div class="card-body p-0 mb-0 dashboard-scroll-host">
+                    <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
+                        <table class="table table-striped table-hover mb-0 dashboard-table dashboard-table-auto">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Kurier</th>
+                                    <th>Ilość dokumentów</th>
+                                    <th>Ilość towarów</th>
+                                    <th>Waga</th>
+                                    <th>Objętość</th>
+                                    <th>Operatorzy</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!CourierRows.Any())
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-3">
+                                            @if (IsLoading)
+                                            {
+                                                <span>Ładowanie danych...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Brak danych załadunku.</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var row in CourierRows)
+                                    {
+                                        <tr class="@row.AnimationClass" @key="row.Key">
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    @if (!string.IsNullOrWhiteSpace(row.Data.CourierSrc))
+                                                    {
+                                                        <img src="@row.Data.CourierSrc" alt="@row.Data.CourierName" style="max-height: 48px; max-width: 60px; object-fit: contain;" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-truck text-muted fs-5"></i>
+                                                    }
+                                                    <span>@row.Data.CourierName</span>
+                                                </div>
+                                            </td>
+                                            <td><DashboardAnimatedValue Text="@row.Data.DocumentsCount.ToString()" /></td>
+                                            <td><DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.Data.RemainingQuantity)" /></td>
+                                            <td><DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.Data.RemainingWeight, "kg", "F0")" /></td>
+                                            <td><DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.Data.RemainingVolume, "m³")" /></td>
+                                            <td class="dashboard-operators-cell" title="@row.Data.OperatorsList">@row.Data.OperatorsList</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-6 d-flex">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-list-check me-2"></i>@DashboardPanel.Loading.GetDescription() - Dokumenty</span>
+                </div>
+                <div class="card-body p-0 mb-0 dashboard-scroll-host">
+                    <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
+                        <table class="table table-striped table-hover mb-0 dashboard-table dashboard-table-auto">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Dokument</th>
+                                    <th>Kurier</th>
+                                    <th>Status</th>
+                                    <th>Ilość</th>
+                                    <th>Waga</th>
+                                    <th>Objętość</th>
+                                    <th>Operatorzy</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!DocumentRows.Any())
+                                {
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted py-3">
+                                            @if (IsLoading)
+                                            {
+                                                <span>Ładowanie danych...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Brak dokumentów załadunku.</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var row in DocumentRows)
+                                    {
+                                        <tr class="@row.AnimationClass" @key="row.Key">
+                                            <td>@row.Data.Code</td>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    @if (!string.IsNullOrWhiteSpace(row.Data.CourierSrc))
+                                                    {
+                                                        <img src="@row.Data.CourierSrc" alt="@row.Data.CourierName" style="max-height: 48px; max-width: 60px; object-fit: contain;" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-truck text-muted"></i>
+                                                    }
+                                                    <span>@row.Data.CourierName</span>
+                                                </div>
+                                            </td>
+                                            <td>@row.Data.StatusName</td>
+                                            <td><DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.Data.RemainingQuantity)" /></td>
+                                            <td><DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.Data.RemainingWeight, "kg", "F0")" /></td>
+                                            <td><DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.Data.RemainingVolume, "m³")" /></td>
+                                            <td class="dashboard-operators-cell" title="@row.Data.OperatorsList">@row.Data.OperatorsList</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    private const int RowAnimationDelayMs = 280;
+
+    private sealed record LoadingCourierSummary(
+        Courier Courier,
+        string CourierName,
+        string CourierSrc,
+        int DocumentsCount,
+        decimal RemainingQuantity,
+        decimal RemainingWeight,
+        decimal RemainingVolume,
+        int OperatorsCount,
+        string OperatorsList);
+
+    private sealed class LoadingRowView
+    {
+        public string Key { get; set; } = string.Empty;
+        public LoadingCourierSummary Data { get; set; } = null!;
+        public string AnimationClass { get; set; } = string.Empty;
+        public bool IsLeaving { get; set; }
+    }
+
+    private sealed record LoadingDocumentSummary(
+        string Key,
+        string Code,
+        string CourierName,
+        string CourierSrc,
+        string StatusName,
+        decimal RemainingQuantity,
+        decimal RemainingWeight,
+        decimal RemainingVolume,
+        string OperatorsList);
+
+    private sealed class LoadingDocumentRowView
+    {
+        public string Key { get; set; } = string.Empty;
+        public LoadingDocumentSummary Data { get; set; } = null!;
+        public string AnimationClass { get; set; } = string.Empty;
+        public bool IsLeaving { get; set; }
+    }
+
+    [Parameter] public List<WarehouseDocument> Documents { get; set; } = new();
+    [Parameter] public List<WarehouseOperation> RecentOperations { get; set; } = new();
+    [Parameter] public bool IsLoading { get; set; }
+
+    private List<LoadingRowView> CourierRows { get; set; } = new();
+    private List<LoadingDocumentRowView> DocumentRows { get; set; } = new();
+
+    private decimal RemainingQuantityTotal => CourierRows.Sum(x => x.Data.RemainingQuantity);
+    private decimal RemainingWeightTotal => CourierRows.Sum(x => x.Data.RemainingWeight);
+    private decimal RemainingVolumeTotal => CourierRows.Sum(x => x.Data.RemainingVolume);
+    private int ActiveOperatorsCount => RecentOperations
+        .Select(x => x.Operator)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Count();
+
+    private int TotalDocumentsCount => Documents.Count;
+    private int PaletsCount => Documents.Count(p => p.Weight >= 30);
+    private int ParcelsCount => Documents.Count(p => p.Weight < 30);
+
+    protected override void OnParametersSet()
+    {
+        SyncRows();
+        SyncDocumentRows();
+    }
+
+    private void SyncRows()
+    {
+        var latest = BuildSummaries();
+        var latestKeys = latest.Select(GetRowKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in latest)
+        {
+            var itemKey = GetRowKey(item);
+            var existing = CourierRows.FirstOrDefault(x => string.Equals(x.Key, itemKey, StringComparison.OrdinalIgnoreCase));
+            if (existing is null)
+            {
+                var added = new LoadingRowView
+                {
+                    Key = itemKey,
+                    Data = item,
+                    AnimationClass = "dashboard-row-enter"
+                };
+
+                CourierRows.Add(added);
+                _ = ClearEnterClassAsync(added);
+            }
+            else
+            {
+                existing.Data = item;
+                if (existing.IsLeaving)
+                {
+                    existing.IsLeaving = false;
+                    existing.AnimationClass = "dashboard-row-enter";
+                    _ = ClearEnterClassAsync(existing);
+                }
+            }
+        }
+
+        foreach (var row in CourierRows.Where(x => !x.IsLeaving && !latestKeys.Contains(x.Key)).ToList())
+        {
+            row.IsLeaving = true;
+            row.AnimationClass = "dashboard-row-leave";
+            _ = RemoveRowAsync(row);
+        }
+
+        var orderedActive = latest.Select(x => CourierRows.First(r => string.Equals(r.Key, GetRowKey(x), StringComparison.OrdinalIgnoreCase))).ToList();
+        var leaving = CourierRows.Where(x => x.IsLeaving).ToList();
+        CourierRows = orderedActive.Concat(leaving).ToList();
+    }
+
+    private List<LoadingCourierSummary> BuildSummaries()
+    {
+        return Documents
+            .GroupBy(x => x.Courier)
+            .Select(group =>
+            {
+                var docs = group.ToList();
+                var operators = RecentOperations
+                    .Where(op => docs.Any(doc =>
+                        (op.ErpDocumentId == doc.ErpId && op.ErpDocumentType == doc.ErpType) ||
+                        string.Equals(op.DocumentCode, doc.Code.ToString(), StringComparison.OrdinalIgnoreCase)))
+                    .Select(op => op.Operator)
+                    .Where(op => !string.IsNullOrWhiteSpace(op))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(op => op)
+                    .ToList();
+
+                var courierName = group.Key == Courier.Unknown ? "Brak" : group.Key.GetDescription();
+                var courierSrc = CourierHelper.GetCourierLogo(new ShipmentServices(), group.Key);
+
+                return new LoadingCourierSummary(
+                    group.Key,
+                    courierName,
+                    courierSrc,
+                    docs.Count,
+                    docs.Sum(x => Math.Max(0m, x.Quantity - x.QuantityRealized)),
+                    docs.Sum(x => Math.Max(0m, x.Weight - x.WeightRealized)),
+                    docs.Sum(x => Math.Max(0m, x.Volume - x.VolumeRealized)),
+                    operators.Count,
+                    operators.Any() ? string.Join(", ", operators) : "-"
+                );
+            })
+            .OrderByDescending(x => x.DocumentsCount)
+            .ThenBy(x => x.CourierName)
+            .ToList();
+    }
+
+    private static string GetRowKey(LoadingCourierSummary row)
+    {
+        return row.Courier.ToString();
+    }
+
+    private List<LoadingDocumentSummary> BuildDocumentSummaries()
+    {
+        return Documents
+            .Select(doc =>
+            {
+                var operators = RecentOperations
+                    .Where(op =>
+                        (op.ErpDocumentId == doc.ErpId && op.ErpDocumentType == doc.ErpType) ||
+                        string.Equals(op.DocumentCode, doc.Code, StringComparison.OrdinalIgnoreCase))
+                    .Select(op => op.Operator)
+                    .Where(op => !string.IsNullOrWhiteSpace(op))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(op => op)
+                    .ToList();
+
+                var courierName = doc.Courier == Courier.Unknown ? "Brak" : doc.Courier.GetDescription();
+                var courierSrc = CourierHelper.GetCourierLogo(new ShipmentServices(), doc.Courier);
+
+                return new LoadingDocumentSummary(
+                    doc.Id.ToString(),
+                    doc.Code,
+                    courierName,
+                    courierSrc,
+                    doc.Status.GetDescription(),
+                    Math.Max(0m, doc.Quantity - doc.QuantityRealized),
+                    Math.Max(0m, doc.Weight - doc.WeightRealized),
+                    Math.Max(0m, doc.Volume - doc.VolumeRealized),
+                    operators.Any() ? string.Join(", ", operators) : "-"
+                );
+            })
+            .OrderByDescending(x => x.RemainingWeight)
+            .ThenBy(x => x.Code)
+            .ToList();
+    }
+
+    private void SyncDocumentRows()
+    {
+        var latest = BuildDocumentSummaries();
+        var latestKeys = latest.Select(x => x.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in latest)
+        {
+            var existing = DocumentRows.FirstOrDefault(x => string.Equals(x.Key, item.Key, StringComparison.OrdinalIgnoreCase));
+            if (existing is null)
+            {
+                var added = new LoadingDocumentRowView
+                {
+                    Key = item.Key,
+                    Data = item,
+                    AnimationClass = "dashboard-row-enter"
+                };
+
+                DocumentRows.Add(added);
+                _ = ClearDocumentEnterClassAsync(added);
+            }
+            else
+            {
+                existing.Data = item;
+                if (existing.IsLeaving)
+                {
+                    existing.IsLeaving = false;
+                    existing.AnimationClass = "dashboard-row-enter";
+                    _ = ClearDocumentEnterClassAsync(existing);
+                }
+            }
+        }
+
+        foreach (var row in DocumentRows.Where(x => !x.IsLeaving && !latestKeys.Contains(x.Key)).ToList())
+        {
+            row.IsLeaving = true;
+            row.AnimationClass = "dashboard-row-leave";
+            _ = RemoveDocumentRowAsync(row);
+        }
+
+        var orderedActive = latest.Select(x => DocumentRows.First(r => string.Equals(r.Key, x.Key, StringComparison.OrdinalIgnoreCase))).ToList();
+        var leaving = DocumentRows.Where(x => x.IsLeaving).ToList();
+        DocumentRows = orderedActive.Concat(leaving).ToList();
+    }
+
+    private async Task ClearDocumentEnterClassAsync(LoadingDocumentRowView row)
+    {
+        await Task.Delay(RowAnimationDelayMs);
+        if (row.IsLeaving)
+        {
+            return;
+        }
+
+        row.AnimationClass = string.Empty;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RemoveDocumentRowAsync(LoadingDocumentRowView row)
+    {
+        await Task.Delay(RowAnimationDelayMs);
+        if (!row.IsLeaving)
+        {
+            return;
+        }
+
+        DocumentRows = DocumentRows.Where(x => !ReferenceEquals(x, row)).ToList();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ClearEnterClassAsync(LoadingRowView row)
+    {
+        await Task.Delay(RowAnimationDelayMs);
+        if (row.IsLeaving)
+        {
+            return;
+        }
+
+        row.AnimationClass = string.Empty;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RemoveRowAsync(LoadingRowView row)
+    {
+        await Task.Delay(RowAnimationDelayMs);
+        if (!row.IsLeaving)
+        {
+            return;
+        }
+
+        CourierRows = CourierRows.Where(x => !ReferenceEquals(x, row)).ToList();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        return ValueTask.CompletedTask;
+    }
+}

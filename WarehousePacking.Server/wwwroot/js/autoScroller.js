@@ -1,11 +1,11 @@
-﻿window.monitorAutoScroll = {
+﻿window.dashboardAutoScroll = {
     instances: {},
 
     register: function (rootElement, selector) {
-        const id = 'monitor-scroll-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+        const id = 'dashboard-scroll-' + Date.now() + '-' + Math.random().toString(36).slice(2);
         const state = {
             root: rootElement,
-            selector: selector || '.monitor-auto-scroll',
+            selector: selector || '.dashboard-auto-scroll',
             containers: [],
             elementStates: new WeakMap(),
             speedPxPerSecond: 35,
@@ -156,11 +156,11 @@
     }
 };
 
-window.monitorLayout = {
+window.dashboardLayout = {
     enter: function () {
-        document.body.classList.add('monitor-mode');
+        document.body.classList.add('dashboard-mode');
     },
     exit: function () {
-        document.body.classList.remove('monitor-mode');
+        document.body.classList.remove('dashboard-mode');
     }
 };

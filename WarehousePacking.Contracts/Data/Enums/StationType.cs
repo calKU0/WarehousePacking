@@ -10,7 +10,7 @@ namespace WarehousePacking.Contracts.Data.Enums
         [Description("Wysyłka Paczek")]
         Shipping,
 
-        [Description("Monitorowanie")]
-        Monitoring
+        [Description("Dashboard")]
+        Dashboard
     }
 }

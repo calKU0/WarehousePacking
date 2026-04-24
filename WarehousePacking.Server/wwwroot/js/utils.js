@@ -28,11 +28,11 @@ window.downloadFile = (url, filename) => {
     document.body.removeChild(a);
 };
 
-window.monitorNavigation = {
+window.dashboardNavigation = {
     listeners: {},
 
     register: function (dotNetRef) {
-        const listenerId = 'monitor-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+        const listenerId = 'dashboard-' + Date.now() + '-' + Math.random().toString(36).slice(2);
 
         const handler = function (event) {
             if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {

@@ -1,0 +1,19 @@
+@using WarehousePacking.Contracts.Data.Enums
+@using WarehousePacking.Server.Helpers
+
+<div class="dashboard-switch">
+    @foreach (var panel in Panels)
+    {
+        <button type="button"
+                class="badge rounded-pill border-0 dashboard-tab-button @(ActivePanel == panel ? "text-bg-primary" : "text-bg-secondary")"
+                @onclick="() => OnPanelSelected.InvokeAsync(panel)">
+            @panel.GetDescription()
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<DashboardPanel> Panels { get; set; } = Array.Empty<DashboardPanel>();
+    [Parameter] public DashboardPanel ActivePanel { get; set; }
+    [Parameter] public EventCallback<DashboardPanel> OnPanelSelected { get; set; }
+}
