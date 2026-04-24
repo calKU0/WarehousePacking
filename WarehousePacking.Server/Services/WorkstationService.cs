@@ -1,5 +1,5 @@
 ﻿using Blazored.LocalStorage;
-using WarehousePacking.Contracts.DTOs;
+using WarehousePacking.Server.Settings;
 
 namespace WarehousePacking.Server.Services
 {

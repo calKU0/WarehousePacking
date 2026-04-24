@@ -43,43 +43,54 @@ namespace WarehousePacking.Server.Helpers
             return Courier.Unknown;
         }
 
-        public static string GetCourierLogo(ShipmentServices shipmentServices, Courier courier)
+        public static string GetCourierLogo(ShipmentServices? shipmentServices, Courier? courier)
         {
-            if (courier == Courier.Unknown)
+            if (courier is null || courier == Courier.Unknown)
                 return string.Empty;
 
+            string courierName = courier.GetDescription().Replace(":", "").Trim();
             var suffixes = new List<string>();
 
-            foreach (var prop in typeof(ShipmentServices).GetProperties())
+            if (shipmentServices != null)
             {
-                if (prop.PropertyType == typeof(bool) && (bool)prop.GetValue(shipmentServices))
+                foreach (var prop in typeof(ShipmentServices).GetProperties())
                 {
-                    suffixes.Add(prop.Name);
+                    if (prop.PropertyType == typeof(bool) && (bool)prop.GetValue(shipmentServices)!)
+                    {
+                        suffixes.Add(prop.Name);
+                    }
                 }
             }
 
-            var logo = suffixes.Any()
-                ? $"{courier.GetDescription()}-{string.Join(", ", suffixes)}"
-                : courier.GetDescription();
-
-            // Remove invalid characters
-            logo = logo.Replace(":", "").Trim();
-
             string basePath = "images/couriers/";
-            string pngPath = $"{basePath}{logo}.png";
-            string jpgPath = $"{basePath}{logo}.jpg";
-            // Map to physical paths on server to check existence
             string wwwRoot = Path.Combine(Environment.CurrentDirectory, "wwwroot");
-            string physicalPng = Path.Combine(wwwRoot, pngPath.Replace("/", Path.DirectorySeparatorChar.ToString()));
-            string physicalJpg = Path.Combine(wwwRoot, jpgPath.Replace("/", Path.DirectorySeparatorChar.ToString()));
 
-            if (File.Exists(physicalPng))
-                return pngPath;
+            if (suffixes.Any())
+            {
+                string logoWithSuffix = $"{courierName}-{string.Join(", ", suffixes)}";
+                string pathWithSuffix = TryGetImagePath(basePath, logoWithSuffix, wwwRoot);
 
-            if (File.Exists(physicalJpg))
-                return jpgPath;
+                if (!string.IsNullOrEmpty(pathWithSuffix))
+                    return pathWithSuffix;
+            }
 
-            // fallback if no file exists
+            return TryGetImagePath(basePath, courierName, wwwRoot);
+        }
+
+        private static string TryGetImagePath(string basePath, string fileName, string wwwRoot)
+        {
+            string[] extensions = { ".png", ".jpg" };
+
+            foreach (var ext in extensions)
+            {
+                string relativePath = $"{basePath}{fileName}{ext}";
+
+                string physicalPath = Path.Combine(wwwRoot, relativePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+
+                if (File.Exists(physicalPath))
+                    return relativePath;
+            }
+
             return string.Empty;
         }
     }

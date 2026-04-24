@@ -4,6 +4,9 @@ namespace WarehousePacking.Contracts.Data.Enums
 {
     public enum Courier
     {
+        [Description("Nieznany")]
+        Unknown = 0,
+
         [Description("DPD")]
         DPD = 22,
 
@@ -44,9 +47,6 @@ namespace WarehousePacking.Contracts.Data.Enums
         Diera = 34,
 
         [Description("Transport dostawcy")]
-        Supplier_Transport = 35,
-
-        [Description("Nieznany")]
-        Unknown,
+        Supplier_Transport = 35
     }
 }

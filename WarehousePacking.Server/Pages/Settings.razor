@@ -3,6 +3,7 @@
 @using WarehousePacking.Server.Helpers
 @using WarehousePacking.Server.Services
 @using WarehousePacking.Contracts.Data.Enums
+@using WarehousePacking.Server.Settings
 @inject WorkstationService WorkstationService
 @inject UserSessionService UserSession
 @inject NavigationManager NavigationManager
@@ -48,20 +49,12 @@ else
             }
 
             WorkStationSettings = settings;
-            WorkStationSettings.DashboardRefreshIntervalSeconds = WorkStationSettings.DashboardRefreshIntervalSeconds > 0
-                ? WorkStationSettings.DashboardRefreshIntervalSeconds
-                : WorkstationSettings.DefaultDashboardRefreshIntervalSeconds;
-            WorkStationSettings.DashboardSlideIntervalSeconds = WorkStationSettings.DashboardSlideIntervalSeconds > 0
-                ? WorkStationSettings.DashboardSlideIntervalSeconds
-                : WorkstationSettings.DefaultDashboardSlideIntervalSeconds;
             IsFirstSave = false;
         }
         else
         {
             // first-time setup
             IsFirstSave = true;
-            WorkStationSettings.DashboardRefreshIntervalSeconds = WorkstationSettings.DefaultDashboardRefreshIntervalSeconds;
-            WorkStationSettings.DashboardSlideIntervalSeconds = WorkstationSettings.DefaultDashboardSlideIntervalSeconds;
         }
     }
 
@@ -109,27 +102,6 @@ else
                         </select>
                     </div>
 
-                     @if (WorkStationSettings.StationType == StationType.Dashboard)
-                     {
-                         <div class="mb-3">
-                             <label class="form-label">Odświeżanie danych (sekundy):</label>
-                             <input type="number"
-                                    min="1"
-                                    class="form-control"
-                                    @bind="WorkStationSettings.DashboardRefreshIntervalSeconds"
-                                    placeholder="Domyślnie 15" />
-                         </div>
-
-                         <div class="mb-3">
-                             <label class="form-label">Zmiana slajdu (sekundy):</label>
-                             <input type="number"
-                                    min="1"
-                                    class="form-control"
-                                    @bind="WorkStationSettings.DashboardSlideIntervalSeconds"
-                                    placeholder="Domyślnie 30" />
-                         </div>
-                     }
-
                     <div class="mb-3">
                         <label class="form-label">Typ stanowiska:</label>
                         <select class="form-select" @bind="WorkStationSettings.StationType">
@@ -155,6 +127,52 @@ else
                         }
                     </div>
 
+                    <div class="card shadow-sm mt-4">
+                        <div class="card-body">
+                            <h4 class="card-title mb-3">Konfiguracja Paneli Dashboardu</h4>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Panel</th>
+                                            <th class="text-center">Aktywny</th>
+                                            <th>Odświeżanie (s)</th>
+                                            <th>Slajd (s)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var panelType in Enum.GetValues<DashboardPanel>())
+                                        {
+                                            var config = WorkStationSettings.DashboardSettings.Panels.FirstOrDefault(p => p.Panel == panelType);
+                                            if (config == null)
+                                            {
+                                                config = new PanelConfiguration { Panel = panelType };
+                                                WorkStationSettings.DashboardSettings.Panels.Add(config);
+                                            }
+
+                                            <tr>
+                                                <td><strong>@panelType.GetDescription()</strong></td>
+                                                <td class="text-center">
+                                                    <div class="form-check form-switch d-inline-block">
+                                                        <input class="form-check-input" type="checkbox" @bind="config.IsEnabled" />
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <input type="number" class="form-control form-control-sm" style="width: 80px;"
+                                                           @bind="config.RefreshIntervalSeconds" min="5" />
+                                                </td>
+                                                <td>
+                                                    <input type="number" class="form-control form-control-sm" style="width: 80px;"
+                                                           @bind="config.SlideIntervalSeconds" min="5" />
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="d-grid">
                         <button class="btn btn-primary btn-lg"
                                 @onclick="Save"
@@ -172,19 +190,6 @@ else
     {
         try
         {
-            if (WorkStationSettings.StationType == StationType.Dashboard)
-            {
-                if (WorkStationSettings.DashboardRefreshIntervalSeconds <= 0)
-                {
-                    WorkStationSettings.DashboardRefreshIntervalSeconds = WorkstationSettings.DefaultDashboardRefreshIntervalSeconds;
-                }
-
-                if (WorkStationSettings.DashboardSlideIntervalSeconds <= 0)
-                {
-                    WorkStationSettings.DashboardSlideIntervalSeconds = WorkstationSettings.DefaultDashboardSlideIntervalSeconds;
-                }
-            }
-
             await WorkstationService.SaveSettingsAsync(WorkStationSettings);
             Toast.Show("Sukces!", "Ustawienia zapisane!", ToastType.Success, 2000);
 

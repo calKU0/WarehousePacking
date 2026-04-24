@@ -90,10 +90,13 @@
                 </div>
 
                 <div class="col-md-3 d-flex justify-content-center align-items-center">
-                    <img src="@CourierHelper.GetCourierLogo(Package.ShipmentServices, Package.Courier)"
-                            alt="Courier Logo"
-                            class="img-fluid"
-                            style="max-height:120px;" />              
+                    @if (Package.Courier != Courier.Unknown)
+                    {
+                        <img src="@CourierHelper.GetCourierLogo(Package.ShipmentServices, Package.Courier)"
+                             alt="Courier Logo"
+                             class="img-fluid"
+                             style="max-height:120px;" />
+                    }        
                 </div>
 
                 <div class="col-md-6">

@@ -6,6 +6,7 @@ using WarehousePacking.Contracts.DTOs;
 using WarehousePacking.Contracts.DTOs.Requests;
 using WarehousePacking.Server.Helpers;
 using WarehousePacking.Server.Services;
+using WarehousePacking.Server.Settings;
 using WarehousePacking.Server.Shared.Components;
 using WarehousePacking.Server.Shared.Components.Modals;
 using WarehousePacking.Server.Shared.Components.Packing;
@@ -1066,6 +1067,12 @@ namespace WarehousePacking.Server.Shared.Base
         {
             if (!EnsureMainOperator("przejście do następnej paczki"))
                 return;
+
+            if (!JlItems.Any())
+            {
+                Toast.Show("Błąd!", "Brak towarów do spakowania!");
+                return;
+            }
 
             _currentPackingFlow = PackingFlow.NextPackage;
             ShowPackingModal();

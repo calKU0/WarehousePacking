@@ -1,5 +1,6 @@
 ﻿@using WarehousePacking.Contracts.DTOs
 @using WarehousePacking.Contracts.Data.Enums
+@using WarehousePacking.Server.Settings
 <div class="row g-2 mt-3 flex-shrink-0">
     <div class="col-6 col-md">
         <button class="btn btn-warning w-100 h-100 py-4 fs-5" @onclick="NextPackage" disabled="@(!IsMainOperator)">Następna paczka</button>

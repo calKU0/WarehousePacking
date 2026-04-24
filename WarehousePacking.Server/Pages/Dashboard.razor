@@ -3,6 +3,7 @@
 @using WarehousePacking.Contracts.DTOs.Requests
 @using WarehousePacking.Server.Helpers
 @using WarehousePacking.Server.Services
+@using WarehousePacking.Server.Settings
 @using WarehousePacking.Server.Shared.Base
 @using WarehousePacking.Server.Shared.Components.Dashboards
 @using WarehousePacking.Contracts.Data.Enums
@@ -51,15 +52,23 @@
                 </button>
             </div>
 
-            <div class="text-muted small">
+            <div class="text-muted small d-flex gap-3">
                 @if (IsSliderRunning)
                 {
-                    <span>Odświeżanie co @RefreshIntervalSeconds s, zmiana panelu co @SlideIntervalSeconds s.</span>
+                    <div class="d-flex align-items-center">
+                        <span class="me-1">Nowy slajd za:</span>
+                        <DashboardAnimatedValue Text="@($"{_slideCountdown}s")" CssClass="fw-bold text-primary" />
+                    </div>
                 }
                 else
                 {
-                    <span>Slider zatrzymany. Aktywny panel odświeża się co @RefreshIntervalSeconds s.</span>
+                    <span class="text-danger fw-bold">Slider zatrzymany</span>
                 }
+
+                <div class="d-flex align-items-center border-start ps-3">
+                    <span class="me-1">Odświeżenie za:</span>
+                    <DashboardAnimatedValue Text="@($"{_refreshCountdown}s")" CssClass="fw-bold text-info" />
+                </div>
             </div>
         </div>
     </div>
@@ -106,21 +115,22 @@
 </div>
 
 @code {
-    private const int DefaultRefreshIntervalSeconds = WorkstationSettings.DefaultDashboardRefreshIntervalSeconds; 
-    private const int DefaultSlideIntervalSeconds = WorkstationSettings.DefaultDashboardSlideIntervalSeconds;
-
-    private readonly DashboardPanel[] PanelOrder = Enum.GetValues<DashboardPanel>().OrderBy(x => (int)x).ToArray();
+    private DashboardSettings _settings = new();
+    private DashboardPanel[] PanelOrder = Array.Empty<DashboardPanel>();
+    private PanelConfiguration CurrentConfig => _settings.Panels.FirstOrDefault(p => p.Panel == ActivePanel) ?? new PanelConfiguration();
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
 
-    private Timer? _refreshTimer;
-    private Timer? _slideTimer;
+    private Timer? _ticker;
+    private int _refreshCountdown;
+    private int _slideCountdown;
+
+    private int RefreshIntervalSeconds => CurrentConfig.RefreshIntervalSeconds;
+    private int SlideIntervalSeconds => CurrentConfig.SlideIntervalSeconds;
     private DotNetObjectReference<Dashboard>? _keyboardRef;
     private string? _keyboardListenerId;
     private string? _autoScrollId;
     private ElementReference _dashboardRoot;
 
-    private int RefreshIntervalSeconds = DefaultRefreshIntervalSeconds;
-    private int SlideIntervalSeconds = DefaultSlideIntervalSeconds;
     private DashboardPanel ActivePanel = DashboardPanel.Sorting;
     private bool IsSliderRunning = true;
 
@@ -161,34 +171,36 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var settings = await WorkstationService.GetSettingsAsync();
-        if (settings is null || string.IsNullOrWhiteSpace(settings.StationNumber))
+        var workstationSettings = await WorkstationService.GetSettingsAsync();
+        if (workstationSettings?.DashboardSettings == null || string.IsNullOrWhiteSpace(workstationSettings.StationNumber))
         {
             Navigation.NavigateTo("/settings", true);
             return;
         }
 
-        RefreshIntervalSeconds = settings.DashboardRefreshIntervalSeconds > 0
-            ? settings.DashboardRefreshIntervalSeconds
-            : DefaultRefreshIntervalSeconds;
+        _settings = workstationSettings.DashboardSettings;
 
-        SlideIntervalSeconds = settings.DashboardSlideIntervalSeconds > 0
-            ? settings.DashboardSlideIntervalSeconds
-            : DefaultSlideIntervalSeconds;
+        PanelOrder = _settings.Panels
+            .Where(p => p.IsEnabled)
+            .OrderBy(p => (int)p.Panel)
+            .Select(p => p.Panel)
+            .ToArray();
 
-        if (settings.StationType != StationType.Dashboard)
+        if (!PanelOrder.Any())
         {
-            await UserSession.InitializeAsync();
-            if (string.IsNullOrWhiteSpace(UserSession.Username))
-            {
-                Navigation.NavigateTo("/login", true);
-                return;
-            }
+            PanelOrder = new[] { DashboardPanel.Picking };
         }
 
+        ActivePanel = PanelOrder[0];
+
         await RefreshCurrentPanelAsync(true, false);
-        _refreshTimer = new Timer(_ => _ = InvokeAsync(OnRefreshTickAsync), null, TimeSpan.FromSeconds(RefreshIntervalSeconds), TimeSpan.FromSeconds(RefreshIntervalSeconds));
-        _slideTimer = new Timer(_ => _ = InvokeAsync(OnSliderTickAsync), null, TimeSpan.FromSeconds(SlideIntervalSeconds), TimeSpan.FromSeconds(SlideIntervalSeconds));
+        
+        _refreshCountdown = CurrentConfig.RefreshIntervalSeconds;
+        _slideCountdown = CurrentConfig.SlideIntervalSeconds;
+
+        await RefreshCurrentPanelAsync(true, false);
+
+        _ticker = new Timer(_ => _ = InvokeAsync(OnTickAsync), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -219,29 +231,27 @@
         }
     }
 
-    private async Task OnSliderTickAsync()
+    private async Task OnTickAsync()
     {
-        if (_isDisposed)
+        if (_isDisposed) return;
+
+        _refreshCountdown--;
+        if (_refreshCountdown <= 0)
         {
-            return;
+            await RefreshCurrentPanelAsync(true, true);
+            _refreshCountdown = CurrentConfig.RefreshIntervalSeconds;
         }
 
-        if (!IsSliderRunning)
+        if (IsSliderRunning)
         {
-            return;
+            _slideCountdown--;
+            if (_slideCountdown <= 0)
+            {
+                await MoveToPanelByOffsetAsync(1, true, true);
+            }
         }
 
-        await MoveToPanelByOffsetAsync(1, false, true);
-    }
-
-    private async Task OnRefreshTickAsync()
-    {
-        if (_isDisposed)
-        {
-            return;
-        }
-
-        await RefreshCurrentPanelAsync(true, false);
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task MoveToPreviousPanelAsync()
@@ -254,18 +264,16 @@
         await MoveToPanelByOffsetAsync(1, true, true);
     }
 
-    private async Task MoveToPanelByOffsetAsync(int offset, bool resetSlideTimer, bool resetRefreshTimer)
+    private async Task MoveToPanelByOffsetAsync(int offset, bool resetSlide, bool resetRefresh)
     {
         var nextIndex = (ActivePanelIndex + offset + PanelOrder.Length) % PanelOrder.Length;
         ActivePanel = PanelOrder[nextIndex];
+        
+        if (resetSlide) RestartSliderTimer();
+        if (resetRefresh) RestartRefreshTimer();
+
         await InvokeAsync(StateHasChanged);
-
-        if (resetSlideTimer)
-        {
-            RestartSliderTimer();
-        }
-
-        await RefreshCurrentPanelAsync(true, resetRefreshTimer);
+        await RefreshCurrentPanelAsync(true, false);
     }
 
     private async Task SelectPanelAsync(DashboardPanel panel)
@@ -288,9 +296,9 @@
         RestartSliderTimer();
     }
 
-    private Task HandleManualRefreshAsync()
+    private async Task HandleManualRefreshAsync()
     {
-        return RefreshCurrentPanelAsync(true, true);
+        await RefreshCurrentPanelAsync(true, true);
     }
 
     private async Task RefreshCurrentPanelAsync(bool force, bool restartRefreshTimer)
@@ -597,19 +605,18 @@
 
     private void RestartSliderTimer()
     {
-        _slideTimer?.Change(TimeSpan.FromSeconds(SlideIntervalSeconds), TimeSpan.FromSeconds(SlideIntervalSeconds));
+        _slideCountdown = CurrentConfig.SlideIntervalSeconds;
     }
 
     private void RestartRefreshTimer()
     {
-        _refreshTimer?.Change(TimeSpan.FromSeconds(RefreshIntervalSeconds), TimeSpan.FromSeconds(RefreshIntervalSeconds));
+        _refreshCountdown = CurrentConfig.RefreshIntervalSeconds;
     }
 
     public async ValueTask DisposeAsync()
     {
         _isDisposed = true;
-        _refreshTimer?.Dispose();
-        _slideTimer?.Dispose();
+        _ticker?.Dispose();
 
         if (!string.IsNullOrWhiteSpace(_keyboardListenerId))
         {
