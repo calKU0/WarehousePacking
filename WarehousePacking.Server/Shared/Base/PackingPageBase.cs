@@ -312,6 +312,7 @@ namespace WarehousePacking.Server.Shared.Base
             {
                 InternalBarcodeTemp = barcodeValue;
                 PackingToBufor = true;
+
             }
         }
 
@@ -991,6 +992,14 @@ namespace WarehousePacking.Server.Shared.Base
             try
             {
                 CourierConfiguration = (await PackingService.GetCourierConfiguration(CurrentJl.CourierName, Settings.PackingLevel, CurrentJl.Country)).First();
+                if (!string.IsNullOrEmpty(CurrentJl.InternalBarcode))
+                {
+                    var package = await ShipmentService.GetShipmentDataByBarcode(CurrentJl.InternalBarcode);
+                    if (package != null)
+                    {
+                        CourierConfiguration.MaxPackageWeight -= package.Weight;
+                    }
+                }
             }
             catch (Exception ex)
             {
