@@ -140,7 +140,7 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
                 list.insurance = new ubezpieczenieV2
                 {
                     insuranceValue = FedexHelper.ToNumberString(package.Insurance),
-                    contentDescription = package.References
+                    contentDescription = string.IsNullOrEmpty(package.References) ? "Części rolnicze" : package.References
                 };
             }
         }
