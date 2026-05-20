@@ -237,5 +237,11 @@ namespace WarehousePacking.Infrastructure.Repositories
 
             return documents.Values.FirstOrDefault();
         }
+
+        public async Task<bool> IsJlReadyToPack(int clientId, string destinationZone)
+        {
+            const string procedure = "kp.IsJlReadyToPack";
+            return await _context.QuerySingleOrDefaultAsync<bool>(procedure, new { clientId, destinationZone }, CommandType.StoredProcedure, Connection.ERPConnection);
+        }
     }
 }

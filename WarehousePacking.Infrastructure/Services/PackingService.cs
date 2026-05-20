@@ -1,5 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using System.Data;
 using WarehousePacking.API.Services.Packing.Mapping;
 using WarehousePacking.Contracts.Clients;
@@ -55,7 +55,16 @@ namespace WarehousePacking.Infrastructure.Services
                         Dropshipping = courierLower.Contains("dropshipping")
                     };
                 }
-                jl.Status = await IsJlInProgress(jl.JlCode) ? 3 : 1;
+
+                if (jl.ReadyToPack == "TAK" || jl.DestZone == "A-Pak. góra")
+                    jl.Status = 1;
+
+                if (jl.ReadyToPack == "NIE" && jl.DestZone != "A-Pak. góra" && jl.Clients.Count() == 1)
+                    jl.Status = await _packingRepository.IsJlReadyToPack(Convert.ToInt32(jl.Clients.First().ClientErpId), jl.DestZone) ? 1 : 2;
+                else
+                    jl.Status = 1;
+
+                jl.Status = await IsJlInProgress(jl.JlCode) ? 3 : jl.Status;
             }
             // Map to flattened JlData
             var result = jlToPack.ToJlData().OrderBy(jl => jl.Status).ThenBy(c => c.CourierName).ThenBy(c => c.ClientSymbol).ToList();

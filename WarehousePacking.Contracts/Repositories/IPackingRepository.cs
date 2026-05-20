@@ -32,5 +32,6 @@ namespace WarehousePacking.Contracts.Repositories
         Task<bool> BufferPackage(string barcode);
         Task<IEnumerable<DocumentElement>> GetDocumentElementsAsync(int documentId, int documentType);
         Task<DocumentInfo?> GetDocumentInfoAsync(int documentId, int documentType);
+        Task<bool> IsJlReadyToPack(int clientErpId, string destinationZone);
     }
 }

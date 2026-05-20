@@ -65,7 +65,7 @@
                                 <td>
                                     @(item.CourierName == "MIX"
                                         ? item.AllCourierAcronyms
-                                        : item.Courier.GetDescription())
+                                        : item.CourierName)
                                 </td>
                                 <td>
                                     @if (item.OutsideEU)

@@ -37,12 +37,6 @@ namespace WarehousePacking.API.Services.Packing.Mapping
         {
             foreach (var jl in jlList)
             {
-                int status = jl.Status;
-                if (jl.ReadyToPack == "TAK" && status != 3)
-                    status = 1;
-                if (jl.ReadyToPack == "NIE" && status != 3)
-                    status = 2;
-
                 var allCourierSymbols = jl.Clients
                     .Select(c => CourierHelper.GetCourierFromName(c.CourierName).GetDescription())
                     .Distinct(StringComparer.OrdinalIgnoreCase);
@@ -61,7 +55,7 @@ namespace WarehousePacking.API.Services.Packing.Mapping
                         Level = MapPackingLevel(jl.DestZone),
                         Warehouse = MapPackingWarehouse(jl.LocationCode),
                         ReadyToPack = jl.ReadyToPack,
-                        Status = status,
+                        Status = jl.Status,
                         Weight = jl.Weight,
                         LocationCode = jl.LocationCode,
                         CourierName = client.CourierName,
@@ -92,7 +86,7 @@ namespace WarehousePacking.API.Services.Packing.Mapping
                         LocationCode = jl.LocationCode,
                         ReadyToPack = jl.ReadyToPack,
                         Name = jl.JlCode,
-                        Status = status,
+                        Status = jl.Status,
                         Weight = jl.Weight,
                         CourierName = "MIX",
                         Courier = Courier.Unknown,
@@ -117,12 +111,6 @@ namespace WarehousePacking.API.Services.Packing.Mapping
         {
             if (jlDto == null)
                 throw new ArgumentNullException(nameof(jlDto));
-
-            int status = jlDto.Status;
-            if (jlDto.ReadyToPack == "TAK" && status != 3)
-                status = 1;
-            if (jlDto.ReadyToPack == "NIE" && status != 3)
-                status = 2;
 
             // Map clients: convert string to enum and calculate shipment services
             foreach (var client in jlDto.Clients)
@@ -158,7 +146,7 @@ namespace WarehousePacking.API.Services.Packing.Mapping
                     Barcode = jlDto.JlEanCode,
                     ReadyToPack = jlDto.ReadyToPack,
                     Name = jlDto.JlCode,
-                    Status = status,
+                    Status = jlDto.Status,
                     Weight = jlDto.Weight,
                     CourierName = client.CourierName,
                     Courier = client.Courier,
@@ -186,7 +174,7 @@ namespace WarehousePacking.API.Services.Packing.Mapping
                 Level = MapPackingLevel(jlDto.DestZone),
                 Warehouse = MapPackingWarehouse(jlDto.LocationCode),
                 Name = jlDto.JlCode,
-                Status = status,
+                Status = jlDto.Status,
                 ReadyToPack = jlDto.ReadyToPack,
                 LocationCode = jlDto.LocationCode,
                 Weight = jlDto.Weight,
