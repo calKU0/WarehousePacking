@@ -1,0 +1,76 @@
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="WarehousePacking.PrintService"
+           Manufacturer="WarehousePacking"
+           Version="1.0.0"
+           UpgradeCode="9F48A5C4-9C63-4D36-8A6F-3F6A8A1D1F6C">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="WarehousePacking.PrintService" />
+    </StandardDirectory>
+
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <Property Id="SERVICEACCOUNT" Value="LocalSystem" />
+
+    <!-- Hardcoded immutable service name -->
+    <Property Id="SERVICENAME" Value="KontrolaPakowaniaPrintingService" />
+
+    <Property Id="SERVICEDISPLAYNAME" Value="KontrolaPakowaniaPrintingService" />
+    <Property Id="SERVICEDESCRIPTION" Value="Warehouse packing print service." />
+
+    <!-- <WixVariable Id="WixUIBannerBmp" Value="!(wix.WixUIBannerBmp=.)" /> -->
+
+    <Feature Id="ProductFeature" Title="WarehousePacking.PrintService" Level="1">
+      <ComponentGroupRef Id="ServiceFiles" />
+    </Feature>
+
+    <UI>
+      <ui:WixUI Id="WixUI_InstallDir" />
+
+      <!-- Overwrite default VerifyReadyDlg transition with 1 -->
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Condition="0" />
+
+      <!-- Wire InstallDirDlg to ServiceConfigDlg (Order 5 executes after path validation at Order 1,2,3) -->
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="ServiceConfigDlg" Order="5" />
+
+      <!-- Overwrite default VerifyReadyDlg Back button -->
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="InstallDirDlg" Condition="0" />
+
+      <!-- Wire VerifyReadyDlg back to ServiceConfigDlg -->
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="ServiceConfigDlg" Condition="NOT Installed" Order="5" />
+    </UI>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="ServiceFiles" Directory="INSTALLFOLDER">
+      <Component Id="ServiceExecutable" Guid="*">
+        <File Id="ServiceExe" Source="$(var.WarehousePacking.PrintService.TargetPath)" KeyPath="yes" />
+        <ServiceInstall Id="PrintServiceInstall"
+                        Name="[SERVICENAME]"
+                        DisplayName="[SERVICEDISPLAYNAME]"
+                        Description="[SERVICEDESCRIPTION]"
+                        Start="auto"
+                        Account="[SERVICEACCOUNT]"
+                        Password="[SERVICEPASSWORD]"
+                        ErrorControl="normal"
+                        Type="ownProcess" />
+        <ServiceControl Id="PrintServiceControl"
+                        Name="[SERVICENAME]"
+                        Start="install"
+                        Stop="both"
+                        Remove="uninstall"
+                        Wait="yes" />
+      </Component>
+
+      <Component Id="RegistryProperties" Guid="*">
+        <RegistryValue Root="HKLM" Key="SOFTWARE\WarehousePacking\PrintService" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+      <Files Include="$(var.WarehousePacking.PrintService.TargetDir)\**\*">
+        <Exclude Files="$(var.WarehousePacking.PrintService.TargetDir)\WarehousePacking.PrintService.exe" />
+      </Files>
+    </ComponentGroup>
+  </Fragment>
+</Wix>
