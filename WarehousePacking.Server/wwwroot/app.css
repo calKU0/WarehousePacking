@@ -212,6 +212,7 @@ h1:focus {
     white-space: nowrap;
 }
 
+
 .dashboard-courier-segment .dashboard-table tbody td {
     vertical-align: middle;
 }
@@ -239,17 +240,11 @@ h1:focus {
     table-layout: auto;
 }
 
-    .dashboard-table-auto th:first-child,
-    .dashboard-table-auto td:first-child {
-        width: 1%;
-        white-space: nowrap;
-    }
 
-    .dashboard-table-auto th:not(:first-child),
-    .dashboard-table-auto td:not(:first-child) {
-        width: auto;
-        white-space: normal;
-    }
+
+.dashboard-table-auto th {
+    vertical-align: middle;
+}
 
 .dashboard-table .progress {
     min-width: 70px;
@@ -355,6 +350,22 @@ h1:focus {
 
 .dashboard-row-leave {
     animation: dashboard-row-leave 320ms ease-in forwards;
+}
+
+/* Prevents the refresh button from resizing when the spinner loads */
+.dashboard-refresh-btn {
+    min-width: 145px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Invisible placeholder to match spinner dimensions exactly when it's gone */
+.spinner-placeholder {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.25rem; /* Matches bootstrap's me-1 */
 }
 
 @keyframes dashboard-row-enter {

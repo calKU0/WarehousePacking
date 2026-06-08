@@ -1,131 +1,152 @@
 @using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs.Dashboards
 @using WarehousePacking.Contracts.Data.Enums
 @using WarehousePacking.Server.Helpers
+@using DashboardClockHelper = WarehousePacking.Server.Helpers.DashboardClock
 @using WarehousePacking.Server.Shared.Components.Dashboard
 
 @implements IAsyncDisposable
 
 <div class="dashboard-packing-panel h-100 d-flex flex-column">
-<div class="row g-3 mb-3">
-    <div class="col-12 col-md-3">
-        <DashboardStatCard Title="Jl / Towary"
-                         Subtitle="Do spakowania"
-                         Value="@($"{FormatHelper.FormatQuantity(PackingDocumentsCount)} / {FormatHelper.FormatQuantity(PackingElementsTotal)}")"
-                         IconClass="bi bi-box-seam"
-                         AccentClass="dashboard-kpi-primary" />
-    </div>
-    <div class="col-12 col-md-3">
-        <DashboardStatCard Title="Waga"
-                         Subtitle="Do spakowania"
-                         Value="@FormatHelper.FormatQuantity(PackingWeightRoundedTotal, "kg", "F0")"
-                         IconClass="bi bi-speedometer2"
-                         AccentClass="dashboard-kpi-info" />
-    </div>
-    <div class="col-12 col-md-3">
-        <DashboardStatCard Title="Jl"
-                         Subtitle="Aktualnie pakowane"
-                         Value="@FormatHelper.FormatQuantity(PackingInProgressCount)"
-                         IconClass="bi bi-inboxes"
-                         AccentClass="dashboard-kpi-warning" />
-    </div>
-    <div class="col-12 col-md-3">
-        <DashboardStatCard Title="Operatorzy"
-                         Subtitle="Aktualnie pakujący"
-                         Value="@FormatHelper.FormatQuantity(PackingOperatorsCount)"
-                         IconClass="bi bi-people"
-                         AccentClass="dashboard-kpi-success" />
-    </div>
-</div>
-
-<div class="row g-3 dashboard-main-row flex-grow-1">
-    <div class="col-12 col-xl-6 d-flex">
-        <div class="card shadow-sm h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-truck me-2"></i>Do spakowania</span>
-            </div>
-            <div class="card-body p-2 d-flex flex-column gap-2 dashboard-courier-body dashboard-auto-scroll">
-                <DashboardCourierSegmentTable Sections="GetCourierSections()"
-                                           IsLoading="IsLoading" />
-            </div>
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-md-3">
+            <DashboardStatCard Title="Jl / Towary"
+                               Subtitle="Do spakowania"
+                               Value="@($"{FormatHelper.FormatQuantity(PackingDocumentsCount)} / {FormatHelper.FormatQuantity(PackingElementsTotal)}")"
+                               IconClass="bi bi-box-seam"
+                               AccentClass="dashboard-kpi-primary" />
+        </div>
+        <div class="col-12 col-md-3">
+            <DashboardStatCard Title="Waga"
+                               Subtitle="Do spakowania"
+                               Value="@FormatHelper.FormatQuantity(PackingWeightRoundedTotal, "kg", "F0")"
+                               IconClass="bi bi-speedometer2"
+                               AccentClass="dashboard-kpi-info" />
+        </div>
+        <div class="col-12 col-md-3">
+            <DashboardStatCard Title="Jl"
+                               Subtitle="Aktualnie pakowane"
+                               Value="@FormatHelper.FormatQuantity(PackingInProgressCount)"
+                               IconClass="bi bi-inboxes"
+                               AccentClass="dashboard-kpi-warning" />
+        </div>
+        <div class="col-12 col-md-3">
+            <DashboardStatCard Title="Operatorzy"
+                               Subtitle="Aktualnie pakujący"
+                               Value="@FormatHelper.FormatQuantity(PackingOperatorsCount)"
+                               IconClass="bi bi-people"
+                               AccentClass="dashboard-kpi-success" />
         </div>
     </div>
 
-    <div class="col-12 col-xl-6 d-flex">
-        <div class="card shadow-sm h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-person-workspace me-2"></i>Pakowane</span>
-                <span class="small text-muted dashboard-time-text">Najdłużej: <DashboardAnimatedValue Text="@LongestActiveElapsed" CssClass="dashboard-time-text" /></span>
+    <div class="row g-3 dashboard-main-row flex-grow-1">
+        <div class="col-12 col-xl-6 d-flex">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-truck me-2"></i>Do spakowania</span>
+                </div>
+                <div class="card-body p-2 d-flex flex-column gap-2 dashboard-courier-body dashboard-auto-scroll">
+                    <DashboardCourierSegmentTable Sections="GetCourierSections()"
+                                                  IsLoading="IsLoading" />
+                </div>
             </div>
-            <div class="card-body p-0 mb-0 dashboard-scroll-host">
-                <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
-                    <table class="table table-striped table-hover mb-0 dashboard-table dashboard-table-auto">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Jl</th>
-                                <th>Operator</th>
-                                <th>Kurier</th>
-                                <th>Klient</th>
-                                <th>Stanowisko</th>
-                                <th>Od podjęcia</th>
-                                <th>Od ost. skanu</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (!InProgressRows.Any())
-                            {
+        </div>
+
+        <div class="col-12 col-xl-6 d-flex min-width-0">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-person-workspace me-2"></i>Pakowane</span>
+                    <span class="small text-muted dashboard-time-text">Najdłużej: <DashboardAnimatedValue Text="@LongestActiveElapsed" CssClass="dashboard-time-text" /></span>
+                </div>
+                <div class="card-body p-0 mb-0 dashboard-scroll-host">
+                    <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
+                        <table class="table table-striped table-hover mb-0 dashboard-table dashboard-table-auto">
+                            <colgroup>
+                                <col class="packing-col-jl" />
+                                <col class="packing-col-operator" />
+                                <col class="packing-col-courier" />
+                                <col class="packing-col-client" />
+                                <col class="packing-col-station" />
+                                <col class="packing-col-elapsed" />
+                                <col class="packing-col-elapsed" />
+                            </colgroup>
+                            <thead class="table-dark">
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-3">
-                                        @if (IsLoading)
-                                        {
-                                            <span>Ładowanie danych...</span>
-                                        }
-                                        else
-                                        {
-                                            <span>Brak aktywnego pakowania.</span>
-                                        }
-                                    </td>
+                                    <th>Jl</th>
+                                    <th>Operator</th>
+                                    <th>Kurier</th>
+                                    <th>Klient</th>
+                                    <th>Stan.</th>
+                                    <th>Od podjęcia</th>
+                                    <th>Od ost. skanu</th>
                                 </tr>
-                            }
-                            else
-                            {
-                                @foreach (var rowState in InProgressRows)
+                            </thead>
+                            <tbody>
+                                @if (!InProgressRows.Any())
                                 {
-                                    var row = rowState.Data;
-                                    <tr class="@($"{GetElapsedRowClass(row.Date)} {rowState.AnimationClass}".Trim())" @key="rowState.Key">
-                                        <td>@row.Name</td>
-                                        <td>@row.User</td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                @if (!string.IsNullOrEmpty(row.CourierSrc))
-                                                {
-                                                    <img src="@row.CourierSrc" alt="@row.Courier" style="max-height: 48px; max-width: 60px; object-fit: contain;" />
-                                                }
-                                                else
-                                                {
-                                                    <i class="bi bi-truck text-muted fs-5"></i>
-                                                }
-                                                <span class="text-truncate" title="@row.Courier">@row.Courier</span>
-                                            </div>
-                                        </td>
-                                        <td>@row.ClientName</td>
-                                        <td>@row.StationNumber</td>
-                                        <td class="dashboard-elapsed-cell">
-                                            <span class="badge @GetElapsedBadgeClass(row.Date) dashboard-elapsed-badge dashboard-time-text">
-                                                <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Date)" CssClass="dashboard-time-text" />
-                                            </span>
-                                        </td>
-                                        <td class="dashboard-elapsed-cell">
-                                            <span class="badge @GetElapsedBadgeClass(row.LastScanDate) dashboard-elapsed-badge dashboard-time-text">
-                                                <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.LastScanDate)" CssClass="dashboard-time-text" />
-                                            </span>
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted py-3">
+                                            @if (IsLoading)
+                                            {
+                                                <span>Ładowanie danych...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Brak aktywnego pakowania.</span>
+                                            }
                                         </td>
                                     </tr>
                                 }
-                            }
-                        </tbody>
-                    </table>
+                                else
+                                {
+                                    @foreach (var rowState in InProgressRows)
+                                    {
+                                        var row = rowState.Data;
+                                        <tr class="@($"{GetElapsedRowClass(row.Date)} {rowState.AnimationClass}".Trim())" @key="rowState.Key">
+                                            <td>
+                                                <span class="d-inline-block text-truncate"
+                                                      style="max-width: 100px;"
+                                                      title="@row.Name">
+                                                    @row.Name
+                                                </span>
+                                            </td>
+                                            <td>@row.User</td>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    @if (!string.IsNullOrEmpty(row.CourierSrc))
+                                                    {
+                                                        <img src="@row.CourierSrc" alt="@row.Courier" style="max-height: 48px; max-width: 60px; object-fit: contain;" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-truck text-muted fs-5"></i>
+                                                    }
+                                                    <span class="d-inline-block text-truncate"
+                                                          style="max-width: 110px;"
+                                                          title="@row.Courier.GetDescription()">
+                                                        @row.Courier.GetDescription()
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>@row.ClientName</td>
+                                            <td>@row.StationNumber</td>
+                                            <td class="dashboard-elapsed-cell">
+                                                <span class="badge @GetElapsedBadgeClass(row.Date) dashboard-elapsed-badge dashboard-time-text">
+                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Date)" CssClass="dashboard-time-text" />
+                                                </span>
+                                            </td>
+                                            <td class="dashboard-elapsed-cell">
+                                                <span class="badge @GetElapsedBadgeClass(row.LastScanDate) dashboard-elapsed-badge dashboard-time-text">
+                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.LastScanDate)" CssClass="dashboard-time-text" />
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
             </div>
         </div>
     </div>
@@ -133,9 +154,7 @@
 
 @code {
     private const int RowAnimationDelayMs = 280;
-    private readonly CancellationTokenSource _clockCts = new();
-    private DateTime _now = DateTime.Now;
-    private bool _clockStarted;
+    private DateTime _now;
 
     private enum CourierSegment
     {
@@ -144,7 +163,7 @@
         WarehouseBDown
     }
 
-    private sealed record CourierPackingSummary(CourierSegment Segment, Courier Courier, string CourierName, string CourierSrc, int Jls, decimal Weight, decimal Elements);
+    private sealed record CourierPackingSummary(CourierSegment Segment, Courier Courier, string CourierName, string CourierSrc, int Jls, decimal Weight, decimal Quantity);
 
     private sealed class CourierRowView
     {
@@ -162,13 +181,13 @@
         public bool IsLeaving { get; set; }
     }
 
-    [Parameter] public List<JlData> Queue { get; set; } = new();
+    [Parameter] public List<JlToPack> Queue { get; set; } = new();
     [Parameter] public List<JlInProgressDto> InProgress { get; set; } = new();
-    [Parameter] public Dictionary<string, decimal> ElementsByJl { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     [Parameter] public bool IsLoading { get; set; }
 
     private List<CourierRowView> CourierRows { get; set; } = new();
     private List<InProgressRowView> InProgressRows { get; set; } = new();
+    private int PackingElementsTotal => Convert.ToInt32(Math.Round(Queue.Sum(x => x.Quantity)));
 
     private Dictionary<CourierSegment, int> SegmentTotals => Queue
         .Select(ResolveCourierSegment)
@@ -181,12 +200,10 @@
         {
             Segment = ResolveCourierSegment(x),
             Courier = x.Courier,
-            CourierName = x.Courier == WarehousePacking.Contracts.Data.Enums.Courier.Unknown
-                ? (string.Equals(x.CourierName, "MIX", StringComparison.OrdinalIgnoreCase) ? "MIX" : "Brak")
-                : x.Courier.GetDescription(),
-            CourierSrc = CourierHelper.GetCourierLogo(x.ShipmentServices, x.Courier),
+            CourierName = x.Courier.GetDescription(),
+            CourierSrc = CourierHelper.GetCourierLogo(null, x.Courier),
             Weight = x.Weight,
-            Elements = GetJlElements(x.Name)
+            Quantity = x.Quantity
         })
         .Where(x => x.Segment.HasValue)
         .GroupBy(x => new { Segment = x.Segment!.Value, x.Courier, x.CourierName })
@@ -197,7 +214,7 @@
             g.Select(x => x.CourierSrc).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? string.Empty,
             g.Count(),
             g.Sum(x => x.Weight),
-            g.Sum(x => x.Elements)))
+            g.Sum(x => x.Quantity)))
         .OrderByDescending(x => GetCourierShare(x.Segment, x.Jls))
         .ThenBy(x => x.CourierName)
         .ToList();
@@ -210,16 +227,14 @@
 
     private int PackingDocumentsCount => Queue.Count;
     private int PackingWeightRoundedTotal => (int)Math.Round(Queue.Sum(x => x.Weight));
-    private decimal PackingElementsTotal => Queue.Sum(x => GetJlElements(x.Name));
     private int PackingInProgressCount => InProgress.Count;
     private string LongestActiveElapsed => InProgressRows.Any() ? FormatHelper.FormatElapsed(InProgressRows.Min(x => x.Data.Date)) : "-";
 
     protected override void OnParametersSet()
     {
-        if (!_clockStarted)
+        if (_now == default)
         {
-            _clockStarted = true;
-            _ = RunClockAsync(_clockCts.Token);
+            _now = DashboardClock.Now;
         }
 
         SyncCourierRows();
@@ -283,10 +298,10 @@
             ClientName = x.ClientName,
             Courier = x.Courier,
             CourierSrc = CourierHelper.GetCourierLogo(new ShipmentServices(), x.Courier),
-            LastScanDate = x.LastScanDate,
+            LastScanDate = DateTime.SpecifyKind(x.LastScanDate, DateTimeKind.Local),
             PackageId = x.PackageId,
             StationNumber = x.StationNumber,
-            Date = x.Date,
+            Date = DateTime.SpecifyKind(x.Date, DateTimeKind.Local),
             Name = x.Name,
             User = x.User
         }).OrderBy(x => x.Date).ToList();
@@ -386,16 +401,6 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private decimal GetJlElements(string? jlCode)
-    {
-        if (string.IsNullOrWhiteSpace(jlCode))
-        {
-            return 0m;
-        }
-
-        return ElementsByJl.TryGetValue(jlCode, out var value) ? value : 0m;
-    }
-
     private int GetCourierShare(CourierSegment segment, int documents)
     {
         var segmentDocs = SegmentTotals.TryGetValue(segment, out var total) ? total : 0;
@@ -424,7 +429,7 @@
         return "bg-success";
     }
 
-    private static CourierSegment? ResolveCourierSegment(JlData jl)
+    private static CourierSegment? ResolveCourierSegment(JlToPack jl)
     {
         return (jl.Warehouse, jl.Level) switch
         {
@@ -454,7 +459,7 @@
                 CourierSrc = rowState.Data.CourierSrc,
                 Jls = rowState.Data.Jls,
                 Weight = rowState.Data.Weight,
-                Elements = rowState.Data.Elements,
+                Quantity = rowState.Data.Quantity,
                 SharePercent = GetCourierShare(rowState.Data.Segment, rowState.Data.Jls),
                 ShareClass = GetCourierShareClass(rowState.Data.Segment, rowState.Data.Jls),
                 AnimationClass = rowState.AnimationClass
@@ -486,7 +491,8 @@
 
     private string GetElapsedBadgeClass(DateTime start)
     {
-        var elapsed = _now - start;
+        start = DateTime.SpecifyKind(start, DateTimeKind.Local);
+        var elapsed = _now - FormatHelper.ToLocalTime(start);
 
         if (elapsed.TotalMinutes >= 45)
         {
@@ -503,7 +509,8 @@
 
     private string GetElapsedRowClass(DateTime start)
     {
-        var elapsed = _now - start;
+        start = DateTime.SpecifyKind(start, DateTimeKind.Local);
+        var elapsed = _now - FormatHelper.ToLocalTime(start);
 
         if (elapsed.TotalMinutes >= 45)
         {
@@ -518,26 +525,22 @@
         return string.Empty;
     }
 
-    private async Task RunClockAsync(CancellationToken token)
-    {
-        try
-        {
-            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
-            while (await timer.WaitForNextTickAsync(token))
-            {
-                _now = DateTime.Now;
-                await InvokeAsync(StateHasChanged);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-        }
-    }
-
     public ValueTask DisposeAsync()
     {
-        _clockCts.Cancel();
-        _clockCts.Dispose();
+        DashboardClock.Tick -= HandleClockTick;
         return ValueTask.CompletedTask;
+    }
+
+    protected override void OnInitialized()
+    {
+        DashboardClock.EnsureStarted();
+        DashboardClock.Tick += HandleClockTick;
+        _now = DashboardClock.Now;
+    }
+
+    private void HandleClockTick()
+    {
+        _now = DashboardClock.Now;
+        _ = InvokeAsync(StateHasChanged);
     }
 }

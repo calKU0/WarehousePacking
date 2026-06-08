@@ -300,6 +300,25 @@ namespace WarehousePacking.API.Controllers
             }
         }
 
+        [HttpGet("is-package-ready-to-ship")]
+        public async Task<IActionResult> IsPackageReadyToShip([FromQuery] string barcode)
+        {
+            _logger.LogInformation("Request: IsPackageReadyToShip for barcode {Barcode}", barcode);
+
+            try
+            {
+                var result = await _shipmentService.IsPackageReadyToShip(barcode);
+
+                _logger.LogInformation("Is package ready to ship for barcode {Barcode}: {Ready}", barcode, result);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in IsPackageReadyToShip for barcode {Barcode}", barcode);
+                return HandleException(ex);
+            }
+        }
+
         private IActionResult HandleException(Exception ex)
         {
             if (ex is ArgumentException)

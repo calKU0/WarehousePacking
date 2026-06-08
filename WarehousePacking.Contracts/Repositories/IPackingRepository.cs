@@ -23,7 +23,7 @@ namespace WarehousePacking.Contracts.Repositories
         Task<bool> UpdatePackageCourier(UpdatePackageCourierRequest request, string courier);
         Task<bool> UpdatePackageDimensions(UpdatePackageDimensionsRequest dimensions);
         Task<string> GenerateInternalBarcode(string stationNumber);
-        Task<bool> AddPackageAttributes(int packageId, string warehouse, string level, string stationNumber);
+        Task<bool> AddPackageAttributes(int packageId, string warehouse, string level, string stationNumber, bool isCompleted);
         Task<string> GetPackageWarehouse(string barcode);
         Task<bool> UpdatePackageWarehouse(string barcode, string warehouse);
         Task<ClientDetails> GetClientDetailsFromErpAsync(int documentId, int documentType);
@@ -32,6 +32,6 @@ namespace WarehousePacking.Contracts.Repositories
         Task<bool> BufferPackage(string barcode);
         Task<IEnumerable<DocumentElement>> GetDocumentElementsAsync(int documentId, int documentType);
         Task<DocumentInfo?> GetDocumentInfoAsync(int documentId, int documentType);
-        Task<bool> IsJlReadyToPack(int clientErpId, string destinationZone);
+        Task<bool> IsJlReadyToPack(int clientErpId, int destinationZoneId);
     }
 }

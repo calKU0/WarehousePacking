@@ -1,10 +1,10 @@
 ﻿@page "/dashboard"
 @using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs.Dashboards
 @using WarehousePacking.Contracts.DTOs.Requests
 @using WarehousePacking.Server.Helpers
 @using WarehousePacking.Server.Services
 @using WarehousePacking.Server.Settings
-@using WarehousePacking.Server.Shared.Base
 @using WarehousePacking.Server.Shared.Components.Dashboards
 @using WarehousePacking.Contracts.Data.Enums
 @inject PackingService PackingService
@@ -15,26 +15,31 @@
 @inject IJSRuntime JSRuntime
 @implements IAsyncDisposable
 
-<!-- <div class="dashboard-page" @ref="_dashboardRoot">
-    <div class="d-flex justify-content-between align-items-end mb-3 gap-2">
-        <div>
+<div class="dashboard-page" @ref="_dashboardRoot">
+    <div class="row align-items-end mb-3 g-2 w-100 mx-0">
+
+        <div class="col-4 d-flex justify-content-start">
             <DashboardPanelTabs Panels="PanelOrder" ActivePanel="ActivePanel" OnPanelSelected="SelectPanelAsync" />
         </div>
 
-        <div class="flex-grow-1 d-flex justify-content-center">
-            <h1 class="mb-0 text-primary fw-semibold">
+        <div class="col-4 text-center">
+            <h1 class="mb-0 text-primary fw-semibold text-truncate">
                 @(ActivePanel.GetDescription())
             </h1>
         </div>
 
-        <div class="d-flex flex-column align-items-end gap-2">
+        <div class="col-4 d-flex flex-column align-items-end gap-2">
             <div class="d-flex gap-2 align-items-center">
                 <span class="text-muted small me-2">Dane z: @(CurrentPanelDataTime?.ToString("HH:mm:ss") ?? "-")</span>
 
-                <button class="btn btn-outline-primary" @onclick="HandleManualRefreshAsync" disabled="@IsCurrentPanelLoading">
+                <button class="btn btn-outline-primary dashboard-refresh-btn" @onclick="HandleManualRefreshAsync" disabled="@IsCurrentPanelLoading">
                     @if (IsCurrentPanelLoading)
                     {
-                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    }
+                    else
+                    {
+                        <span class="spinner-placeholder"></span>
                     }
                     Odśwież panel
                 </button>
@@ -81,7 +86,9 @@
                     @switch (panel)
                     {
                         case DashboardPanel.Picking:
-                            <DashboardPickingPanel />
+                            <DashboardPickingPanel Tasks="Tasks"
+                                                RecentOperations="TaskRecentOperations"
+                                                IsLoading="IsPickingLoading" />
                             break;
                         case DashboardPanel.Sorting:
                             <DashboardSortingPanel Documents="SortingDocuments"
@@ -91,7 +98,6 @@
                         case DashboardPanel.Packing:
                             <DashboardPackingPanel Queue="PackingQueue"
                                                 InProgress="PackingInProgress"
-                                                ElementsByJl="PackingElementsByJl"
                                                 IsLoading="IsPackingLoading" />
                             break;
                         case DashboardPanel.Loading:
@@ -113,15 +119,14 @@
         </div>
     </div>
 </div>
--->
+
 @code {
     private DashboardSettings _settings = new();
     private DashboardPanel[] PanelOrder = Array.Empty<DashboardPanel>();
     private PanelConfiguration CurrentConfig => _settings.Panels.FirstOrDefault(p => p.Panel == ActivePanel) ?? new PanelConfiguration();
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
 
-    private Timer? _ticker;
-    private int _refreshCountdown;
+    private int _refreshCountdown; 
     private int _slideCountdown;
 
     private int RefreshIntervalSeconds => CurrentConfig.RefreshIntervalSeconds;
@@ -134,6 +139,7 @@
     private DashboardPanel ActivePanel = DashboardPanel.Sorting;
     private bool IsSliderRunning = true;
 
+    private bool IsPickingLoading;
     private bool IsPackingLoading;
     private bool IsLoadingLoading;
     private bool IsSortingLoading;
@@ -141,9 +147,11 @@
     private bool _isDisposed;
     private DateTime? LastRefresh;
 
-    private List<JlData> PackingQueue = new();
+    private List<WarehouseTask> Tasks = new();
+    private List<WarehouseOperation> TaskRecentOperations = new();
+
+    private List<JlToPack> PackingQueue = new();
     private List<JlInProgressDto> PackingInProgress = new();
-    private Dictionary<string, decimal> PackingElementsByJl = new(StringComparer.OrdinalIgnoreCase);
 
     private List<WarehouseDocument> LoadingDocuments = new();
     private List<WarehouseOperation> LoadingRecentOperations = new();
@@ -157,6 +165,7 @@
 
     private bool IsCurrentPanelLoading => ActivePanel switch
     {
+        DashboardPanel.Picking => IsPickingLoading,
         DashboardPanel.Sorting => IsSortingLoading,
         DashboardPanel.Packing => IsPackingLoading,
         DashboardPanel.Loading => IsLoadingLoading,
@@ -185,7 +194,7 @@
             .OrderBy(p => (int)p.Panel)
             .Select(p => p.Panel)
             .ToArray();
-
+             
         if (!PanelOrder.Any())
         {
             PanelOrder = new[] { DashboardPanel.Picking };
@@ -198,9 +207,10 @@
         _refreshCountdown = CurrentConfig.RefreshIntervalSeconds;
         _slideCountdown = CurrentConfig.SlideIntervalSeconds;
 
-        await RefreshCurrentPanelAsync(true, false);
+        DashboardClock.EnsureStarted();
+        DashboardClock.Tick += HandleClockTick;
 
-        _ticker = new Timer(_ => _ = InvokeAsync(OnTickAsync), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        await RefreshCurrentPanelAsync(true, false);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -229,6 +239,11 @@
         {
             await MoveToNextPanelAsync();
         }
+    }
+
+    private void HandleClockTick()
+    {
+        _ = InvokeAsync(OnTickAsync);
     }
 
     private async Task OnTickAsync()
@@ -335,7 +350,12 @@
                 return;
             }
 
-                        if (ActivePanel == DashboardPanel.Sorting)
+            if (ActivePanel == DashboardPanel.Picking)
+            {
+                await LoadPickingDataAsync(force);
+            }
+
+            if (ActivePanel == DashboardPanel.Sorting)
             {
                 await LoadSortingDataAsync(force);
             }
@@ -370,6 +390,57 @@
         }
     }
 
+    private async Task LoadPickingDataAsync(bool force)
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        if (!force && Tasks.Any())
+        {
+            return;
+        }
+
+        IsPickingLoading = true;
+        await InvokeAsync(StateHasChanged);
+        
+        try
+        {
+            var documentsTask = DashboardService.GetWarehouseTasks(new GetWarehouseTasksRequest
+            {
+                Statuses =
+                [
+                    WarehouseTaskStatus.New,
+                    WarehouseTaskStatus.InExecution,
+                    WarehouseTaskStatus.Processing,
+                    WarehouseTaskStatus.ReadyForExecution
+                ]
+            });
+
+            var operationsTask = DashboardService.GetWarehouseOperations(new GetWarehouseOperationsRequest
+            {
+                Types = [WarehouseDocumentType.Task],
+                Date = DateTime.UtcNow.AddMinutes(-5)
+            });
+
+            await Task.WhenAll(documentsTask, operationsTask);
+
+            Tasks = documentsTask.Result ?? new List<WarehouseTask>();
+            TaskRecentOperations = operationsTask.Result ?? new List<WarehouseOperation>();
+
+            LastRefresh = DateTime.Now;
+        }
+        finally
+        {
+            IsPickingLoading = false;
+            if (!_isDisposed)
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
     private async Task LoadPackingDataAsync(bool force)
     {
         if (_isDisposed)
@@ -388,14 +459,13 @@
         try
         {
             var settings = await WorkstationService.GetSettingsAsync();
-            var queueTask = PackingService.GetJlList();
+            var queueTask = DashboardService.GetJlsToPack();
             var inProgressTask = PackingService.GetJlListInProgress();
 
             await Task.WhenAll(queueTask, inProgressTask);
 
-            PackingQueue = queueTask.Result ?? new List<JlData>();
+            PackingQueue = queueTask.Result ?? new List<JlToPack>();
             PackingInProgress = inProgressTask.Result ?? new List<JlInProgressDto>();
-            PackingElementsByJl = await LoadPackingElementsByJlAsync(PackingQueue);
             LastRefresh = DateTime.Now;
         }
         finally
@@ -440,7 +510,7 @@
             var operationsTask = DashboardService.GetWarehouseOperations(new GetWarehouseOperationsRequest
             {
                 Types = [WarehouseDocumentType.Loading],
-                Date = DateTime.Now.AddMinutes(-5)
+                Date = DateTime.UtcNow.AddMinutes(-5)
             });
 
             await Task.WhenAll(documentsTask, operationsTask);
@@ -492,7 +562,7 @@
             var operationsTask = DashboardService.GetWarehouseOperations(new GetWarehouseOperationsRequest
             {
                 Types = [WarehouseDocumentType.Sorting],
-                Date = DateTime.Now.AddMinutes(-5)
+                Date = DateTime.UtcNow.AddMinutes(-5)
             });
 
             await Task.WhenAll(documentsTask, operationsTask);
@@ -544,7 +614,7 @@
             var operationsTask = DashboardService.GetWarehouseOperations(new GetWarehouseOperationsRequest
             {
                 Types = [WarehouseDocumentType.Receipt],
-                Date = DateTime.Now.AddMinutes(-5)
+                Date = DateTime.UtcNow.AddMinutes(-5)
             });
 
             await Task.WhenAll(documentsTask, operationsTask);
@@ -577,32 +647,6 @@
         return $"width: {trackWidth}%; transform: translateX(-{translateValue}%);";
     }
 
-    private async Task<Dictionary<string, decimal>> LoadPackingElementsByJlAsync(IEnumerable<JlData> queue)
-    {
-        var jlCodes = queue
-            .Select(x => x.Name)
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var tasks = jlCodes.Select(async jlCode =>
-        {
-            try
-            {
-                var items = await PackingService.GetJlItems(jlCode);
-                var quantity = items?.Sum(x => x.JlQuantity) ?? 0m;
-                return (jlCode: jlCode, quantity: quantity);
-            }
-            catch
-            {
-                return (jlCode: jlCode, quantity: 0m);
-            }
-        });
-
-        var results = await Task.WhenAll(tasks);
-        return results.ToDictionary(x => x.jlCode, x => x.quantity, StringComparer.OrdinalIgnoreCase);
-    }
-
     private void RestartSliderTimer()
     {
         _slideCountdown = CurrentConfig.SlideIntervalSeconds;
@@ -616,7 +660,7 @@
     public async ValueTask DisposeAsync()
     {
         _isDisposed = true;
-        _ticker?.Dispose();
+        DashboardClock.Tick -= HandleClockTick;
 
         if (!string.IsNullOrWhiteSpace(_keyboardListenerId))
         {

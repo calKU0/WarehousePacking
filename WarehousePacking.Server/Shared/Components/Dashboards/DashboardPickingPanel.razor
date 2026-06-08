@@ -1,4 +1,714 @@
+@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs.Dashboards
 @using WarehousePacking.Contracts.Data.Enums
 @using WarehousePacking.Server.Helpers
 
-<DashboardPlaceholderPanel Title="@DashboardPanel.Picking.GetDescription()" />
+@implements IAsyncDisposable
+
+<div class="dashboard-picking-panel h-100 d-flex flex-column">
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-md-3">
+            <DashboardStatCard Title="Zadania/Dokumenty"
+                             Subtitle="Do kompletacji"
+                             Value="@($"{FormatHelper.FormatQuantity(TasksCount)} / {FormatHelper.FormatQuantity(DocumentsCount)}")"
+                             IconClass="bi bi-list-check"
+                             AccentClass="dashboard-kpi-primary" />
+        </div>
+        <div class="col-12 col-md-3">
+            <DashboardStatCard Title="Strefy"
+                             Subtitle="Aktywne"
+                             Value="@FormatHelper.FormatQuantity(ZoneCount)"
+                             IconClass="bi bi-diagram-3"
+                             AccentClass="dashboard-kpi-info" />
+        </div>
+        <div class="col-12 col-md-3">
+            <DashboardStatCard Title="W realizacji"
+                             Subtitle="Zadania"
+                             Value="@FormatHelper.FormatQuantity(InProgressTasksCount)"
+                             IconClass="bi bi-hourglass-split"
+                             AccentClass="dashboard-kpi-warning" />
+        </div>
+        <div class="col-12 col-md-3">
+            <DashboardStatCard Title="Operatorzy"
+                             Subtitle="Aktywni (5 min)"
+                             Value="@FormatHelper.FormatQuantity(ActiveOperatorsCount)"
+                             IconClass="bi bi-people"
+                             AccentClass="dashboard-kpi-success" />
+        </div>
+    </div>
+
+    <div class="row g-3 dashboard-main-row flex-grow-1">
+        <div class="col-12 col-xl-8 d-flex">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-list-check me-2"></i>@DashboardPanel.Picking.GetDescription() - Strefy</span>
+                </div>
+                <div class="card-body p-0 mb-0 dashboard-scroll-host">
+                    <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
+                        <table class="table table-striped mb-0 dashboard-table dashboard-table-auto">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Strefa</th>
+                                    <th>
+                                        <div class="d-flex align-items-center gap-2">
+                                            @if (!string.IsNullOrWhiteSpace(DpdLogo))
+                                            {
+                                                <img src="@DpdLogo" alt="DPD" style="max-height: 32px; max-width: 48px; object-fit: contain;" />
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-truck text-muted"></i>
+                                            }
+                                            <span>(@FormatHelper.FormatQuantity(DpdTotalCount))</span>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="d-flex align-items-center gap-2">
+                                            @if (!string.IsNullOrWhiteSpace(GlsLogo))
+                                            {
+                                                <img src="@GlsLogo" alt="GLS" style="max-height: 32px; max-width: 48px; object-fit: contain;" />
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-truck text-muted"></i>
+                                            }
+                                            <span>(@FormatHelper.FormatQuantity(GlsTotalCount))</span>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="d-flex align-items-center gap-2">
+                                            @if (!string.IsNullOrWhiteSpace(FedexLogo))
+                                            {
+                                                <img src="@FedexLogo" alt="Fedex" style="max-height: 32px; max-width: 48px; object-fit: contain;" />
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-truck text-muted"></i>
+                                            }
+                                            <span>(@FormatHelper.FormatQuantity(FedexTotalCount))</span>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-truck"></i>                             
+                                            <span>Odbiór wła. (@FormatHelper.FormatQuantity(PersonalCollectionTotalCount))</span>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-truck"></i>
+                                            <span>Inne (@FormatHelper.FormatQuantity(OtherTotalCount))</span>
+                                        </div>
+                                    </th>
+                                    <th>Data zlc.</th>
+                                    <th>Operatorzy</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!ZoneRows.Any())
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-3">
+                                            @if (IsLoading)
+                                            {
+                                                <span>Ładowanie danych...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Brak danych kompletacji.</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var section in GetZoneSections())
+                                    {
+                                        <tr class="table-secondary">
+                                            <td colspan="8">
+                                                <div class="d-flex justify-content-between align-items-center">
+
+                                                    <div class="fw-semibold">
+                                                        @section.Title
+                                                        <span class="text-muted ms-2">
+                                                            (@section.Summary.TotalZones @FormatZones(section.Summary.TotalZones))
+                                                        </span>
+                                                    </div>
+
+                                                    <div class="d-flex gap-3 small text-muted">
+
+                                                        <span>DPD: <strong>@section.Summary.Dpd</strong></span>
+                                                        <span>GLS: <strong>@section.Summary.Gls</strong></span>
+                                                        <span>FedEx: <strong>@section.Summary.Fedex</strong></span>
+                                                        <span>Odbiór wła.: <strong>@section.Summary.PersonalCollection</strong></span>
+                                                        <span>Inne: <strong>@section.Summary.Other</strong></span>
+
+                                                    </div>
+
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        @if (!section.Rows.Any())
+                                        {
+                                            <tr>
+                                                <td colspan="7" class="text-center text-muted py-2">
+                                                    Brak danych
+                                                </td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            @foreach (var row in section.Rows)
+                                            {
+                                                <tr class="@row.AnimationClass" @key="row.Key">
+                                                    <td>@row.ZoneName</td>
+                                                    <td>
+                                                        <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.DpdCount)" />
+                                                    </td>
+                                                    <td>
+                                                        <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.GlsCount)" />
+                                                    </td>
+                                                    <td>
+                                                        <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.FedexCount)" />
+                                                    </td>
+                                                    <td>
+                                                        <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.PersonalCollectionCount)" />
+                                                    </td>
+                                                    <td>
+                                                        <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.OtherCount)" />
+                                                    </td>
+                                                    <td>
+                                                        @if (row.OldestDocumentDate.HasValue)
+                                                        {
+                                                            @if (row.OldestDocumentDate.Value.Date < DateTime.Today)
+                                                            {
+                                                                <span class="text-danger fw-bold">Zaległe</span>
+                                                            }
+                                                            else if (row.OldestDocumentDate.Value == row.LatestDocumentDate.Value)
+                                                            {
+                                                                @row.OldestDocumentDate.Value.ToString("HH:mm")
+                                                            }
+                                                            else
+                                                            {
+                                                                <span>
+                                                                    @row.OldestDocumentDate.Value.ToString("HH:mm")
+                                                                    /
+                                                                    @row.LatestDocumentDate?.ToString("HH:mm")
+                                                                </span>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>-</span>
+                                                        }
+                                                    </td>
+                                                    <td title="@row.OperatorsList">@row.OperatorsList</td>
+                                                </tr>
+                                            }
+                                        }
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-4 d-flex">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-person-workspace me-2"></i>Aktywni operatorzy</span>
+                    <span class="small text-muted dashboard-time-text">Najdłużej: <DashboardAnimatedValue Text="@LongestActiveElapsed" CssClass="dashboard-time-text" /></span>
+                </div>
+                <div class="card-body p-0 mb-0 dashboard-scroll-host">
+                    <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
+                        <table class="table table-striped mb-0 dashboard-table dashboard-table-auto">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Operator</th>
+                                    <th>Strefa</th>
+                                    <th>Od ost. operacji</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!OperatorRows.Any())
+                                {
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-3">
+                                            @if (IsLoading)
+                                            {
+                                                <span>Ładowanie danych...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Brak aktywnych operatorów (ostatnie 5 min).</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var row in OperatorRows)
+                                    {
+                                        <tr class="@($"{GetElapsedRowClass(row.Data.LastOperationDate)} {row.AnimationClass}".Trim())" @key="row.Key">
+                                            <td>@row.Data.Operator</td>
+                                            <td>@row.Data.SourceZone</td>
+                                            <td class="dashboard-elapsed-cell">
+                                                <span class="badge @GetElapsedBadgeClass(row.Data.LastOperationDate) dashboard-elapsed-badge dashboard-time-text">
+                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Data.LastOperationDate)" CssClass="dashboard-time-text" />
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code{
+    private const int RowAnimationDelayMs = 280;
+    private bool _clockStarted;
+
+    private sealed record ZoneTaskSummary(
+        int ZoneId,
+        string ZoneName,
+        int DpdCount,
+        int GlsCount,
+        int FedexCount,
+        int PersonalCollectionCount,
+        int OtherCount,
+        string OperatorsList,
+        PackingWarehouse Warehouse,
+        DateTime? OldestDocumentDate,
+        DateTime? LatestDocumentDate);
+
+    private sealed class ZoneTaskRowView
+    {
+        public string Key { get; set; } = string.Empty;
+        public ZoneTaskSummary Data { get; set; } = null!;
+        public string AnimationClass { get; set; } = string.Empty;
+        public bool IsLeaving { get; set; }
+    }
+
+    private sealed class ZoneSegmentTableSection
+    {
+        public string Title { get; set; } = string.Empty;
+        public List<ZoneSegmentTableRow> Rows { get; set; } = new();
+
+        public WarehouseZoneSummary Summary { get; set; } = new();
+    }
+
+    private sealed class ZoneSegmentTableRow
+    {
+        public string Key { get; set; } = string.Empty;
+        public string ZoneName { get; set; } = string.Empty;
+        public int DpdCount { get; set; }
+        public int GlsCount { get; set; }
+        public int FedexCount { get; set; }
+        public int PersonalCollectionCount { get; set; }
+        public int OtherCount { get; set; }
+        public string OperatorsList { get; set; } = string.Empty;
+        public DateTime? OldestDocumentDate { get; set; }
+        public DateTime? LatestDocumentDate { get; set; }
+        public string AnimationClass { get; set; } = string.Empty;
+    }
+
+    private sealed class WarehouseZoneSummary
+    {
+        public int TotalZones { get; set; }
+        public int Dpd { get; set; }
+        public int Gls { get; set; }
+        public int Fedex { get; set; }
+        public int PersonalCollection { get; set; }
+        public int Other { get; set; }
+    }
+
+    private sealed record OperatorSummary(string Operator, string SourceZone, DateTime LastOperationDate);
+
+    private sealed class OperatorRowView
+    {
+        public string Key { get; set; } = string.Empty;
+        public OperatorSummary Data { get; set; } = null!;
+        public string AnimationClass { get; set; } = string.Empty;
+        public bool IsLeaving { get; set; }
+    }
+
+    [Parameter] public List<WarehouseTask> Tasks { get; set; } = new();
+    [Parameter] public List<WarehouseOperation> RecentOperations { get; set; } = new();
+    [Parameter] public bool IsLoading { get; set; }
+
+    private List<ZoneTaskRowView> ZoneRows { get; set; } = new();
+    private List<OperatorRowView> OperatorRows { get; set; } = new();
+    private List<(Courier Courier, DateTime CreatedDate)> _documentsNormalized = new();
+
+    private int TasksCount => Tasks.Count;
+    private int DocumentsCount => _documentsNormalized.Count;
+    private int ZoneCount => Tasks.Select(x => x.ZoneId).Distinct().Count();
+    private int InProgressTasksCount => Tasks.Count(x => x.Status is WarehouseTaskStatus.InExecution or WarehouseTaskStatus.Processing);
+    private int ActiveOperatorsCount => OperatorRows.Count;
+    private string LongestActiveElapsed => OperatorRows.Any() ? FormatHelper.FormatElapsed(OperatorRows.Min(x => x.Data.LastOperationDate)) : "-";
+
+    private int DpdTotalCount => _documentsNormalized.Count(x => x.Courier == Courier.DPD);
+    private int GlsTotalCount => _documentsNormalized.Count(x => x.Courier == Courier.GLS);
+    private int FedexTotalCount => _documentsNormalized.Count(x => x.Courier == Courier.Fedex);
+    private int PersonalCollectionTotalCount => _documentsNormalized.Count(x => x.Courier == Courier.Personal_Collection);
+
+    private static readonly Courier[] MainCouriers = { Courier.DPD, Courier.GLS, Courier.Fedex, Courier.Personal_Collection };
+    private int OtherTotalCount => _documentsNormalized.Count(x => !MainCouriers.Contains(x.Courier));
+
+    private static readonly ShipmentServices ShipmentServices = new();
+    private string DpdLogo => CourierHelper.GetCourierLogo(ShipmentServices, Courier.DPD);
+    private string GlsLogo => CourierHelper.GetCourierLogo(ShipmentServices, Courier.GLS);
+    private string FedexLogo => CourierHelper.GetCourierLogo(ShipmentServices, Courier.Fedex);
+    private string PersonalCollectionLogo => CourierHelper.GetCourierLogo(ShipmentServices, Courier.Personal_Collection);
+
+    protected override void OnInitialized()
+    {
+        DashboardClock.EnsureStarted();
+        DashboardClock.Tick += OnClockTick;
+    }
+
+    private void OnClockTick()
+    {
+        InvokeAsync(() =>
+        {
+            StateHasChanged();
+        });
+    }
+
+    protected override void OnParametersSet()
+    {
+        _documentsNormalized = Tasks
+            .SelectMany(t => t.Documents)
+            .Select(d => (
+                Courier: CourierHelper.GetCourierFromName(d.CourierName),
+                CreatedDate: d.CreatedDate
+            ))
+            .ToList();
+
+        SyncZoneRows();
+        SyncOperatorRows();
+    }
+
+    private IReadOnlyList<ZoneSegmentTableSection> GetZoneSections()
+    {
+        return new List<ZoneSegmentTableSection>
+        {
+            new()
+            {
+                Title = "Magazyn A",
+                Summary = GetWarehouseSummary(PackingWarehouse.A),
+                Rows = GetZoneSegmentRows(PackingWarehouse.A)
+            },
+            new()
+            {
+                Title = "Magazyn B",
+                Summary = GetWarehouseSummary(PackingWarehouse.B),
+                Rows = GetZoneSegmentRows(PackingWarehouse.B)
+            }
+        };
+    }
+
+    private List<ZoneSegmentTableRow> GetZoneSegmentRows(PackingWarehouse warehouse)
+    {
+        return ZoneRows
+            .Where(x => x.Data.Warehouse == warehouse)
+            .Select(x => new ZoneSegmentTableRow
+            {
+                Key = x.Key,
+                ZoneName = x.Data.ZoneName,
+                DpdCount = x.Data.DpdCount,
+                GlsCount = x.Data.GlsCount,
+                FedexCount = x.Data.FedexCount,
+                PersonalCollectionCount = x.Data.PersonalCollectionCount,
+                OtherCount = x.Data.OtherCount,
+                OperatorsList = x.Data.OperatorsList,
+                OldestDocumentDate = x.Data.OldestDocumentDate,
+                LatestDocumentDate = x.Data.LatestDocumentDate,
+                AnimationClass = x.AnimationClass
+            })
+            .ToList();
+    }
+
+    private WarehouseZoneSummary GetWarehouseSummary(PackingWarehouse warehouse)
+    {
+        var rows = ZoneRows.Where(x => x.Data.Warehouse == warehouse).ToList();
+
+        return new WarehouseZoneSummary
+        {
+            TotalZones = rows.Count,
+            Dpd = rows.Sum(x => x.Data.DpdCount),
+            Gls = rows.Sum(x => x.Data.GlsCount),
+            Fedex = rows.Sum(x => x.Data.FedexCount),
+            PersonalCollection = rows.Sum(x => x.Data.PersonalCollectionCount),
+            Other = rows.Sum(x => x.Data.OtherCount)
+        };
+    }
+
+    private void SyncZoneRows()
+    {
+        var latest = BuildZoneSummaries();
+        var latestKeys = latest.Select(x => x.ZoneId.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in latest)
+        {
+            var itemKey = item.ZoneId.ToString();
+            var existing = ZoneRows.FirstOrDefault(x => string.Equals(x.Key, itemKey, StringComparison.OrdinalIgnoreCase));
+            if (existing is null)
+            {
+                var added = new ZoneTaskRowView
+                {
+                    Key = itemKey,
+                    Data = item,
+                    AnimationClass = "dashboard-row-enter"
+                };
+
+                ZoneRows.Add(added);
+                _ = ClearZoneEnterClassAsync(added);
+            }
+            else
+            {
+                existing.Data = item;
+                if (existing.IsLeaving)
+                {
+                    existing.IsLeaving = false;
+                    existing.AnimationClass = "dashboard-row-enter";
+                    _ = ClearZoneEnterClassAsync(existing);
+                }
+            }
+        }
+
+        foreach (var row in ZoneRows.Where(x => !x.IsLeaving && !latestKeys.Contains(x.Key)).ToList())
+        {
+            row.IsLeaving = true;
+            row.AnimationClass = "dashboard-row-leave";
+            _ = RemoveZoneRowAsync(row);
+        }
+
+        var orderedActive = latest.Select(x => ZoneRows.First(r => string.Equals(r.Key, x.ZoneId.ToString(), StringComparison.OrdinalIgnoreCase))).ToList();
+        var leaving = ZoneRows.Where(x => x.IsLeaving).ToList();
+        ZoneRows = orderedActive.Concat(leaving).ToList();
+    }
+
+    private List<ZoneTaskSummary> BuildZoneSummaries()
+    {
+        return Tasks
+            .GroupBy(x => x.ZoneId)
+            .Select(group =>
+            {
+                var zoneName = group.Select(x => x.Zone)
+                    .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))
+                    ?? group.Key.ToString();
+
+                var zoneWarehouse = group.Select(x => x.ZoneWarehouse).First();
+
+                var docs = group.SelectMany(t => t.Documents).ToList();
+
+                var couriers = docs
+                    .Select(d => CourierHelper.GetCourierFromName(d.CourierName))
+                    .ToList();
+
+                var operators = GetOperatorsForZone(group.Key);
+
+                var oldestDocumentDate = docs.Min(d => d.CreatedDate);
+                var latestDocumentDate = docs.Max(d => d.CreatedDate);
+
+                return new ZoneTaskSummary(
+                    group.Key,
+                    zoneName,
+                    couriers.Count(x => x == Courier.DPD),
+                    couriers.Count(x => x == Courier.GLS),
+                    couriers.Count(x => x == Courier.Fedex),
+                    couriers.Count(x => x == Courier.Personal_Collection),
+                    couriers.Count(x => x != Courier.DPD && x != Courier.GLS && x != Courier.Fedex && x != Courier.Personal_Collection),
+                    operators.Any() ? string.Join(", ", operators) : "-",
+                    zoneWarehouse,
+                    oldestDocumentDate,
+                    latestDocumentDate);
+            })
+            .OrderBy(x => x.Warehouse)
+            .ThenBy(x => x.ZoneId)
+            .ToList();
+    }
+
+    private void SyncOperatorRows()
+    {
+        var latest = BuildOperatorSummaries();
+        var latestKeys = latest.Select(x => x.Operator).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in latest)
+        {
+            var itemKey = item.Operator;
+            var existing = OperatorRows.FirstOrDefault(x => string.Equals(x.Key, itemKey, StringComparison.OrdinalIgnoreCase));
+            if (existing is null)
+            {
+                var added = new OperatorRowView
+                {
+                    Key = itemKey,
+                    Data = item,
+                    AnimationClass = "dashboard-row-enter"
+                };
+
+                OperatorRows.Add(added);
+                _ = ClearOperatorEnterClassAsync(added);
+            }
+            else
+            {
+                existing.Data = item;
+                if (existing.IsLeaving)
+                {
+                    existing.IsLeaving = false;
+                    existing.AnimationClass = "dashboard-row-enter";
+                    _ = ClearOperatorEnterClassAsync(existing);
+                }
+            }
+        }
+
+        foreach (var row in OperatorRows.Where(x => !x.IsLeaving && !latestKeys.Contains(x.Key)).ToList())
+        {
+            row.IsLeaving = true;
+            row.AnimationClass = "dashboard-row-leave";
+            _ = RemoveOperatorRowAsync(row);
+        }
+
+        var orderedActive = latest.Select(x => OperatorRows.First(r => string.Equals(r.Key, x.Operator, StringComparison.OrdinalIgnoreCase))).ToList();
+        var leaving = OperatorRows.Where(x => x.IsLeaving).ToList();
+        OperatorRows = orderedActive.Concat(leaving).ToList();
+    }
+
+    private List<OperatorSummary> BuildOperatorSummaries()
+    {
+        return RecentOperations
+            .Where(x => !string.IsNullOrWhiteSpace(x.Operator))
+            .GroupBy(x => x.Operator, StringComparer.OrdinalIgnoreCase)
+            .Select(group =>
+            {
+                var latest = group.OrderByDescending(x => x.Date).First();
+                var sourceZone = string.IsNullOrWhiteSpace(latest.SourceZone) ? "-" : latest.SourceZone;
+                return new OperatorSummary(group.Key, sourceZone, latest.Date);
+            })
+            .OrderBy(x => x.Operator)
+            .ToList();
+    }
+
+    private List<string> GetOperatorsForZone(int zoneId)
+    {
+        return RecentOperations
+            .Where(op => IsOperationInZone(op, zoneId))
+            .Select(op => op.Operator)
+            .Where(op => !string.IsNullOrWhiteSpace(op))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(op => op)
+            .ToList();
+    }
+
+    private static bool IsOperationInZone(WarehouseOperation operation, int zoneId)
+    {
+        return operation.SourceZoneId == zoneId;
+    }
+
+    private async Task ClearZoneEnterClassAsync(ZoneTaskRowView row)
+    {
+        await Task.Delay(RowAnimationDelayMs);
+        if (row.IsLeaving)
+        {
+            return;
+        }
+
+        row.AnimationClass = string.Empty;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RemoveZoneRowAsync(ZoneTaskRowView row)
+    {
+        await Task.Delay(RowAnimationDelayMs);
+        if (!row.IsLeaving)
+        {
+            return;
+        }
+
+        ZoneRows = ZoneRows.Where(x => !ReferenceEquals(x, row)).ToList();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ClearOperatorEnterClassAsync(OperatorRowView row)
+    {
+        await Task.Delay(RowAnimationDelayMs);
+        if (row.IsLeaving)
+        {
+            return;
+        }
+
+        row.AnimationClass = string.Empty;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RemoveOperatorRowAsync(OperatorRowView row)
+    {
+        await Task.Delay(RowAnimationDelayMs);
+        if (!row.IsLeaving)
+        {
+            return;
+        }
+
+        OperatorRows = OperatorRows.Where(x => !ReferenceEquals(x, row)).ToList();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string GetElapsedBadgeClass(DateTime start)
+    {
+        var elapsed = DashboardClock.Now - FormatHelper.ToLocalTime(start);
+
+        if (elapsed.TotalMinutes >= 45)
+        {
+            return "text-bg-danger";
+        }
+
+        if (elapsed.TotalMinutes >= 20)
+        {
+            return "text-bg-warning";
+        }
+
+        return "text-bg-success";
+    }
+
+    private string GetElapsedRowClass(DateTime start)
+    {
+        var elapsed = DashboardClock.Now - FormatHelper.ToLocalTime(start);
+
+        if (elapsed.TotalMinutes >= 45)
+        {
+            return "table-danger";
+        }
+
+        if (elapsed.TotalMinutes >= 20)
+        {
+            return "table-warning";
+        }
+
+        return string.Empty;
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        DashboardClock.Tick -= OnClockTick;
+        return ValueTask.CompletedTask;
+    }
+
+    private static string FormatZones(int count)
+    {
+        return count switch
+        {
+            1 => "strefa",
+            >= 2 and <= 4 => "strefy",
+            _ => "stref"
+        };
+    }
+}

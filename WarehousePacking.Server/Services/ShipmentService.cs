@@ -212,5 +212,35 @@ namespace WarehousePacking.Server.Services
             var generic = await response.Content.ReadAsStringAsync();
             throw new Exception(generic);
         }
+
+        public async Task<bool> IsPackageReadyToShip(string barcode)
+        {
+            var response = await _dbClient.GetAsync($"api/shipments/is-package-ready-to-ship?barcode={barcode}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == HttpStatusCode.NoContent || response.Content.Headers.ContentLength == 0)
+                {
+                    return false;
+                }
+
+                return await response.Content.ReadFromJsonAsync<bool>();
+            }
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException(message);
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
     }
 }

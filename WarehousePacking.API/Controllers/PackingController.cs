@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Collections.Concurrent;
 using WarehousePacking.Contracts.Data.Enums;
 using WarehousePacking.Contracts.DTOs;
 using WarehousePacking.Contracts.DTOs.Requests;
@@ -10,6 +11,8 @@ namespace WarehousePacking.API.Controllers
     [ApiController]
     public class PackingController : ControllerBase
     {
+        private static readonly ConcurrentDictionary<string, byte> CloseWmsLocks = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentDictionary<string, byte> ClosedWmsPackages = new(StringComparer.OrdinalIgnoreCase);
         private readonly IPackingService _packingService;
         private readonly ILogger<PackingController> _logger;
 
@@ -244,7 +247,7 @@ namespace WarehousePacking.API.Controllers
                 int packageId = await _packingService.CreatePackage(request);
                 if (packageId > 0)
                 {
-                    await _packingService.AddPackageAttributes(packageId, request.PackageWarehouse, request.PackingLevel, request.StationNumber);
+                    await _packingService.AddPackageAttributes(packageId, request.PackageWarehouse, request.PackingLevel, request.StationNumber, request.IsCompleted);
                     _logger.LogInformation("CreatePackage succeeded, new package ID {PackageId}", packageId);
                 }
                 else
@@ -474,7 +477,7 @@ namespace WarehousePacking.API.Controllers
             {
                 var closeResult = await _packingService.CloseWmsPackage(request);
 
-                if (closeResult.Status != "1")
+                if (closeResult.Status != "1" && !closeResult.Desc.Contains("Nieprawidłowy status JL:"))
                 {
                     _logger.LogWarning("CloseWmsPackage business failure for package {PackageCode}: {Desc}", request.PackageNumber, closeResult.Desc);
 

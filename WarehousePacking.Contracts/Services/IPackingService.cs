@@ -38,7 +38,7 @@ namespace WarehousePacking.Contracts.Services
 
         Task<int> CreatePackage(CreatePackageRequest request);
 
-        Task<bool> AddPackageAttributes(int packageId, PackingWarehouse warehouse, PackingLevel level, string stationNumber);
+        Task<bool> AddPackageAttributes(int packageId, PackingWarehouse warehouse, PackingLevel level, string stationNumber, bool isCompleted);
 
         Task<bool> AddPackedPosition(AddPackedPositionRequest request);
 

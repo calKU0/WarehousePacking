@@ -33,8 +33,8 @@ namespace WarehousePacking.Infrastructure.Services
                 .Where(x =>
                     x.Status == 12 &&
                     (!location.HasValue ||
-                        (location == PackingLevel.Up && x.DestZone == "A-Pak. góra") ||
-                        (location == PackingLevel.Bottom && x.DestZone != "A-Pak. góra"))
+                        (location == PackingLevel.Up && x.DestZoneId == 102) ||
+                        (location == PackingLevel.Bottom && x.DestZoneId != 102))
                 )
                 .ToList();
 
@@ -56,18 +56,24 @@ namespace WarehousePacking.Infrastructure.Services
                     };
                 }
 
-                if (jl.ReadyToPack == "TAK" || jl.DestZone == "A-Pak. góra")
+                if (jl.ReadyToPack == "TAK" || jl.DestZoneId == 102)
                     jl.Status = 1;
 
-                if (jl.ReadyToPack == "NIE" && jl.DestZone != "A-Pak. góra" && jl.Clients.Count() == 1)
-                    jl.Status = await _packingRepository.IsJlReadyToPack(Convert.ToInt32(jl.Clients.First().ClientErpId), jl.DestZone) ? 1 : 2;
+                if (jl.ReadyToPack == "NIE" && jl.DestZoneId != 102 && jl.Clients.Count() == 1)
+                    jl.Status = await _packingRepository.IsJlReadyToPack(Convert.ToInt32(jl.Clients.First().ClientErpId), jl.DestZoneId) ? 1 : 2;
                 else
                     jl.Status = 1;
 
                 jl.Status = await IsJlInProgress(jl.JlCode) ? 3 : jl.Status;
             }
             // Map to flattened JlData
-            var result = jlToPack.ToJlData().OrderBy(jl => jl.Status).ThenBy(c => c.CourierName).ThenBy(c => c.ClientSymbol).ToList();
+            var result = jlToPack.ToJlData()
+                .OrderBy(jl => jl.Status)
+                .ThenBy(jl => jl.Courier)
+                .ThenByDescending(jl => jl.ShipmentServices.HasAnyService())
+                .ThenBy(jl => jl.ClientSymbol)
+                .ToList();
+
             _logger.LogInformation("Fetched JL list for location {Location}, count {Count}", location?.ToString() ?? "all", result.Count);
             return result;
         }
@@ -91,7 +97,15 @@ namespace WarehousePacking.Infrastructure.Services
             if (jlDto == null)
                 return null;
 
-            jlDto.Status = await IsJlInProgress(jlDto.JlCode) ? 3 : 1;
+            if (jlDto.ReadyToPack == "TAK" || jlDto.DestZoneId == 102)
+                jlDto.Status = 1;
+
+            if (jlDto.ReadyToPack == "NIE" && jlDto.DestZoneId != 102 && jlDto.Clients.Count() == 1)
+                jlDto.Status = await _packingRepository.IsJlReadyToPack(Convert.ToInt32(jlDto.Clients.First().ClientErpId), jlDto.DestZoneId) ? 1 : 2;
+            else
+                jlDto.Status = 1;
+
+            jlDto.Status = await IsJlInProgress(jlDto.JlCode) ? 3 : jlDto.Status;
 
             return jlDto.ToJlData();
         }
@@ -226,12 +240,12 @@ namespace WarehousePacking.Infrastructure.Services
             return await _packingRepository.GenerateInternalBarcode(stationNumber);
         }
 
-        public async Task<bool> AddPackageAttributes(int packageId, PackingWarehouse warehouse, PackingLevel level, string stationNumber)
+        public async Task<bool> AddPackageAttributes(int packageId, PackingWarehouse warehouse, PackingLevel level, string stationNumber, bool isCompleted)
         {
             const string procedure = "kp.AddPackageAttributes";
             var warehouseDesc = warehouse.GetDescription();
             var levelDesc = level.GetDescription();
-            return await _packingRepository.AddPackageAttributes(packageId, warehouseDesc, levelDesc, stationNumber);
+            return await _packingRepository.AddPackageAttributes(packageId, warehouseDesc, levelDesc, stationNumber, isCompleted);
         }
 
         public async Task<PackingWarehouse> GetPackageWarehouse(string barcode)

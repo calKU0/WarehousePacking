@@ -23,5 +23,6 @@ namespace WarehousePacking.Contracts.Services
         Task<IEnumerable<RoutePackages>> GetRoutePackages(Courier courier);
 
         Task<int> CloseRoute(Courier courier);
+        Task<bool> IsPackageReadyToShip(string barcode);
     }
 }

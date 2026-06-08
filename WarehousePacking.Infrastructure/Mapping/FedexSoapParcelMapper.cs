@@ -69,7 +69,7 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
                     countryCode = package.Recipient.Country,
                     street = package.Recipient.Street,
                     isCompany = package.Recipient.Type.ToString(),
-                    homeNo = string.Empty
+                    homeNo = package.Recipient.HomeNo
                 },
                 contactDetails = new daneKontaktowe
                 {

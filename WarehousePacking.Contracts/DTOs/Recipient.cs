@@ -13,6 +13,7 @@
         public string Phone { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string NIP { get; set; } = string.Empty;
+        public string HomeNo { get; set; } = string.Empty;
         public int Type { get; set; }
     }
 }

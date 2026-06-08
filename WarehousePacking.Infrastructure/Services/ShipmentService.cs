@@ -88,5 +88,10 @@ namespace WarehousePacking.Infrastructure.Services
             _logger.LogInformation("Close route for courier {Courier} result: {Result}", courierName, result);
             return result;
         }
+
+        public async Task<bool> IsPackageReadyToShip(string barcode)
+        {
+            return await _shipmentRepository.IsPackageReadyToShip(barcode);
+        }
     }
 }

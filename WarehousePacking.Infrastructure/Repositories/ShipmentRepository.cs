@@ -98,5 +98,12 @@ namespace WarehousePacking.Infrastructure.Repositories
             const string procedure = "kp.CloseRoute";
             return await _context.QuerySingleOrDefaultAsync<int>(procedure, new { courier = courierName }, CommandType.StoredProcedure, Connection.ERPConnection);
         }
+
+        public async Task<bool> IsPackageReadyToShip(string barcode)
+        {
+            const string procedure = "kp.IsPackageReadyToShip";
+            var result = await _context.QuerySingleOrDefaultAsync<int>(procedure, new { Barcode = barcode }, CommandType.StoredProcedure, Connection.ERPConnection);
+            return result == 1;
+        }
     }
 }

@@ -7,6 +7,9 @@ namespace WarehousePacking.Contracts.Data.Enums
         [Description("Nieznany")]
         Unknown = 0,
 
+        [Description("MIX")]
+        MIX = 1,
+
         [Description("DPD")]
         DPD = 22,
 
@@ -26,7 +29,7 @@ namespace WarehousePacking.Contracts.Data.Enums
         Schenker = 27,
 
         [Description("Odbiór własny")]
-        Personal_Collection = 29,
+        Personal_Collection = 28,
 
         [Description("Raben")]
         Raben = 29,

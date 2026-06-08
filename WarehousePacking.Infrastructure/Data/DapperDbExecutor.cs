@@ -26,6 +26,22 @@ namespace WarehousePacking.Infrastructure.Data
             return await connection.QueryAsync<T>(sql, param, commandType: commandType);
         }
 
+        public async Task<IEnumerable<TReturn>> QueryAsync<TFirst, TSecond, TReturn>(string sql, Func<TFirst, TSecond, TReturn> map, string splitOn, object? param = null, CommandType? commandType = CommandType.StoredProcedure, Connection connectionName = Connection.ERPConnection)
+        {
+            var connectionString = _config.GetConnectionString(connectionName.ToString())
+                ?? throw new InvalidOperationException($"Connection string '{connectionName}' not found.");
+
+            using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
+
+            return await connection.QueryAsync<TFirst, TSecond, TReturn>(
+                sql,
+                map,
+                param,
+                splitOn: splitOn,
+                commandType: commandType);
+        }
+
         public async Task<TFirst?> QuerySingleOrDefaultAsync<TFirst, TSecond>(string sql, Func<TFirst, TSecond, TFirst> map, string splitOn, object? param = null, CommandType? commandType = CommandType.StoredProcedure, Connection connectionName = Connection.ERPConnection)
         {
             var connectionString = _config.GetConnectionString(connectionName.ToString())
@@ -68,5 +84,7 @@ namespace WarehousePacking.Infrastructure.Data
 
             return await connection.QuerySingleOrDefaultAsync<T>(sql, param, commandType: commandType);
         }
+
+
     }
 }

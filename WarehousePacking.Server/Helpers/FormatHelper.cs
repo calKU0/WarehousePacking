@@ -15,9 +15,10 @@
         }
         public static string FormatElapsed(DateTime start)
         {
+            var localStart = ToLocalTime(start);
             DateTime now = DateTime.Now;
 
-            var elapsed = now - start;
+            var elapsed = now - localStart;
             if (elapsed.TotalDays >= 1)
             {
                 return $"{(int)elapsed.TotalDays}d {(int)elapsed.TotalHours % 24}h";
@@ -29,6 +30,13 @@
             }
 
             return $"{Math.Max(0, elapsed.Minutes)}m {Math.Max(0, elapsed.Seconds)}s";
+        }
+
+        public static DateTime ToLocalTime(DateTime value)
+        {
+            return value.Kind == DateTimeKind.Local
+                ? value
+                : DateTime.SpecifyKind(value, DateTimeKind.Utc).ToLocalTime();
         }
     }
 }

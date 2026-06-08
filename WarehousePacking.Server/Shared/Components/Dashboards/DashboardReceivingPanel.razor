@@ -1,5 +1,6 @@
-@using WarehousePacking.Contracts.Data.Enums
 @using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs.Dashboards
+@using WarehousePacking.Contracts.Data.Enums
 @using WarehousePacking.Server.Helpers
 
 @implements IAsyncDisposable
@@ -36,56 +37,115 @@
         </div>
     </div>
     
-    <div class="col-12 flex-grow-1 d-flex flex-column min-vh-0">
-        <div class="card shadow-sm flex-grow-1 d-flex flex-column">
-            <div class="card-header d-flex justify-content-between align-items-center flex-shrink-0">
-                <span><i class="bi bi-list-check me-2"></i>@DashboardPanel.Receiving.GetDescription() - Dokumenty</span>
-            </div>
-            <div class="card-body p-0 mb-0 dashboard-scroll-host d-flex flex-column flex-grow-1 min-vh-0">
-                <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1 overflow-auto">
-                    <table class="table table-striped table-hover mb-0 dashboard-table dashboard-table-auto">
-                        <thead class="table-dark" style="position: sticky; top: 0; z-index: 1;">
-                            <tr>
-                                <th>Dokument</th>
-                                <th>Status</th>
-                                <th>Ilość</th>
-                                <th>Waga</th>
-                                <th>Objętość</th>
-                                <th>Operatorzy</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (!DocumentRows.Any())
-                            {
+    <div class="row g-3 dashboard-main-row flex-grow-1">
+        <div class="col-12 col-xl-8 flex-grow-1 d-flex flex-column min-vh-0">
+            <div class="card shadow-sm flex-grow-1 d-flex flex-column">
+                <div class="card-header d-flex justify-content-between align-items-center flex-shrink-0">
+                    <span><i class="bi bi-list-check me-2"></i>@DashboardPanel.Receiving.GetDescription() - Dokumenty</span>
+                </div>
+                <div class="card-body p-0 mb-0 dashboard-scroll-host d-flex flex-column flex-grow-1 min-vh-0">
+                    <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1 overflow-auto">
+                        <table class="table table-striped table-hover mb-0 dashboard-table dashboard-table-auto">
+                            <thead class="table-dark" style="position: sticky; top: 0; z-index: 1;">
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-3">
-                                        @if (IsLoading)
-                                        {
-                                            <span>Ładowanie danych...</span>
-                                        }
-                                        else
-                                        {
-                                            <span>Brak dokumentów przyjęć.</span>
-                                        }
-                                    </td>
+                                    <th>Dokument</th>
+                                    <th>Status</th>
+                                    <th>Il. zreal./Il. całk.</th>
+                                    <th>Waga zreal./Waga całk.</th>
+                                    <th>Obj. zreal./Obj. całk.</th>
+                                    <th>Priorytet</th>
+                                    <th>Operatorzy</th>
                                 </tr>
-                            }
-                            else
-                            {
-                                @foreach (var row in DocumentRows)
+                            </thead>
+                            <tbody>
+                                @if (!DocumentRows.Any())
                                 {
-                                    <tr class="@row.AnimationClass" @key="row.Key">
-                                        <td>@row.Data.Code</td>
-                                        <td>@row.Data.StatusName</td>
-                                        <td><DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.Data.RemainingQuantity)" /></td>
-                                        <td><DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.Data.RemainingWeight, "kg", "F0")" /></td>
-                                        <td><DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.Data.RemainingVolume, "m³")" /></td>
-                                        <td class="dashboard-operators-cell" title="@row.Data.OperatorsList">@row.Data.OperatorsList</td>
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-3">
+                                            @if (IsLoading)
+                                            {
+                                                <span>Ładowanie danych...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Brak dokumentów przyjęć.</span>
+                                            }
+                                        </td>
                                     </tr>
                                 }
-                            }
-                        </tbody>
-                    </table>
+                                else
+                                {
+                                    @foreach (var row in DocumentRows)
+                                    {
+                                        <tr class="@row.AnimationClass" @key="row.Key">
+                                            <td>@row.Data.Code</td>
+                                            <td>@row.Data.StatusName</td>
+                                            <td><DashboardAnimatedValue Text="@($"{@FormatHelper.FormatQuantity(row.Data.QuantityReal)} / {FormatHelper.FormatQuantity(row.Data.Quantity)}")" /></td>
+                                            <td><DashboardAnimatedValue Text="@($"{FormatHelper.FormatQuantity(row.Data.WeightReal, "", "F0")} / {FormatHelper.FormatQuantity(row.Data.Weight, "kg", "F0")}")" /></td>
+                                            <td><DashboardAnimatedValue Text="@($"{FormatHelper.FormatQuantity(row.Data.VolumeReal)} / {FormatHelper.FormatQuantity(row.Data.Volume, "m³")}")" /></td>
+                                            <td><DashboardAnimatedValue Text="@row.Data.Priority.ToString()" /></td>
+                                            <td class="dashboard-operators-cell" title="@row.Data.OperatorsList">@row.Data.OperatorsList</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-4 d-flex">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-person-workspace me-2"></i>Aktywne operacje</span>
+                    <span class="small text-muted dashboard-time-text">Najdłużej: <DashboardAnimatedValue Text="@LongestActiveElapsed" CssClass="dashboard-time-text" /></span>
+                </div>
+                <div class="card-body p-0 mb-0 dashboard-scroll-host">
+                    <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
+                        <table class="table table-striped table-hover mb-0 dashboard-table dashboard-table-auto">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Dokument</th>
+                                    <th>Operator</th>
+                                    <th>Od ost. operacji</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!RecentOperationRows.Any())
+                                {
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-3">
+                                            @if (IsLoading)
+                                            {
+                                                <span>Ładowanie danych...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Brak aktywnych operacji (ostatnie 5 min).</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var rowState in RecentOperationRows)
+                                    {
+                                        var row = rowState.Data;
+                                        <tr class="@($"{GetElapsedRowClass(row.Date)} {rowState.AnimationClass}".Trim())" @key="rowState.Key">
+                                            <td>@GetOperationDocument(row)</td>
+                                            <td>@GetOperationOperator(row)</td>
+                                            <td class="dashboard-elapsed-cell">
+                                                <span class="badge @GetElapsedBadgeClass(row.Date) dashboard-elapsed-badge dashboard-time-text">
+                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Date)" CssClass="dashboard-time-text" />
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -95,25 +155,9 @@
 
 @code {
     private const int RowAnimationDelayMs = 280;
-
-    private sealed record ReceivingCourierSummary(
-        Courier Courier,
-        string CourierName,
-        string CourierSrc,
-        int DocumentsCount,
-        decimal RemainingQuantity,
-        decimal RemainingWeight,
-        decimal RemainingVolume,
-        int OperatorsCount,
-        string OperatorsList);
-
-    private sealed class ReceivingRowView
-    {
-        public string Key { get; set; } = string.Empty;
-        public ReceivingCourierSummary Data { get; set; } = null!;
-        public string AnimationClass { get; set; } = string.Empty;
-        public bool IsLeaving { get; set; }
-    }
+    private readonly CancellationTokenSource _clockCts = new();
+    private DateTime _now = DateTime.UtcNow;
+    private bool _clockStarted;
 
     private sealed record ReceivingDocumentSummary(
         string Key,
@@ -121,9 +165,13 @@
         string CourierName,
         string CourierSrc,
         string StatusName,
-        decimal RemainingQuantity,
-        decimal RemainingWeight,
-        decimal RemainingVolume,
+        decimal Quantity,
+        decimal Weight,
+        decimal Volume,
+        decimal QuantityReal,
+        decimal WeightReal,
+        decimal VolumeReal,
+        int Priority,
         string OperatorsList);
 
     private sealed class ReceivingDocumentRowView
@@ -134,113 +182,41 @@
         public bool IsLeaving { get; set; }
     }
 
+    private sealed class ReceivingOperationRowView
+    {
+        public string Key { get; set; } = string.Empty;
+        public WarehouseOperation Data { get; set; } = null!;
+        public string AnimationClass { get; set; } = string.Empty;
+        public bool IsLeaving { get; set; }
+    }
+
     [Parameter] public List<WarehouseDocument> Documents { get; set; } = new();
     [Parameter] public List<WarehouseOperation> RecentOperations { get; set; } = new();
     [Parameter] public bool IsLoading { get; set; }
 
-    private List<ReceivingRowView> CourierRows { get; set; } = new();
     private List<ReceivingDocumentRowView> DocumentRows { get; set; } = new();
+    private List<ReceivingOperationRowView> RecentOperationRows { get; set; } = new();
 
-    private decimal RemainingQuantityTotal => CourierRows.Sum(x => x.Data.RemainingQuantity);
-    private decimal RemainingWeightTotal => CourierRows.Sum(x => x.Data.RemainingWeight);
-    private decimal RemainingVolumeTotal => CourierRows.Sum(x => x.Data.RemainingVolume);
+    private decimal RemainingQuantityTotal => DocumentRows.Sum(x => x.Data.Quantity - x.Data.QuantityReal);
+    private decimal RemainingWeightTotal => DocumentRows.Sum(x => x.Data.Weight - x.Data.WeightReal);
+    private decimal RemainingVolumeTotal => DocumentRows.Sum(x => x.Data.Volume - x.Data.VolumeReal);
+
     private int ActiveOperatorsCount => RecentOperations
         .Select(x => x.Operator)
         .Where(x => !string.IsNullOrWhiteSpace(x))
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .Count();
+    private string LongestActiveElapsed => RecentOperationRows.Any() ? FormatHelper.FormatElapsed(RecentOperationRows.Min(x => x.Data.Date)) : "-";
 
     protected override void OnParametersSet()
     {
-        SyncRows();
+        if (_now == default)
+        {
+            _now = DashboardClock.Now;
+        }
+
         SyncDocumentRows();
-    }
-
-    private void SyncRows()
-    {
-        var latest = BuildSummaries();
-        var latestKeys = latest.Select(GetRowKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var item in latest)
-        {
-            var itemKey = GetRowKey(item);
-            var existing = CourierRows.FirstOrDefault(x => string.Equals(x.Key, itemKey, StringComparison.OrdinalIgnoreCase));
-            if (existing is null)
-            {
-                var added = new ReceivingRowView
-                {
-                    Key = itemKey,
-                    Data = item,
-                    AnimationClass = "dashboard-row-enter"
-                };
-
-                CourierRows.Add(added);
-                _ = ClearEnterClassAsync(added);
-            }
-            else
-            {
-                existing.Data = item;
-                if (existing.IsLeaving)
-                {
-                    existing.IsLeaving = false;
-                    existing.AnimationClass = "dashboard-row-enter";
-                    _ = ClearEnterClassAsync(existing);
-                }
-            }
-        }
-
-        foreach (var row in CourierRows.Where(x => !x.IsLeaving && !latestKeys.Contains(x.Key)).ToList())
-        {
-            row.IsLeaving = true;
-            row.AnimationClass = "dashboard-row-leave";
-            _ = RemoveRowAsync(row);
-        }
-
-        var orderedActive = latest.Select(x => CourierRows.First(r => string.Equals(r.Key, GetRowKey(x), StringComparison.OrdinalIgnoreCase))).ToList();
-        var leaving = CourierRows.Where(x => x.IsLeaving).ToList();
-        CourierRows = orderedActive.Concat(leaving).ToList();
-    }
-
-    private List<ReceivingCourierSummary> BuildSummaries()
-    {
-        return Documents
-            .GroupBy(x => x.Courier)
-            .Select(group =>
-            {
-                var docs = group.ToList();
-                var operators = RecentOperations
-                    .Where(op => docs.Any(doc =>
-                        (op.ErpDocumentId == doc.ErpId && op.ErpDocumentType == doc.ErpType) ||
-                        string.Equals(op.DocumentCode, doc.Code.ToString(), StringComparison.OrdinalIgnoreCase)))
-                    .Select(op => op.Operator)
-                    .Where(op => !string.IsNullOrWhiteSpace(op))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(op => op)
-                    .ToList();
-
-                var courierName = group.Key == Courier.Unknown ? "Brak" : group.Key.GetDescription();
-                var courierSrc = CourierHelper.GetCourierLogo(new ShipmentServices(), group.Key);
-
-                return new ReceivingCourierSummary(
-                    group.Key,
-                    courierName,
-                    courierSrc,
-                    docs.Count,
-                    docs.Sum(x => Math.Max(0m, x.Quantity - x.QuantityRealized)),
-                    docs.Sum(x => Math.Max(0m, x.Weight - x.WeightRealized)),
-                    docs.Sum(x => Math.Max(0m, x.Volume - x.VolumeRealized)),
-                    operators.Count,
-                    operators.Any() ? string.Join(", ", operators) : "-"
-                );
-            })
-            .OrderByDescending(x => x.DocumentsCount)
-            .ThenBy(x => x.CourierName)
-            .ToList();
-    }
-
-    private static string GetRowKey(ReceivingCourierSummary row)
-    {
-        return row.Courier.ToString();
+        SyncRecentOperationRows();
     }
 
     private List<ReceivingDocumentSummary> BuildDocumentSummaries()
@@ -249,9 +225,7 @@
             .Select(doc =>
             {
                 var operators = RecentOperations
-                    .Where(op =>
-                        (op.ErpDocumentId == doc.ErpId && op.ErpDocumentType == doc.ErpType) ||
-                        string.Equals(op.DocumentCode, doc.Code, StringComparison.OrdinalIgnoreCase))
+                    .Where(op => op.DocId == doc.Id)
                     .Select(op => op.Operator)
                     .Where(op => !string.IsNullOrWhiteSpace(op))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -267,14 +241,16 @@
                     courierName,
                     courierSrc,
                     doc.Status.GetDescription(),
-                    Math.Max(0m, doc.Quantity - doc.QuantityRealized),
-                    Math.Max(0m, doc.Weight - doc.WeightRealized),
-                    Math.Max(0m, doc.Volume - doc.VolumeRealized),
+                    Math.Max(0m, doc.Quantity),
+                    Math.Max(0m, doc.Weight),
+                    Math.Max(0m, doc.Volume),
+                    Math.Max(0m, doc.QuantityRealized),
+                    Math.Max(0m, doc.WeightRealized),
+                    Math.Max(0m, doc.VolumeRealized),
+                    doc.Priority,
                     operators.Any() ? string.Join(", ", operators) : "-"
                 );
             })
-            .OrderByDescending(x => x.RemainingWeight)
-            .ThenBy(x => x.Code)
             .ToList();
     }
 
@@ -322,6 +298,56 @@
         DocumentRows = orderedActive.Concat(leaving).ToList();
     }
 
+    private void SyncRecentOperationRows()
+    {
+        var latest = RecentOperations
+            .GroupBy(GetOperationKey, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.OrderByDescending(x => x.Date).First())
+            .OrderBy(x => x.Date)
+            .ToList();
+
+        var latestKeys = latest.Select(GetOperationKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in latest)
+        {
+            var itemKey = GetOperationKey(item);
+            var existing = RecentOperationRows.FirstOrDefault(x => string.Equals(x.Key, itemKey, StringComparison.OrdinalIgnoreCase));
+            if (existing is null)
+            {
+                var added = new ReceivingOperationRowView
+                {
+                    Key = itemKey,
+                    Data = item,
+                    AnimationClass = "dashboard-row-enter"
+                };
+
+                RecentOperationRows.Add(added);
+                _ = ClearOperationEnterClassAsync(added);
+            }
+            else
+            {
+                existing.Data = item;
+                if (existing.IsLeaving)
+                {
+                    existing.IsLeaving = false;
+                    existing.AnimationClass = "dashboard-row-enter";
+                    _ = ClearOperationEnterClassAsync(existing);
+                }
+            }
+        }
+
+        foreach (var row in RecentOperationRows.Where(x => !x.IsLeaving && !latestKeys.Contains(x.Key)).ToList())
+        {
+            row.IsLeaving = true;
+            row.AnimationClass = "dashboard-row-leave";
+            _ = RemoveOperationRowAsync(row);
+        }
+
+        var orderedActive = latest.Select(x => RecentOperationRows.First(r => string.Equals(r.Key, GetOperationKey(x), StringComparison.OrdinalIgnoreCase))).ToList();
+        var leaving = RecentOperationRows.Where(x => x.IsLeaving).ToList();
+        RecentOperationRows = orderedActive.Concat(leaving).ToList();
+    }
+
     private async Task ClearDocumentEnterClassAsync(ReceivingDocumentRowView row)
     {
         await Task.Delay(RowAnimationDelayMs);
@@ -346,7 +372,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task ClearEnterClassAsync(ReceivingRowView row)
+    private async Task ClearOperationEnterClassAsync(ReceivingOperationRowView row)
     {
         await Task.Delay(RowAnimationDelayMs);
         if (row.IsLeaving)
@@ -358,7 +384,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task RemoveRowAsync(ReceivingRowView row)
+    private async Task RemoveOperationRowAsync(ReceivingOperationRowView row)
     {
         await Task.Delay(RowAnimationDelayMs);
         if (!row.IsLeaving)
@@ -366,12 +392,82 @@
             return;
         }
 
-        CourierRows = CourierRows.Where(x => !ReferenceEquals(x, row)).ToList();
+        RecentOperationRows = RecentOperationRows.Where(x => !ReferenceEquals(x, row)).ToList();
         await InvokeAsync(StateHasChanged);
+    }
+
+    private string GetElapsedBadgeClass(DateTime start)
+    {
+        var elapsed = _now - FormatHelper.ToLocalTime(start);
+
+        if (elapsed.TotalMinutes >= 45)
+        {
+            return "text-bg-danger";
+        }
+
+        if (elapsed.TotalMinutes >= 20)
+        {
+            return "text-bg-warning";
+        }
+
+        return "text-bg-success";
+    }
+
+    private string GetElapsedRowClass(DateTime start)
+    {
+        var elapsed = _now - FormatHelper.ToLocalTime(start);
+
+        if (elapsed.TotalMinutes >= 45)
+        {
+            return "table-danger";
+        }
+
+        if (elapsed.TotalMinutes >= 20)
+        {
+            return "table-warning";
+        }
+
+        return string.Empty;
+    }
+
+    private static string GetOperationKey(WarehouseOperation operation)
+    {
+        return string.IsNullOrWhiteSpace(operation.Operator)
+            ? $"id:{operation.Id}"
+            : operation.Operator;
+    }
+
+    private static string GetOperationDocument(WarehouseOperation operation)
+    {
+        return string.IsNullOrWhiteSpace(operation.DocumentCode) ? operation.DocId.ToString() : operation.DocumentCode;
+    }
+
+    private static string GetOperationOperator(WarehouseOperation operation)
+    {
+        return string.IsNullOrWhiteSpace(operation.Operator) ? "-" : operation.Operator;
+    }
+
+    private async Task RunClockAsync(CancellationToken token)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                _now = DateTime.UtcNow;
+                SyncRecentOperationRows();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
     }
 
     public ValueTask DisposeAsync()
     {
+        _clockCts.Cancel();
+        _clockCts.Dispose();
         return ValueTask.CompletedTask;
     }
 }

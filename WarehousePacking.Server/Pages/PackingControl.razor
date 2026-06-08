@@ -92,7 +92,7 @@
             await base.OnInitializedAsync();
             if (PackageId == 0)
             {
-                await CreatePackage();
+                await CreatePackage(JlItems.FirstOrDefault()?.DocumentId ?? 0, JlItems.FirstOrDefault()?.DocumentType ?? 0);
                 var jlInProgress = new JlInProgressDto
                 {
                     Name = Jl,
@@ -120,7 +120,7 @@
         if (firstRender)
         {
             ManagerModal = Header?.ManagerModal;
-            base.OnAfterRenderAsync(firstRender);
+            await base.OnAfterRenderAsync(firstRender);
         }
     }
 }

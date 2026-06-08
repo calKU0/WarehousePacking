@@ -194,19 +194,31 @@
                 <div class="d-flex flex-column gap-2 mb-4">
                     <button class="btn @(!RoutesStatus.DPDClosed ? "btn-success" : "btn-outline-success")"
                             @onclick="() => CloseRoute(Courier.DPD)"
-                            disabled="@RoutesStatus.DPDClosed">
+                            disabled="@(RoutesStatus.DPDClosed || ClosingRoutes.Contains(Courier.DPD))">
+                        @if (ClosingRoutes.Contains(Courier.DPD))
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        }
                         Zamknij Trasę DPD
                     </button>
 
                     <button class="btn @(!RoutesStatus.GLSClosed ? "btn-warning" : "btn-outline-warning")"
                             @onclick="() => CloseRoute(Courier.GLS)"
-                            disabled="@RoutesStatus.GLSClosed">
+                            disabled="@(RoutesStatus.GLSClosed || ClosingRoutes.Contains(Courier.GLS))">
+                        @if (ClosingRoutes.Contains(Courier.GLS))
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        }
                         Zamknij Trasę GLS
                     </button>
 
                     <button class="btn @(!RoutesStatus.FedexClosed ? "btn-primary" : "btn-outline-primary")"
                             @onclick="() => CloseRoute(Courier.Fedex)"
-                            disabled="@RoutesStatus.FedexClosed">
+                            disabled="@(RoutesStatus.FedexClosed || ClosingRoutes.Contains(Courier.Fedex))">
+                        @if (ClosingRoutes.Contains(Courier.Fedex))
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        }
                         Zamknij Trasę Fedex
                     </button>
                 </div>
@@ -235,6 +247,7 @@
     private AppSettings AppSettings => AppOptions.Value;
     private ElementReference InputRef;
     private RoutesStatus RoutesStatus = new();
+    private HashSet<Courier> ClosingRoutes = new();
 
     // Timer for checking closed routes
     private System.Threading.Timer? Timer;
@@ -356,6 +369,16 @@
     {
         try
         {
+            if (Package.ManualSend == false)
+            {
+                var isReady = await ShipmentService.IsPackageReadyToShip(Barcode);
+                if (!isReady)
+                {
+                    Toast.Show("Błąd!", "Paczka nie jest gotowa do wysyłki. Upewnij się, że wszystkie dane są poprawne i paczka została zamknięta.");
+                    return;
+                }
+            }       
+
             // Validate courier allowed for generating labels
             if (CourierHelper.AllowedCouriersForLabel.Contains(Package.Courier))
             {
@@ -574,6 +597,9 @@
 
     private async Task CloseRoute(Courier courier)
     {
+        if (ClosingRoutes.Contains(courier))
+            return;
+
         try
         {
             var password = await PasswordModal.ShowAsync("Wprowadź hasło do zamknięcia trasy");
@@ -601,6 +627,8 @@
                 {
                     try
                     {
+                        ClosingRoutes.Add(courier);
+                        await InvokeAsync(StateHasChanged);
                         var protocol = await ShipmentService.CloseRoute(courier);
                         if (!string.IsNullOrEmpty(protocol.ErrorMessage))
                         {
@@ -635,6 +663,11 @@
                     {
                         Toast.Show("Błąd!", $"Błąd przy próbie zamknięcia trasy: {ex.Message}");
                     }
+                    finally
+                    {
+                        ClosingRoutes.Remove(courier);
+                        await InvokeAsync(StateHasChanged);
+                    }
 
                 },
                 onCancel: async () =>
@@ -646,6 +679,11 @@
         catch (Exception ex)
         {
             Toast.Show("Błąd!", $"Błąd przy próbie zamknięcia trasy: {ex.Message}");
+        }
+        finally
+        {
+            ClosingRoutes.Remove(courier);
+            await InvokeAsync(StateHasChanged);
         }
     }
 

@@ -151,6 +151,7 @@ namespace WarehousePacking.Infrastructure.Services.Couriers
 
                 int[] trackingNumbers = shipments
                     .Select(s => int.Parse(s.TrackingNumber))
+                    .Distinct()
                     .ToArray();
 
                 var pickupResponse = await _client.adePickup_CreateAsync(_sessionId, trackingNumbers, $"Zamknięcie trasy GLS {DateTime.Now}");
@@ -158,6 +159,7 @@ namespace WarehousePacking.Infrastructure.Services.Couriers
                 {
                     response.Success = false;
                     response.ErrorMessage = $"Błąd przy generowaniu protokołu GLS. Nie udało się wygenerować potwierdzeń nadania.";
+                    return response;
                 }
 
                 var protocolResponse = await _client.adePickup_GetReceiptAsync(_sessionId, pickupResponse.@return.id, "with_barcodes");
@@ -166,6 +168,7 @@ namespace WarehousePacking.Infrastructure.Services.Couriers
                 {
                     response.Success = false;
                     response.ErrorMessage = $"Błąd przy generowaniu protokołu GLS. API zwróciło pusty PDF";
+                    return response;
                 }
 
                 response.Courier = Courier.GLS;

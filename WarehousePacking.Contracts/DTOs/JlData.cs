@@ -34,6 +34,7 @@ namespace WarehousePacking.Contracts.DTOs
         public string ReadyToPack { get; set; } = string.Empty;
         public bool OutsideEU { get; set; } = false;
         public int ClientId { get; set; }
+        public bool IsCompleted { get; set; }
         public string ClientSymbol { get; set; } = string.Empty;
         public string ClientName { get; set; } = string.Empty;
         public string AddressName { get; set; } = string.Empty;

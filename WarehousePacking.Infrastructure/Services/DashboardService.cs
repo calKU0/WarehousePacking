@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using WarehousePacking.Contracts.DTOs;
+﻿using WarehousePacking.Contracts.DTOs.Dashboards;
 using WarehousePacking.Contracts.DTOs.Requests;
 using WarehousePacking.Contracts.Repositories;
 using WarehousePacking.Contracts.Services;
@@ -9,11 +8,14 @@ namespace WarehousePacking.Infrastructure.Services
     public class DashboardService : IDashboardService
     {
         private readonly IDashboardRepository _dashboardRepository;
-        private readonly ILogger<DashboardService> _logger;
-        public DashboardService(IDashboardRepository dashboardRepository, ILogger<DashboardService> logger)
+        public DashboardService(IDashboardRepository dashboardRepository)
         {
             _dashboardRepository = dashboardRepository;
-            _logger = logger;
+        }
+
+        public async Task<IEnumerable<JlToPack>> GetJlsToPackAsync(GetJlsToPackRequest? request)
+        {
+            return await _dashboardRepository.GetJlsToPackAsync(request);
         }
 
         public async Task<IEnumerable<WarehouseDocument>> GetWarehouseDocumentsAsync(GetWarehouseDocumentsRequest request)

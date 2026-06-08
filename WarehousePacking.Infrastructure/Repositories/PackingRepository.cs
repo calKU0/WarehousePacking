@@ -103,7 +103,7 @@ namespace WarehousePacking.Infrastructure.Repositories
         public async Task<int> CreatePackage(CreatePackageRequest request, string courier)
         {
             const string procedure = "kp.CreatePackageDocument";
-            return await _context.QuerySingleOrDefaultAsync<int>(procedure, new { request.Username, courier, request.ClientId, request.AddressName, request.AddressCity, request.AddressCountry, request.AddressPostalCode, request.AddressStreet, request.AddressId, request.AddressType }, CommandType.StoredProcedure, Connection.ERPConnection);
+            return await _context.QuerySingleOrDefaultAsync<int>(procedure, new { request.Username, courier, request.ClientId, request.DocumentId, request.DocumentType, request.AddressId, request.AddressType }, CommandType.StoredProcedure, Connection.ERPConnection);
         }
 
         public async Task<bool> AddPackedPosition(AddPackedPositionRequest request)
@@ -153,10 +153,10 @@ namespace WarehousePacking.Infrastructure.Repositories
             return await _context.QuerySingleOrDefaultAsync<string>(procedure, new { stationNumber }, CommandType.StoredProcedure, Connection.ERPConnection);
         }
 
-        public async Task<bool> AddPackageAttributes(int packageId, string warehouse, string level, string stationNumber)
+        public async Task<bool> AddPackageAttributes(int packageId, string warehouse, string level, string stationNumber, bool isCompleted)
         {
             const string procedure = "kp.AddPackageAttributes";
-            var result = await _context.QuerySingleOrDefaultAsync<int>(procedure, new { packageId, warehouse, level, stationNumber }, CommandType.StoredProcedure, Connection.ERPConnection);
+            var result = await _context.QuerySingleOrDefaultAsync<int>(procedure, new { packageId, warehouse, level, stationNumber, isCompleted }, CommandType.StoredProcedure, Connection.ERPConnection);
             return result > 0;
         }
 
@@ -238,10 +238,10 @@ namespace WarehousePacking.Infrastructure.Repositories
             return documents.Values.FirstOrDefault();
         }
 
-        public async Task<bool> IsJlReadyToPack(int clientId, string destinationZone)
+        public async Task<bool> IsJlReadyToPack(int clientId, int destinationZoneId)
         {
             const string procedure = "kp.IsJlReadyToPack";
-            return await _context.QuerySingleOrDefaultAsync<bool>(procedure, new { clientId, destinationZone }, CommandType.StoredProcedure, Connection.ERPConnection);
+            return await _context.QuerySingleOrDefaultAsync<bool>(procedure, new { clientId, destinationZoneId }, CommandType.StoredProcedure, Connection.ERPConnection);
         }
     }
 }

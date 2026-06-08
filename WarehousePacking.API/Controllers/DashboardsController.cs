@@ -16,6 +16,20 @@ namespace WarehousePacking.API.Controllers
             _logger = logger;
         }
 
+        [HttpGet("jls-to-pack")]
+        public async Task<IActionResult> GetJlsToPack([FromQuery] GetJlsToPackRequest? request)
+        {
+            try
+            {
+                var list = await _dashboardService.GetJlsToPackAsync(request);
+                return Ok(list);
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
+        }
+
         [HttpGet("warehouse-documents")]
         public async Task<IActionResult> GetWarehouseDocuments([FromQuery] GetWarehouseDocumentsRequest request)
         {

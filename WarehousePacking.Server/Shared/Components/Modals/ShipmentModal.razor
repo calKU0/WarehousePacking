@@ -66,7 +66,13 @@
     private PrintDataType LabelType { get; set; }
     private bool HasInvoice { get; set; }
     private string InternalBarcode { get; set; } = string.Empty;
-    private string ScannedCode { get; set; } = string.Empty;
+    private string _scannedCode = string.Empty;
+
+    private string ScannedCode
+    {
+        get => _scannedCode;
+        set => _scannedCode = value?.Trim() ?? string.Empty;
+    }
     private bool ShowScan { get; set; } = false;
     private ElementReference InputRef;
     private string? ScanErrorMessage;
@@ -94,7 +100,7 @@
         }
         catch
         {
-            
+
         }
     }
 
@@ -129,40 +135,7 @@
             return;
 
         if (e.Key != "Enter")
-             return;
-
-        if (string.IsNullOrWhiteSpace(ScannedCode))
             return;
-
-        if (ScannedCode.Length > 29)
-        {
-            ScanErrorMessage = "Za długi kod etykiety. Zeskanuj ponownie.";
-            ScannedCode = string.Empty;
-
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
-            StateHasChanged();
-            return;
-        }
-
-        bool containsTracking =
-            !string.IsNullOrEmpty(TrackingNumber) &&
-            ScannedCode.Contains(TrackingNumber, StringComparison.OrdinalIgnoreCase);
-
-        bool containsInternalBarcode =
-            !string.IsNullOrEmpty(InternalBarcode) &&
-            ScannedCode.Contains(InternalBarcode, StringComparison.OrdinalIgnoreCase);
-
-        if (!containsTracking && !containsInternalBarcode)
-        {
-            ScanErrorMessage = "Nieprawidłowy kod. Zeskanuj numer przesyłki lub kod wewnętrzny.";
-            ScannedCode = string.Empty;
-
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
-            StateHasChanged();
-            return;
-        }
-
-        ScanErrorMessage = null;
 
         IsSubmitting = true;
         try
@@ -175,20 +148,59 @@
         }
     }
 
+
     private async Task ConfirmAsync()
     {
+        if (ShowScan)
+        {
+            if (string.IsNullOrWhiteSpace(ScannedCode))
+                return;
+
+            if (ScannedCode.Length > 29)
+            {
+                ScanErrorMessage = "Za długi kod etykiety. Zeskanuj ponownie.";
+                ScannedCode = string.Empty;
+
+                await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
+                StateHasChanged();
+                return;
+            }
+
+            bool containsTracking =
+                !string.IsNullOrEmpty(TrackingNumber) &&
+                ScannedCode.Contains(TrackingNumber, StringComparison.OrdinalIgnoreCase);
+
+            bool containsInternalBarcode =
+                !string.IsNullOrEmpty(InternalBarcode) &&
+                ScannedCode.Contains(InternalBarcode, StringComparison.OrdinalIgnoreCase);
+
+            if (!containsTracking && !containsInternalBarcode)
+            {
+                ScanErrorMessage = "Nieprawidłowy kod. Zeskanuj numer przesyłki lub kod wewnętrzny.";
+                ScannedCode = string.Empty;
+
+                await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
+                StateHasChanged();
+                return;
+            }
+        }
+
+        ScanErrorMessage = null;
+
         if (OnOk.HasDelegate)
         {
             await OnOk.InvokeAsync((ScannedCode, TrackingNumber));
         }
 
         ScannedCode = string.Empty;
+
         if (StayOpenAfterOk)
         {
             StayOpenAfterOk = false;
             await InvokeAsync(StateHasChanged);
             return;
         }
+
         Hide();
     }
 

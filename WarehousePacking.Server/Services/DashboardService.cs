@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.WebUtilities;
 using System.Net;
-using WarehousePacking.Contracts.DTOs;
+using WarehousePacking.Contracts.DTOs.Dashboards;
 using WarehousePacking.Contracts.DTOs.Requests;
 
 namespace WarehousePacking.Server.Services
@@ -12,6 +12,20 @@ namespace WarehousePacking.Server.Services
         public DashboardService(IHttpClientFactory httpFactory)
         {
             _dbClient = httpFactory.CreateClient("Database");
+        }
+
+        public async Task<List<JlToPack>?> GetJlsToPack(GetJlsToPackRequest? request = null)
+        {
+            var queryParams = new Dictionary<string, string?>();
+            if (request != null)
+            {
+                if (request.Level.HasValue)
+                    queryParams["Level"] = request.Level.Value.ToString();
+                if (request.Warehouse.HasValue)
+                    queryParams["Warehouse"] = request.Warehouse.Value.ToString();
+            }
+
+            return await GetAsync<JlToPack>("api/dashboards/jls-to-pack", queryParams);
         }
 
         public async Task<List<WarehouseDocument>?> GetWarehouseDocuments(GetWarehouseDocumentsRequest request)

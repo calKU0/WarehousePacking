@@ -1,26 +1,43 @@
 ﻿window.fullscreenHelper = {
-    enter: function () {
-        let el = document.documentElement;
-        if (el.requestFullscreen) {
-            el.requestFullscreen();
-        } else if (el.webkitRequestFullscreen) { // Safari
-            el.webkitRequestFullscreen();
-        } else if (el.msRequestFullscreen) { // IE/Edge legacy
-            el.msRequestFullscreen();
+    enter: async function () {
+        try {
+            let el = document.documentElement;
+
+            if (el.requestFullscreen) {
+                await el.requestFullscreen();
+            } else if (el.webkitRequestFullscreen) { // Safari
+                await el.webkitRequestFullscreen();
+            } else if (el.msRequestFullscreen) { // IE/Edge legacy
+                el.msRequestFullscreen();
+            }
+
+            console.log("Fullscreen entered");
+        } catch (err) {
+            console.error("Failed to enter fullscreen:", err);
         }
     },
-    exit: function () {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
-            document.msExitFullscreen();
+
+    exit: async function () {
+        try {
+            if (document.exitFullscreen) {
+                await document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                await document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+
+            console.log("Fullscreen exited");
+        } catch (err) {
+            console.error("Failed to exit fullscreen:", err);
         }
     },
+
     isFullscreen: function () {
-        return !!(document.fullscreenElement
-            || document.webkitFullscreenElement
-            || document.msFullscreenElement);
+        return !!(
+            document.fullscreenElement ||
+            document.webkitFullscreenElement ||
+            document.msFullscreenElement
+        );
     }
 };

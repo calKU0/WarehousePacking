@@ -1,4 +1,4 @@
-﻿using WarehousePacking.Contracts.DTOs;
+﻿using WarehousePacking.Contracts.DTOs.Dashboards;
 using WarehousePacking.Contracts.DTOs.Requests;
 
 namespace WarehousePacking.Contracts.Services
@@ -8,5 +8,6 @@ namespace WarehousePacking.Contracts.Services
         public Task<IEnumerable<WarehouseTask>> GetWarehouseTasksAsync(GetWarehouseTasksRequest request);
         public Task<IEnumerable<WarehouseDocument>> GetWarehouseDocumentsAsync(GetWarehouseDocumentsRequest request);
         public Task<IEnumerable<WarehouseOperation>> GetWarehouseOperationsAsync(GetWarehouseOperationsRequest request);
+        public Task<IEnumerable<JlToPack>> GetJlsToPackAsync(GetJlsToPackRequest? request);
     }
 }

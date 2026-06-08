@@ -6,6 +6,7 @@ namespace WarehousePacking.Infrastructure.Data
     public interface IDbExecutor
     {
         Task<IEnumerable<T>> QueryAsync<T>(string sql, object? param = null, CommandType? commandType = CommandType.StoredProcedure, Connection connection = Connection.ERPConnection);
+        Task<IEnumerable<TReturn>> QueryAsync<TFirst, TSecond, TReturn>(string sql, Func<TFirst, TSecond, TReturn> map, string splitOn, object? param = null, CommandType? commandType = CommandType.StoredProcedure, Connection connectionName = Connection.ERPConnection);
 
         Task<T> QuerySingleOrDefaultAsync<T>(string sql, object? param = null, CommandType? commandType = CommandType.StoredProcedure, Connection connection = Connection.ERPConnection);
 

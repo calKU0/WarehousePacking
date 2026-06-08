@@ -195,7 +195,7 @@ else
 
             if (IsFirstSave)
             {
-                var firstRoute = WorkStationSettings.StationType == StationType.Dashboard ? "/monitor" : "/login";
+                var firstRoute = WorkStationSettings.StationType == StationType.Dashboard ? "/dashboard" : "/login";
                 NavigationManager.NavigateTo(firstRoute, forceLoad: true);
             }
         }
