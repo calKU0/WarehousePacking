@@ -23,18 +23,18 @@ namespace WarehousePacking.API.Controllers
         }
 
         [HttpGet("jl-list")]
-        public async Task<IActionResult> GetJlList([FromQuery] PackingLevel? location = null)
+        public async Task<IActionResult> GetJlList([FromQuery] GetJlListRequest? request)
         {
-            _logger.LogInformation("Request: GetJlList for location {Location}", location);
+            _logger.LogInformation("Request: GetJlList for location {Location}", request?.Level);
             try
             {
-                var list = await _packingService.GetJlListAsync(location);
-                _logger.LogInformation("GetJlList succeeded with {Count} results for location {Location}", list.Count(), location);
+                var list = await _packingService.GetJlListAsync(request);
+                _logger.LogInformation("GetJlList succeeded with {Count} results for location {Location}", list.Count(), request?.Level);
                 return Ok(list);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in GetJlList for location {Location}", location);
+                _logger.LogError(ex, "Error in GetJlList for location {Location}", request?.Level);
                 return HandleException(ex);
             }
         }
@@ -360,6 +360,23 @@ namespace WarehousePacking.API.Controllers
             }
         }
 
+        [HttpPost("can-change-courier")]
+        public async Task<IActionResult> CanChangeCourier([FromBody] UpdatePackageCourierRequest request)
+        {
+            _logger.LogInformation("Request: CanChangeCourier for package {PackageId} courier {Courier}", request.PackageId, request.Courier);
+            try
+            {
+                bool success = await _packingService.CanChangeCourier(request);
+                _logger.LogInformation("CanChangeCourier result for package {PackageId}: {Result}", request.PackageId, success);
+                return Ok(success);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in CanChangeCourier for package {PackageId}", request.PackageId);
+                return HandleException(ex);
+            }
+        }
+
         [HttpPatch("update-package-dimensions")]
         public async Task<IActionResult> UpdatePackageDimensions([FromBody] UpdatePackageDimensionsRequest dimensions)
         {
@@ -512,18 +529,18 @@ namespace WarehousePacking.API.Controllers
         }
 
         [HttpGet("get-packages-for-client")]
-        public async Task<IActionResult> GetPackagesInBuforForClient([FromQuery] int clientId, [FromQuery] string? addressName, [FromQuery] string? addressCity, [FromQuery] string? addressStreet, [FromQuery] string? addressPostalCode, [FromQuery] string? addressCountry, [FromQuery] DocumentStatus status)
+        public async Task<IActionResult> GetPackagesForClient([FromQuery] int clientId, [FromQuery] int addressId, [FromQuery] int addressType, [FromQuery] DocumentStatus status)
         {
-            _logger.LogInformation("Request: GetPackagesInBuforForClient for ClientId {ClientId}", clientId);
+            _logger.LogInformation("Request: GetPackagesForClient for ClientId {ClientId}", clientId);
             try
             {
-                var packages = await _packingService.GetPackagesForClient(clientId, addressName, addressCity, addressStreet, addressPostalCode, addressCountry, status);
-                _logger.LogInformation("GetPackagesInBuforForClient succeeded for ClientId {ClientId} with {Count} packages", clientId, packages.Count());
+                var packages = await _packingService.GetPackagesForClient(clientId, addressId, addressType, status);
+                _logger.LogInformation("GetPackagesForClient succeeded for ClientId {ClientId} with {Count} packages", clientId, packages.Count());
                 return Ok(packages);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in GetPackagesInBuforForClient for ClientId {ClientId}", clientId);
+                _logger.LogError(ex, "Error in GetPackagesForClient for ClientId {ClientId}", clientId);
                 return HandleException(ex);
             }
         }
@@ -581,6 +598,23 @@ namespace WarehousePacking.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in BufferPackage for barcode {Barcode}", barcode);
+                return HandleException(ex);
+            }
+        }
+
+        [HttpDelete("remove-jl-from-packing-list")]
+        public async Task<IActionResult> RemoveJlFromPackingList([FromQuery] string jlCode)
+        {
+            _logger.LogInformation("Request: RemoveJlFromPackingList for jl {JlCode}", jlCode);
+            try
+            {
+                await _packingService.RemoveJlFromPackingList(jlCode);
+                _logger.LogInformation("RemoveJlFromPackingList succeeded for jl {JlCode}", jlCode);
+                return Ok(true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in RemoveJlFromPackingList for jl {JlCode}", jlCode);
                 return HandleException(ex);
             }
         }

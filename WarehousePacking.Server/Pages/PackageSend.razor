@@ -81,7 +81,12 @@
             <div class="row g-3 mt-3 mb-4 align-items-center">
                 <div class="col-md-3">
                     <label class="form-label fw-bold">Kurier</label>
-                    <InputSelect @bind-Value="Package.Courier" class="form-select" disabled="@(!Package.ManualEdit)">
+                    <InputSelect TValue="Courier"
+                                 Value="Package.Courier"
+                                 ValueChanged="@(courier => OnCourierChanged(courier))"
+                                 ValueExpression="() => Package.Courier"
+                                 class="form-select"
+                                 disabled="@(!Package.ManualEdit)">
                         @foreach (var courier in Enum.GetValues<Courier>())
                         {
                             <option value="@courier">@courier.GetDescription()</option>
@@ -458,6 +463,29 @@
 
         return int.TryParse(barcode.Substring(3, 4), out documentType)
             && int.TryParse(barcode.Substring(12, 5), out documentId);
+    }
+
+    private async Task OnCourierChanged(Courier courier)
+    {
+        var previousCourier = Package.Courier;
+        try
+        {
+            if (previousCourier != courier && Package.Id != 0)
+            {
+                UpdatePackageCourierRequest request = new()
+                {
+                    Courier = courier,
+                    PackageId = Package.Id
+                };
+                await PackingService.CanChangeCourier(request);
+            }
+            Package.Courier = courier;
+        }
+        catch (Exception ex)
+        {
+            Package.Courier = previousCourier;
+            Toast.Show("Błąd!", $"Błąd przy próbie zmiany kuriera: {ex.Message}");
+        }
     }
 
     private async Task CreatePackageForDocument(DocumentInfo document)

@@ -13,23 +13,6 @@ namespace WarehousePacking.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<JlToPack>> GetJlsToPackAsync(GetJlsToPackRequest? request)
-        {
-            const string procedure = "kp.GetJlsToPack";
-
-            var parameters = request == null
-                ? null
-                : new
-                {
-                    request.Level,
-                    request.Warehouse
-                };
-
-            var result = await _context.QueryAsync<JlToPack>(procedure, parameters);
-
-            return result;
-        }
-
         public async Task<IEnumerable<WarehouseDocument>> GetWarehouseDocumentsAsync(GetWarehouseDocumentsRequest request)
         {
             const string procedure = "kp.GetWarehouseDocuments";
@@ -114,6 +97,14 @@ namespace WarehousePacking.Infrastructure.Repositories
                 param: parameters);
 
             return tasks.Values;
+        }
+
+        public async Task<DashboardColorConfiguration> GetColorConfigurationAsync()
+        {
+            const string procedure = "kp.GetDashboardColorConfiguration";
+
+            var result = await _context.QuerySingleOrDefaultAsync<DashboardColorConfiguration>(procedure);
+            return result;
         }
     }
 }

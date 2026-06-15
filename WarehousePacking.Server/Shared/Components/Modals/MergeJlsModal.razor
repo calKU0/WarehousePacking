@@ -22,11 +22,11 @@
                         {
                             <tr>
                                 <td>
-                                    <input type="checkbox" checked="@SelectedJlsNames.Contains((jl.Name, jl.LocationCode))"
-                                           @onchange="e => OnCheckboxChanged(e.Value!, jl.Name, jl.LocationCode)" />
+                                    <input type="checkbox" checked="@SelectedJlsNames.Contains((jl.Code, jl.Location))"
+                                           @onchange="e => OnCheckboxChanged(e.Value!, jl.Code, jl.Location)" />
                                 </td>
-                                <td>@jl.Name</td>
-                                <td>@jl.LocationCode</td>
+                                <td>@jl.Code</td>
+                                <td>@jl.Location</td>
                             </tr>
                         }
 

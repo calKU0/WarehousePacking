@@ -4,7 +4,7 @@
 @using WarehousePacking.Contracts.Data.Enums
 
 <div class="d-flex align-items-center mb-3 header-row w-100">
-    @if (JlItems != null && JlItems.Any() && CurrentJl.Country != "PL" && CurrentJl.ClientName != "MIX" && CurrentJl.Country != string.Empty && CurrentJl.CourierName != "MIX")
+    @if (JlItems != null && JlItems.Any() && CurrentJl.DestinationCountry != "PL" && CurrentJl.Courier != Courier.MIX && CurrentJl.DestinationCountry != string.Empty)
     {
         <div class="header-image-placeholder me-2">
             <img src="images/exp.jpg" alt="Export" />

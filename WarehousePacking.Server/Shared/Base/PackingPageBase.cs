@@ -202,7 +202,7 @@ namespace WarehousePacking.Server.Shared.Base
         {
             await PackingService.UpdateJlRealization(new JlInProgressDto
             {
-                Name = CurrentJl.Name,
+                Name = CurrentJl.Code,
                 PackageId = PackageId
             });
 
@@ -264,7 +264,7 @@ namespace WarehousePacking.Server.Shared.Base
             {
                 CurrentJl = await PackingService.GetJlInfoByCode(Jl);
                 CurrentJl.InternalBarcode = InternalBarcodeTemp;
-                JlItems = await PackingService.GetJlItems(CurrentJl.Name);
+                JlItems = await PackingService.GetJlItems(CurrentJl.Code);
 
                 if (MergeJls.Any())
                 {
@@ -322,7 +322,7 @@ namespace WarehousePacking.Server.Shared.Base
             // Base JL realization
             await PackingService.AddJlRealization(new JlInProgressDto
             {
-                Name = CurrentJl.Name,
+                Name = CurrentJl.Code,
                 Courier = CurrentJl.Courier,
                 ClientName = CurrentJl.ClientSymbol,
                 StationNumber = Settings.StationNumber,
@@ -362,6 +362,8 @@ namespace WarehousePacking.Server.Shared.Base
                     PackingLevel = Settings.PackingLevel,
                     StationNumber = Settings.StationNumber,
                     IsCompleted = CurrentJl.IsCompleted,
+                    AddressId = CurrentJl.AddressId,
+                    AddressType = CurrentJl.AddressType,
                 };
 
                 var packageId = await PackingService.CreatePackage(request);
@@ -420,7 +422,7 @@ namespace WarehousePacking.Server.Shared.Base
 
             if (((routeStatuses.DPDClosed && CurrentJl.Courier == Courier.DPD)
                 || (routeStatuses.FedexClosed && CurrentJl.Courier == Courier.Fedex)
-                || (routeStatuses.GLSClosed && CurrentJl.Courier == Courier.GLS)) && CurrentJl.Country == "PL")
+                || (routeStatuses.GLSClosed && CurrentJl.Courier == Courier.GLS)) && CurrentJl.DestinationCountry == "PL")
             {
                 ConfirmDialog.Show("Kurier poza trasą", $"Trasa kuriera {CurrentJl.Courier.GetDescription()} została zamknięta. Czy chcesz zmienić kuriera?",
                     onConfirm: async () =>
@@ -759,7 +761,7 @@ namespace WarehousePacking.Server.Shared.Base
                 request.Add(additionalPackStockRequest);
             }
 
-            var PackedWmsItems = PackedItems.Where(i => i.JlCode == CurrentJl.Name && !i.PackedWMS).Select(i => new WMSPackStockItemsRequest
+            var PackedWmsItems = PackedItems.Where(i => i.JlCode == CurrentJl.Code && !i.PackedWMS).Select(i => new WMSPackStockItemsRequest
             {
                 ItemCode = i.ItemCode,
                 Quantity = i.JlQuantity,
@@ -770,15 +772,15 @@ namespace WarehousePacking.Server.Shared.Base
             {
                 PackingLevel = Settings.PackingLevel,
                 PackingWarehouse = Settings.PackingWarehouse,
-                LocationCode = CurrentJl.LocationCode,
+                LocationCode = CurrentJl.Location,
                 DestinationCode = destinationCode,
                 ScannedCode = packageCode,
                 TrackingNumber = trackingNumber,
                 StationNumber = Settings.StationNumber,
                 Courier = courier,
-                JlCode = CurrentJl.Name,
+                JlCode = CurrentJl.Code,
                 Type = string.Empty,
-                Weight = PackedItems.Where(i => i.JlCode == CurrentJl.Name).Sum(i => i.ItemWeight * i.JlQuantity),
+                Weight = PackedItems.Where(i => i.JlCode == CurrentJl.Code).Sum(i => i.ItemWeight * i.JlQuantity),
                 Status = status,
                 Items = PackedWmsItems
             };
@@ -1019,7 +1021,7 @@ namespace WarehousePacking.Server.Shared.Base
         {
             try
             {
-                CourierConfiguration = (await PackingService.GetCourierConfiguration(CurrentJl.CourierName, Settings.PackingLevel, CurrentJl.Country)).First();
+                CourierConfiguration = (await PackingService.GetCourierConfiguration(CurrentJl.CourierName, Settings.PackingLevel, CurrentJl.DestinationCountry)).First();
                 if (!string.IsNullOrEmpty(CurrentJl.InternalBarcode))
                 {
                     var package = await ShipmentService.GetShipmentDataByBarcode(CurrentJl.InternalBarcode);
@@ -1058,7 +1060,7 @@ namespace WarehousePacking.Server.Shared.Base
                         await CollaborationService.LeaveSessionAsync(PackageId, UserSession.Username, shouldCloseSession);
 
                         // Remove the JL realization
-                        await PackingService.RemoveJlRealization(CurrentJl.Name, UserSession.Username, shouldCloseSession);
+                        await PackingService.RemoveJlRealization(CurrentJl.Code, UserSession.Username, shouldCloseSession);
                         foreach (var jl in MergeJls)
                         {
                             await PackingService.RemoveJlRealization(jl.jlName, UserSession.Username, shouldCloseSession);
@@ -1255,8 +1257,10 @@ namespace WarehousePacking.Server.Shared.Base
                         foreach (var jl in MergeJls)
                         {
                             await PackingService.RemoveJlRealization(jl.jlName, UserSession.Username, false);
+                            await PackingService.RemoveJlFromPackingList(jl.jlName);
                         }
                         await PackingService.RemoveJlRealization(Jl, UserSession.Username, false);
+                        await PackingService.RemoveJlFromPackingList(Jl);
                         Navigation.NavigateTo("/kontrola-pakowania");
                         break;
 
@@ -1318,11 +1322,15 @@ namespace WarehousePacking.Server.Shared.Base
                 {
                     case PackingFlow.FinishPacking:
                         await CollaborationService.LeaveSessionAsync(PackageId, UserSession.Username, closeSession: true);
+
                         foreach (var jl in MergeJls)
                         {
                             await PackingService.RemoveJlRealization(jl.jlName, UserSession.Username, false);
+                            await PackingService.RemoveJlFromPackingList(jl.jlName);
                         }
                         await PackingService.RemoveJlRealization(Jl, UserSession.Username, false);
+                        await PackingService.RemoveJlFromPackingList(Jl);
+
                         Navigation.NavigateTo("/kontrola-pakowania");
                         break;
 

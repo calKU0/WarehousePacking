@@ -6,13 +6,14 @@ namespace WarehousePacking.Contracts.Repositories
 {
     public interface IPackingRepository
     {
+        Task<IEnumerable<JlData>> GetJlsToPack(GetJlListRequest? request = null);
         Task<IEnumerable<JlItemDto>> GetPackingJlItemsAsync(int packageId);
         Task<IEnumerable<JlInProgressDto>> GetJlListInProgress();
         Task<bool> IsJlInProgress(string jl);
         Task<bool> AddJlRealization(JlInProgressDto jl);
         Task<bool> RemoveJlRealization(string? jl, string? username, bool packageClose);
         Task<bool> UpdateJlRealization(JlInProgressDto jl);
-        Task<IEnumerable<PackageData>> GetPackagesForClient(int clientId, string? addressName, string? addressCity, string? addressStreet, string? addressPostalCode, string? addressCountry, DocumentStatus status);
+        Task<IEnumerable<PackageData>> GetPackagesForClient(int clientId, int addressId, int addressType, DocumentStatus status);
         Task<IEnumerable<CourierConfiguration>> GetCourierConfiguration(string? courierName, PackingLevel? level, string? country);
         Task<bool> UpdateCourierConfiguration(IEnumerable<CourierConfiguration> configurations);
         Task<int> CreatePackage(CreatePackageRequest request, string courier);
@@ -21,6 +22,7 @@ namespace WarehousePacking.Contracts.Repositories
         Task<bool> OpenPackage(int packageId);
         Task<int> ClosePackage(ClosePackageRequest request);
         Task<bool> UpdatePackageCourier(UpdatePackageCourierRequest request, string courier);
+        Task<bool> CanChangeCourier(UpdatePackageCourierRequest request, string courier);
         Task<bool> UpdatePackageDimensions(UpdatePackageDimensionsRequest dimensions);
         Task<string> GenerateInternalBarcode(string stationNumber);
         Task<bool> AddPackageAttributes(int packageId, string warehouse, string level, string stationNumber, bool isCompleted);
@@ -33,5 +35,6 @@ namespace WarehousePacking.Contracts.Repositories
         Task<IEnumerable<DocumentElement>> GetDocumentElementsAsync(int documentId, int documentType);
         Task<DocumentInfo?> GetDocumentInfoAsync(int documentId, int documentType);
         Task<bool> IsJlReadyToPack(int clientErpId, int destinationZoneId);
+        Task<bool> RemoveJlFromPackingList(string code);
     }
 }

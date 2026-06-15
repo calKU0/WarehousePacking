@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Microsoft.AspNetCore.WebUtilities;
+using System.Net;
 using WarehousePacking.Contracts.Data.Enums;
 using WarehousePacking.Contracts.DTOs;
 using WarehousePacking.Contracts.DTOs.Requests;
@@ -14,26 +15,20 @@ namespace WarehousePacking.Server.Services
             _dbClient = httpFactory.CreateClient("Database");
         }
 
-        public async Task<List<JlData>> GetJlList(PackingLevel? packingLocation = null)
+        public async Task<List<JlData>> GetJlList(GetJlListRequest request)
         {
-            var endpoint = packingLocation.HasValue
-                ? $"api/packing/jl-list?location={packingLocation.Value}"
-                : "api/packing/jl-list";
-
-            var response = await _dbClient.GetAsync(endpoint);
-            if (response.IsSuccessStatusCode)
+            var queryParams = new Dictionary<string, string?>();
+            if (request != null)
             {
-                return await response.Content.ReadFromJsonAsync<List<JlData>>();
+                if (request.Level.HasValue)
+                    queryParams["Level"] = request.Level.Value.ToString();
+                if (request.Warehouse.HasValue)
+                    queryParams["Warehouse"] = request.Warehouse.Value.ToString();
+                if (!string.IsNullOrEmpty(request.Code))
+                    queryParams["Code"] = request.Code.ToString();
             }
 
-            if (response.StatusCode == HttpStatusCode.BadRequest)
-            {
-                var message = await response.Content.ReadAsStringAsync();
-                throw new ArgumentException(message);
-            }
-
-            var generic = await response.Content.ReadAsStringAsync();
-            throw new Exception(generic);
+            return await GetAsync<List<JlData>>("api/packing/jl-list", queryParams);
         }
 
         public async Task<List<JlDto>> GetNotClosedPackages()
@@ -222,9 +217,9 @@ namespace WarehousePacking.Server.Services
             throw new Exception(generic);
         }
 
-        public async Task<List<PackageData>?> GetPackagesForClient(int clientId, string addressName, string addressCity, string addressStreet, string addressPostalCode, string addressCountry, DocumentStatus status)
+        public async Task<List<PackageData>?> GetPackagesForClient(int clientId, int addressId, int addressType, DocumentStatus status)
         {
-            var response = await _dbClient.GetAsync($"api/packing/get-packages-for-client?clientId={clientId}&addressName={addressName}&addressCity={addressCity}&addressStreet={addressStreet}&addressPostalCode={addressPostalCode}&addressCountry={addressCountry}&status={status}");
+            var response = await _dbClient.GetAsync($"api/packing/get-packages-for-client?clientId={clientId}&addressId={addressId}&addressType={addressType}&status={status}");
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<List<PackageData>>();
@@ -423,6 +418,31 @@ namespace WarehousePacking.Server.Services
             throw new Exception(generic);
         }
 
+        public async Task<bool> CanChangeCourier(UpdatePackageCourierRequest request)
+        {
+            var response = await _dbClient.PostAsJsonAsync($"api/packing/can-change-courier", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<bool>();
+            }
+
+            if (response.StatusCode == HttpStatusCode.Conflict)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException(message);
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
+
         public async Task<bool> UpdatePackageDimensions(UpdatePackageDimensionsRequest dimensions)
         {
             var response = await _dbClient.PatchAsJsonAsync($"api/packing/update-package-dimensions", dimensions);
@@ -578,6 +598,49 @@ namespace WarehousePacking.Server.Services
 
             var generic = await response.Content.ReadAsStringAsync();
             throw new Exception(generic);
+        }
+
+        public async Task<bool> RemoveJlFromPackingList(string code)
+        {
+            var response = await _dbClient.DeleteAsync($"api/packing/remove-jl-from-packing-list?code={code}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<bool>();
+            }
+
+            var generic = await response.Content.ReadAsStringAsync();
+            throw new Exception(generic);
+        }
+
+        private async Task<T?> GetAsync<T>(string endpoint, Dictionary<string, string?>? queryParams = null)
+        {
+            var url = queryParams?.Count > 0
+                ? QueryHelpers.AddQueryString(endpoint, queryParams)
+                : endpoint;
+
+            var response = await _dbClient.GetAsync(url);
+
+            if (response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == HttpStatusCode.NoContent ||
+                    response.Content.Headers.ContentLength == 0)
+                {
+                    return default;
+                }
+
+                return await response.Content.ReadFromJsonAsync<T>();
+            }
+
+            var message = await response.Content.ReadAsStringAsync();
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                throw new InvalidOperationException(message);
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+                throw new ArgumentException(message);
+
+            throw new Exception(message);
         }
     }
 }

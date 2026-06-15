@@ -50,6 +50,9 @@ namespace WarehousePacking.Contracts.Data.Enums
         Diera = 34,
 
         [Description("Transport dostawcy")]
-        Supplier_Transport = 35
+        Supplier_Transport = 35,
+
+        [Description("Rhenus")]
+        Rhenus = 36
     }
 }

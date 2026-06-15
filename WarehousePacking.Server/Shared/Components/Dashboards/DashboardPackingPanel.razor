@@ -47,7 +47,7 @@
                 </div>
                 <div class="card-body p-2 d-flex flex-column gap-2 dashboard-courier-body dashboard-auto-scroll">
                     <DashboardCourierSegmentTable Sections="GetCourierSections()"
-                                                  IsLoading="IsLoading" />
+                                                IsLoading="IsLoading" />
                 </div>
             </div>
         </div>
@@ -102,7 +102,18 @@
                                     @foreach (var rowState in InProgressRows)
                                     {
                                         var row = rowState.Data;
-                                        <tr class="@($"{GetElapsedRowClass(row.Date)} {rowState.AnimationClass}".Trim())" @key="rowState.Key">
+                                                                                     
+                                        var isDownStation = rowState.Data.StationNumber.Substring(1, 1) == "2";
+
+                                        var packingTimeRedThreshold = isDownStation
+                                            ? ColorConfig.PackingDownPackingTimeRedThreshold
+                                            : ColorConfig.PackingUpPackingTimeRedThreshold;
+
+                                        var packingTimeYellowThreshold = isDownStation
+                                            ? ColorConfig.PackingDownPackingTimeYellowThreshold
+                                            : ColorConfig.PackingUpPackingTimeYellowThreshold;
+                                                
+                                        <tr class="@($"{ElapsedClassHelper.GetRowClass(row.Date, packingTimeRedThreshold, packingTimeYellowThreshold)} {rowState.AnimationClass}".Trim())" @key="rowState.Key">
                                             <td>
                                                 <span class="d-inline-block text-truncate"
                                                       style="max-width: 100px;"
@@ -131,12 +142,12 @@
                                             <td>@row.ClientName</td>
                                             <td>@row.StationNumber</td>
                                             <td class="dashboard-elapsed-cell">
-                                                <span class="badge @GetElapsedBadgeClass(row.Date) dashboard-elapsed-badge dashboard-time-text">
+                                                <span class="badge @ElapsedClassHelper.GetBadgeClass(row.Date, packingTimeRedThreshold, packingTimeYellowThreshold) dashboard-elapsed-badge dashboard-time-text">
                                                     <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Date)" CssClass="dashboard-time-text" />
                                                 </span>
                                             </td>
                                             <td class="dashboard-elapsed-cell">
-                                                <span class="badge @GetElapsedBadgeClass(row.LastScanDate) dashboard-elapsed-badge dashboard-time-text">
+                                                <span class="badge @ElapsedClassHelper.GetBadgeClass(row.LastScanDate, ColorConfig.OperatorLastActivityRedThresholdMinutes, ColorConfig.OperatorLastActivityYellowThresholdMinutes) dashboard-elapsed-badge dashboard-time-text">
                                                     <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.LastScanDate)" CssClass="dashboard-time-text" />
                                                 </span>
                                             </td>
@@ -181,8 +192,9 @@
         public bool IsLeaving { get; set; }
     }
 
-    [Parameter] public List<JlToPack> Queue { get; set; } = new();
+    [Parameter] public List<JlData> Queue { get; set; } = new();
     [Parameter] public List<JlInProgressDto> InProgress { get; set; } = new();
+    [Parameter] public DashboardColorConfiguration ColorConfig { get; set; } = new();
     [Parameter] public bool IsLoading { get; set; }
 
     private List<CourierRowView> CourierRows { get; set; } = new();
@@ -429,7 +441,7 @@
         return "bg-success";
     }
 
-    private static CourierSegment? ResolveCourierSegment(JlToPack jl)
+    private static CourierSegment? ResolveCourierSegment(JlData jl)
     {
         return (jl.Warehouse, jl.Level) switch
         {
@@ -451,6 +463,8 @@
 
     private IReadOnlyList<CourierSegmentTableRow> GetCourierSegmentRows(CourierSegment segment)
     {
+        var alertColorClass = GetSegmentAlertClass(segment);
+
         return GetCourierRowsForSegment(segment)
             .Select(rowState => new CourierSegmentTableRow
             {
@@ -462,9 +476,28 @@
                 Quantity = rowState.Data.Quantity,
                 SharePercent = GetCourierShare(rowState.Data.Segment, rowState.Data.Jls),
                 ShareClass = GetCourierShareClass(rowState.Data.Segment, rowState.Data.Jls),
-                AnimationClass = rowState.AnimationClass
+                AnimationClass = $"{rowState.AnimationClass} {alertColorClass}".Trim()
             })
             .ToList();
+    }
+
+    private string GetSegmentAlertClass(CourierSegment segment)
+    {
+        // Get the total JL counts for this segment across all couriers
+        var totalSegmentJls = SegmentTotals.TryGetValue(segment, out var total) ? total : 0;
+
+        return segment switch
+        {
+            CourierSegment.WarehouseAUp => totalSegmentJls < ColorConfig.PackingUpBlueThreshold ? "table-primary" :
+                                           totalSegmentJls > ColorConfig.PackingUpRedThreshold ? "table-danger" :
+                                           "table-warning",
+
+            CourierSegment.WarehouseADown or CourierSegment.WarehouseBDown =>
+                                           totalSegmentJls < ColorConfig.PackingDownBlueThreshold ? "table-primary" :
+                                           totalSegmentJls > ColorConfig.PackingDownRedThreshold ? "table-danger" :
+                                           "table-warning",
+            _ => string.Empty
+        }; 
     }
 
     private IReadOnlyList<CourierSegmentTableSection> GetCourierSections()
@@ -487,42 +520,6 @@
                 Rows = GetCourierSegmentRows(CourierSegment.WarehouseBDown)
             }
         };
-    }
-
-    private string GetElapsedBadgeClass(DateTime start)
-    {
-        start = DateTime.SpecifyKind(start, DateTimeKind.Local);
-        var elapsed = _now - FormatHelper.ToLocalTime(start);
-
-        if (elapsed.TotalMinutes >= 45)
-        {
-            return "text-bg-danger";
-        }
-
-        if (elapsed.TotalMinutes >= 20)
-        {
-            return "text-bg-warning";
-        }
-
-        return "text-bg-success";
-    }
-
-    private string GetElapsedRowClass(DateTime start)
-    {
-        start = DateTime.SpecifyKind(start, DateTimeKind.Local);
-        var elapsed = _now - FormatHelper.ToLocalTime(start);
-
-        if (elapsed.TotalMinutes >= 45)
-        {
-            return "table-danger";
-        }
-
-        if (elapsed.TotalMinutes >= 20)
-        {
-            return "table-warning";
-        }
-
-        return string.Empty;
     }
 
     public ValueTask DisposeAsync()

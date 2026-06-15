@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.WebUtilities;
 using System.Net;
+using WarehousePacking.Contracts.DTOs;
 using WarehousePacking.Contracts.DTOs.Dashboards;
 using WarehousePacking.Contracts.DTOs.Requests;
 
@@ -14,7 +15,7 @@ namespace WarehousePacking.Server.Services
             _dbClient = httpFactory.CreateClient("Database");
         }
 
-        public async Task<List<JlToPack>?> GetJlsToPack(GetJlsToPackRequest? request = null)
+        public async Task<List<JlData>?> GetJlsToPack(GetJlListRequest? request = null)
         {
             var queryParams = new Dictionary<string, string?>();
             if (request != null)
@@ -25,7 +26,7 @@ namespace WarehousePacking.Server.Services
                     queryParams["Warehouse"] = request.Warehouse.Value.ToString();
             }
 
-            return await GetAsync<JlToPack>("api/dashboards/jls-to-pack", queryParams);
+            return await GetAsync<List<JlData>>("api/packing/jl-list", queryParams);
         }
 
         public async Task<List<WarehouseDocument>?> GetWarehouseDocuments(GetWarehouseDocumentsRequest request)
@@ -48,7 +49,7 @@ namespace WarehousePacking.Server.Services
                 }
             }
 
-            return await GetAsync<WarehouseDocument>(
+            return await GetAsync<List<WarehouseDocument>>(
                 "api/dashboards/warehouse-documents",
                 queryParams
             );
@@ -86,7 +87,7 @@ namespace WarehousePacking.Server.Services
             if (request.DestinationZoneId.HasValue)
                 queryParams["DestinationZoneId"] = request.DestinationZoneId.Value.ToString();
 
-            return await GetAsync<WarehouseTask>(
+            return await GetAsync<List<WarehouseTask>>(
                 "api/dashboards/warehouse-tasks",
                 queryParams
             );
@@ -121,33 +122,45 @@ namespace WarehousePacking.Server.Services
             if (request.DestinationZoneId.HasValue)
                 queryParams["DestinationZoneId"] = request.DestinationZoneId.Value.ToString();
 
-            return await GetAsync<WarehouseOperation>(
+            return await GetAsync<List<WarehouseOperation>>(
                 "api/dashboards/warehouse-operations",
                 queryParams
             );
         }
 
-        private async Task<List<T>?> GetAsync<T>(string endpoint, Dictionary<string, string?> queryParams)
+        public async Task<DashboardColorConfiguration> GetColorConfiguration()
         {
-            var url = QueryHelpers.AddQueryString(endpoint, queryParams);
+            return await GetAsync<DashboardColorConfiguration>("api/dashboards/color-configuration");
+        }
+
+        private async Task<T?> GetAsync<T>(string endpoint, Dictionary<string, string?>? queryParams = null)
+        {
+            var url = queryParams?.Count > 0
+                ? QueryHelpers.AddQueryString(endpoint, queryParams)
+                : endpoint;
 
             var response = await _dbClient.GetAsync(url);
 
             if (response.IsSuccessStatusCode)
             {
-                if (response.StatusCode == HttpStatusCode.NoContent || response.Content.Headers.ContentLength == 0)
-                    return null;
+                if (response.StatusCode == HttpStatusCode.NoContent ||
+                    response.Content.Headers.ContentLength == 0)
+                {
+                    return default;
+                }
 
-                return await response.Content.ReadFromJsonAsync<List<T>?>();
+                return await response.Content.ReadFromJsonAsync<T>();
             }
 
+            var message = await response.Content.ReadAsStringAsync();
+
             if (response.StatusCode == HttpStatusCode.NotFound)
-                throw new InvalidOperationException(await response.Content.ReadAsStringAsync());
+                throw new InvalidOperationException(message);
 
             if (response.StatusCode == HttpStatusCode.BadRequest)
-                throw new ArgumentException(await response.Content.ReadAsStringAsync());
+                throw new ArgumentException(message);
 
-            throw new Exception(await response.Content.ReadAsStringAsync());
+            throw new Exception(message);
         }
     }
 }

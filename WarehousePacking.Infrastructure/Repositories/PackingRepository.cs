@@ -18,6 +18,24 @@ namespace WarehousePacking.Infrastructure.Repositories
             _context = context;
         }
 
+        public async Task<IEnumerable<JlData>> GetJlsToPack(GetJlListRequest? request = null)
+        {
+            const string procedure = "kp.GetJlsToPack1";
+
+            return await _context.QueryAsync<JlData, ShipmentServices, JlData>(
+                procedure,
+                (jl, services) =>
+                {
+                    jl.ShipmentServices = services;
+                    return jl;
+                },
+                splitOn: "D12",
+                param: new { level = request?.Level, jlCode = request?.Code, warehouse = request?.Warehouse },
+                commandType: CommandType.StoredProcedure,
+                connectionName: Connection.ERPConnection
+            );
+        }
+
         public async Task<IEnumerable<JlItemDto>> GetPackingJlItemsAsync(int packageId)
         {
             const string procedure = "kp.GetJlPackingItems";
@@ -73,10 +91,10 @@ namespace WarehousePacking.Infrastructure.Repositories
             return result > 0;
         }
 
-        public async Task<IEnumerable<PackageData>> GetPackagesForClient(int clientId, string? addressName, string? addressCity, string? addressStreet, string? addressPostalCode, string? addressCountry, DocumentStatus status)
+        public async Task<IEnumerable<PackageData>> GetPackagesForClient(int clientId, int addressId, int addressType, DocumentStatus status)
         {
             const string procedure = "kp.GetPackagesForClient";
-            return await _context.QueryAsync<PackageData>(procedure, new { clientId, addressName, addressCity, addressStreet, addressPostalCode, addressCountry, status }, CommandType.StoredProcedure, Connection.ERPConnection);
+            return await _context.QueryAsync<PackageData>(procedure, new { clientId, addressId, addressType, status }, CommandType.StoredProcedure, Connection.ERPConnection);
         }
 
         public async Task<IEnumerable<CourierConfiguration>> GetCourierConfiguration(string? courierName, PackingLevel? level, string? country)
@@ -136,6 +154,13 @@ namespace WarehousePacking.Infrastructure.Repositories
         public async Task<bool> UpdatePackageCourier(UpdatePackageCourierRequest request, string courier)
         {
             const string procedure = "kp.UpdatePackageCourier";
+            var result = await _context.QuerySingleOrDefaultAsync<int>(procedure, new { request.PackageId, courier, request.DocumentId }, CommandType.StoredProcedure, Connection.ERPConnection);
+            return result > 0;
+        }
+
+        public async Task<bool> CanChangeCourier(UpdatePackageCourierRequest request, string courier)
+        {
+            const string procedure = "kp.CanChangeCourier";
             var result = await _context.QuerySingleOrDefaultAsync<int>(procedure, new { request.PackageId, courier, request.DocumentId }, CommandType.StoredProcedure, Connection.ERPConnection);
             return result > 0;
         }
@@ -242,6 +267,13 @@ namespace WarehousePacking.Infrastructure.Repositories
         {
             const string procedure = "kp.IsJlReadyToPack";
             return await _context.QuerySingleOrDefaultAsync<bool>(procedure, new { clientId, destinationZoneId }, CommandType.StoredProcedure, Connection.ERPConnection);
+        }
+
+        public async Task<bool> RemoveJlFromPackingList(string code)
+        {
+            const string procedure = "kp.RemoveJlFromPackingList";
+            var result = await _context.QuerySingleOrDefaultAsync<int>(procedure, new { code }, CommandType.StoredProcedure, Connection.ERPConnection);
+            return result > 0;
         }
     }
 }

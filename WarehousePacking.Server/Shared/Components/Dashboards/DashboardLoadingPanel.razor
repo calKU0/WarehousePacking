@@ -220,6 +220,7 @@
 
     [Parameter] public List<WarehouseDocument> Documents { get; set; } = new();
     [Parameter] public List<WarehouseOperation> RecentOperations { get; set; } = new();
+    [Parameter] public DashboardColorConfiguration ColorConfig { get; set; } = new();
     [Parameter] public bool IsLoading { get; set; }
 
     private List<LoadingRowView> CourierRows { get; set; } = new();

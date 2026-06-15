@@ -162,8 +162,6 @@
     private sealed record ReceivingDocumentSummary(
         string Key,
         string Code,
-        string CourierName,
-        string CourierSrc,
         string StatusName,
         decimal Quantity,
         decimal Weight,
@@ -192,6 +190,7 @@
 
     [Parameter] public List<WarehouseDocument> Documents { get; set; } = new();
     [Parameter] public List<WarehouseOperation> RecentOperations { get; set; } = new();
+    [Parameter] public DashboardColorConfiguration ColorConfig { get; set; } = new();
     [Parameter] public bool IsLoading { get; set; }
 
     private List<ReceivingDocumentRowView> DocumentRows { get; set; } = new();
@@ -206,6 +205,7 @@
         .Where(x => !string.IsNullOrWhiteSpace(x))
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .Count();
+
     private string LongestActiveElapsed => RecentOperationRows.Any() ? FormatHelper.FormatElapsed(RecentOperationRows.Min(x => x.Data.Date)) : "-";
 
     protected override void OnParametersSet()
@@ -232,14 +232,9 @@
                     .OrderBy(op => op)
                     .ToList();
 
-                var courierName = doc.Courier == Courier.Unknown ? "Brak" : doc.Courier.GetDescription();
-                var courierSrc = CourierHelper.GetCourierLogo(new ShipmentServices(), doc.Courier);
-
                 return new ReceivingDocumentSummary(
                     doc.Id.ToString(),
                     doc.Code,
-                    courierName,
-                    courierSrc,
                     doc.Status.GetDescription(),
                     Math.Max(0m, doc.Quantity),
                     Math.Max(0m, doc.Weight),

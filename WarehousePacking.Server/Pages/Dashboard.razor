@@ -88,27 +88,32 @@
                         case DashboardPanel.Picking:
                             <DashboardPickingPanel Tasks="Tasks"
                                                 RecentOperations="TaskRecentOperations"
+                                                ColorConfig="ColorConfig"
                                                 IsLoading="IsPickingLoading" />
                             break;
                         case DashboardPanel.Sorting:
                             <DashboardSortingPanel Documents="SortingDocuments"
                                                 RecentOperations="SortingRecentOperations"
+                                                ColorConfig="ColorConfig"
                                                 IsLoading="IsSortingLoading" />
                             break;
                         case DashboardPanel.Packing:
                             <DashboardPackingPanel Queue="PackingQueue"
                                                 InProgress="PackingInProgress"
+                                                ColorConfig="ColorConfig"
                                                 IsLoading="IsPackingLoading" />
                             break;
                         case DashboardPanel.Loading:
                             <DashboardLoadingPanel Documents="LoadingDocuments"
-                                                 RecentOperations="LoadingRecentOperations"
-                                                 IsLoading="IsLoadingLoading"/>
+                                                RecentOperations="LoadingRecentOperations"
+                                                ColorConfig="ColorConfig"
+                                                IsLoading="IsLoadingLoading"/>
                             break;
                         case DashboardPanel.Receiving:
                             <DashboardReceivingPanel Documents="ReceivingDocuments"
-                                                   RecentOperations="ReceivingRecentOperations"
-                                                   IsLoading="IsReceivingLoading" />
+                                                RecentOperations="ReceivingRecentOperations"
+                                                ColorConfig="ColorConfig"
+                                                IsLoading="IsReceivingLoading" />
                             break;
                         case DashboardPanel.Stocking:
                             <DashboardStockingPanel />
@@ -122,6 +127,7 @@
 
 @code {
     private DashboardSettings _settings = new();
+    private DashboardColorConfiguration ColorConfig = new();
     private DashboardPanel[] PanelOrder = Array.Empty<DashboardPanel>();
     private PanelConfiguration CurrentConfig => _settings.Panels.FirstOrDefault(p => p.Panel == ActivePanel) ?? new PanelConfiguration();
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
@@ -150,7 +156,7 @@
     private List<WarehouseTask> Tasks = new();
     private List<WarehouseOperation> TaskRecentOperations = new();
 
-    private List<JlToPack> PackingQueue = new();
+    private List<JlData> PackingQueue = new();
     private List<JlInProgressDto> PackingInProgress = new();
 
     private List<WarehouseDocument> LoadingDocuments = new();
@@ -187,6 +193,7 @@
             return;
         }
 
+        ColorConfig = await DashboardService.GetColorConfiguration();
         _settings = workstationSettings.DashboardSettings;
 
         PanelOrder = _settings.Panels
@@ -350,6 +357,8 @@
                 return;
             }
 
+            ColorConfig = await DashboardService.GetColorConfiguration();
+
             if (ActivePanel == DashboardPanel.Picking)
             {
                 await LoadPickingDataAsync(force);
@@ -464,7 +473,7 @@
 
             await Task.WhenAll(queueTask, inProgressTask);
 
-            PackingQueue = queueTask.Result ?? new List<JlToPack>();
+            PackingQueue = queueTask.Result ?? new List<JlData>(); 
             PackingInProgress = inProgressTask.Result ?? new List<JlInProgressDto>();
             LastRefresh = DateTime.Now;
         }

@@ -13,11 +13,6 @@ namespace WarehousePacking.Infrastructure.Services
             _dashboardRepository = dashboardRepository;
         }
 
-        public async Task<IEnumerable<JlToPack>> GetJlsToPackAsync(GetJlsToPackRequest? request)
-        {
-            return await _dashboardRepository.GetJlsToPackAsync(request);
-        }
-
         public async Task<IEnumerable<WarehouseDocument>> GetWarehouseDocumentsAsync(GetWarehouseDocumentsRequest request)
         {
             return await _dashboardRepository.GetWarehouseDocumentsAsync(request);
@@ -31,6 +26,11 @@ namespace WarehousePacking.Infrastructure.Services
         public async Task<IEnumerable<WarehouseTask>> GetWarehouseTasksAsync(GetWarehouseTasksRequest request)
         {
             return await _dashboardRepository.GetWarehouseTasksAsync(request);
+        }
+
+        public async Task<DashboardColorConfiguration> GetColorConfigurationAsync()
+        {
+            return await _dashboardRepository.GetColorConfigurationAsync();
         }
     }
 }

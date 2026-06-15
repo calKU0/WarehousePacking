@@ -20,7 +20,7 @@
 
 <div class="row">
     <!-- Left side: table -->
-    <div class="col-md-8">
+    <div class="col-md-9">
         @if (IsLoading)
         {
             <div class="text-center">
@@ -45,6 +45,7 @@
                             <th>Kurier</th>
                             <th>Poza UE</th>
                             <th>Klient</th>
+                            <th>Data dok.</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -59,14 +60,10 @@
                             };
 
                             <tr class="@rowClass clickable-row" ondblclick="@(() => OnRowDoubleClick(item))">
-                                <td>@item.LocationCode</td>
-                                <td>@item.Name</td>
+                                <td>@item.Location</td>
+                                <td>@item.Code</td>
                                 <td>@item.Weight.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)</td>
-                                <td>
-                                    @(item.CourierName == "MIX"
-                                        ? item.AllCourierAcronyms
-                                        : item.CourierName)
-                                </td>
+                                <td>@item.CourierName</td>
                                 <td>
                                     @if (item.OutsideEU)
                                     {
@@ -78,6 +75,7 @@
                                     }
                                 </td>
                                 <td>@item.ClientSymbol</td>
+                                <td>@item.DocumentDate.ToString("dd.MM.yyyy")</td>
                             </tr>
                         }
                     </tbody>
@@ -87,7 +85,7 @@
     </div>
 
     <!-- Right side: control panel -->
-    <div class="col-md-4">
+    <div class="col-md-3 ms-auto">
         <div class="card shadow-sm p-3">
             <div class="mb-3">
                 <label for="kuwetaInput" class="form-label">Kuweta:</label>
@@ -196,13 +194,16 @@
         {
             IsLoading = true;
             Settings = await WorkstationService.GetSettingsAsync();
-            JlList = await PackingService.GetJlList(Settings.PackingLevel);
+            JlList = await PackingService.GetJlList(new GetJlListRequest()
+            {
+                Level = Settings.PackingLevel,
+            });
 
             // Calculate count
             var jlReadyToPack = JlList.ToList();
 
             JlReadyToPackCount = jlReadyToPack.Count;
-            AddressesCount = jlReadyToPack.Where(jl => !string.IsNullOrEmpty(jl.AddressName)).Select(jl => jl.AddressName).Distinct().Count();
+            AddressesCount = jlReadyToPack.Where(jl => jl.ClientId != 0).Select(jl => jl.ClientId).Distinct().Count();
         }
         catch (Exception ex)
         {
@@ -254,7 +255,7 @@
 
         // Find JL by barcode or name
         var jl = JlList.FirstOrDefault(x =>
-            string.Equals(x.Name, trimmedKuweta, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(x.Code, trimmedKuweta, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(x.Barcode, trimmedKuweta, StringComparison.OrdinalIgnoreCase));
 
         if (jl == null)
@@ -276,7 +277,7 @@
     {
         try
         {
-            var refreshedJl = await PackingService.GetJlInfoByCode(jl.Name);
+            var refreshedJl = await PackingService.GetJlInfoByCode(jl.Code);
 
             if (refreshedJl == null)
             {
@@ -303,7 +304,7 @@
             int? activePackageId = null;
             if (jl.Status == 3)
             {
-                if (jl.ClientName == "MIX")
+                if (jl.Courier == Courier.MIX)
                 {
                     Toast.Show("Pakowanie pojedyncze", "Ta kuweta jest już pakowana w trybie pojedynczym i nie można do niej dołączyć.", ToastType.Info);
                     return;
@@ -311,7 +312,7 @@
 
                 var inProgress = await PackingService.GetJlListInProgress();
                 var active = inProgress
-                    .Where(x => string.Equals(x.Name, jl.Name, StringComparison.OrdinalIgnoreCase) && x.PackageId > 0)
+                    .Where(x => string.Equals(x.Name, jl.Code, StringComparison.OrdinalIgnoreCase) && x.PackageId > 0)
                     .OrderByDescending(x => x.Date)
                     .FirstOrDefault();
 
@@ -334,9 +335,9 @@
 
                 activePackageId = active.PackageId;
 
-                var joinUrl = jl.ClientName == "MIX"
-                    ? $"/kontrola-pakowania/{jl.Name}/single?packTo={activePackageId.Value}"
-                    : $"/kontrola-pakowania/{jl.Name}?packTo={activePackageId.Value}";
+                var joinUrl = jl.Courier == Courier.MIX
+                    ? $"/kontrola-pakowania/{jl.Code}/single?packTo={activePackageId.Value}"
+                    : $"/kontrola-pakowania/{jl.Code}?packTo={activePackageId.Value}";
 
                 Navigation.NavigateTo(joinUrl);
                 return;
@@ -345,10 +346,10 @@
             if (Settings.PackingLevel != PackingLevel.Bottom)
             {
                 // upper level logic
-                if (jl.ClientName == "MIX")
-                    Navigation.NavigateTo($"/kontrola-pakowania/{jl.Name}/single");
+                if (jl.Courier == Courier.MIX)
+                    Navigation.NavigateTo($"/kontrola-pakowania/{jl.Code}/single");
                 else
-                    Navigation.NavigateTo($"/kontrola-pakowania/{jl.Name}");
+                    Navigation.NavigateTo($"/kontrola-pakowania/{jl.Code}");
 
                 return;
             }
@@ -359,14 +360,7 @@
             //
             // 1️ BUFOR CHECK
             //
-            var packagesInBufor = await PackingService.GetPackagesForClient(
-                jl.ClientId,
-                jl.AddressName,
-                jl.AddressCity,
-                jl.AddressStreet,
-                jl.AddressPostalCode,
-                jl.AddressCountry,
-                DocumentStatus.Bufor);
+            var packagesInBufor = await PackingService.GetPackagesForClient(jl.ClientId, jl.AddressId, jl.AddressType, DocumentStatus.Bufor);
 
             if (packagesInBufor?.Where(p => p.Courier == jl.Courier).Any() == true)
             {
@@ -378,12 +372,11 @@
             var matchingJls = JlList
                 .Where(x =>
                     x.Id != jl.Id &&
-                    x.AddressName == jl.AddressName &&
-                    x.AddressCity == jl.AddressCity &&
-                    x.AddressCountry == jl.AddressCountry &&
-                    x.AddressStreet == jl.AddressStreet &&
-                    x.Courier == jl.Courier  &&
-                    x.Status != 3)
+                    x.AddressId == jl.AddressId &&
+                    x.AddressType == jl.AddressType &&
+                    x.Courier == jl.Courier &&
+                    x.Status != 3 &&
+                    x.AddressId > 0)
                 .ToList();
 
             if (matchingJls.Any())
@@ -396,10 +389,10 @@
             //
 
             string url;
-            if (jl.ClientName == "MIX")
-                url = $"/kontrola-pakowania/{jl.Name}/single";
+            if (jl.Courier == Courier.MIX)
+                url = $"/kontrola-pakowania/{jl.Code}/single";
             else
-                url = $"/kontrola-pakowania/{jl.Name}";
+                url = $"/kontrola-pakowania/{jl.Code}";
 
             List<string> queryParts = new();
 

@@ -1,7 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
-using WarehousePacking.API.Services.Packing.Mapping;
 using WarehousePacking.Contracts.Clients;
 using WarehousePacking.Contracts.Data.Enums;
 using WarehousePacking.Contracts.DTOs;
@@ -25,57 +24,10 @@ namespace WarehousePacking.Infrastructure.Services
             _logger = logger;
         }
 
-        public async Task<IEnumerable<JlData>> GetJlListAsync(PackingLevel? location = null)
+        public async Task<IEnumerable<JlData>> GetJlListAsync(GetJlListRequest? request = null)
         {
-            _logger.LogInformation("Fetching JL list from WMS for location {Location}", location?.ToString() ?? "all");
-            var jlList = await _wmsApi.GetJlListAsync();
-            var jlToPack = jlList
-                .Where(x =>
-                    x.Status == 12 &&
-                    (!location.HasValue ||
-                        (location == PackingLevel.Up && x.DestZoneId == 102) ||
-                        (location == PackingLevel.Bottom && x.DestZoneId != 102))
-                )
-                .ToList();
-
-            // Map string courier to enum
-            foreach (var jl in jlToPack)
-            {
-                foreach (var client in jl.Clients)
-                {
-                    client.Courier = CourierHelper.GetCourierFromName(client.CourierName);
-
-                    var courierLower = client.CourierName.ToLower();
-                    client.ShipmentServices = new ShipmentServices
-                    {
-                        D12 = courierLower.Contains("12"),
-                        D10 = courierLower.Contains("10"),
-                        Saturday = courierLower.Contains("sobota"),
-                        PZ = courierLower.Contains("zwrotna"),
-                        Dropshipping = courierLower.Contains("dropshipping")
-                    };
-                }
-
-                if (jl.ReadyToPack == "TAK" || jl.DestZoneId == 102)
-                    jl.Status = 1;
-
-                if (jl.ReadyToPack == "NIE" && jl.DestZoneId != 102 && jl.Clients.Count() == 1)
-                    jl.Status = await _packingRepository.IsJlReadyToPack(Convert.ToInt32(jl.Clients.First().ClientErpId), jl.DestZoneId) ? 1 : 2;
-                else
-                    jl.Status = 1;
-
-                jl.Status = await IsJlInProgress(jl.JlCode) ? 3 : jl.Status;
-            }
-            // Map to flattened JlData
-            var result = jlToPack.ToJlData()
-                .OrderBy(jl => jl.Status)
-                .ThenBy(jl => jl.Courier)
-                .ThenByDescending(jl => jl.ShipmentServices.HasAnyService())
-                .ThenBy(jl => jl.ClientSymbol)
-                .ToList();
-
-            _logger.LogInformation("Fetched JL list for location {Location}, count {Count}", location?.ToString() ?? "all", result.Count);
-            return result;
+            var jlList = await _packingRepository.GetJlsToPack(request);
+            return jlList;
         }
 
         public async Task<IEnumerable<JlDto>> GetNotClosedPackagesAsync()
@@ -89,25 +41,12 @@ namespace WarehousePacking.Infrastructure.Services
 
         public async Task<JlData?> GetJlInfoByCodeAsync(string jlCode)
         {
-            var jlList = await _wmsApi.GetJlListAsync();
-
-            // Find the JL by code
-            var jlDto = jlList.FirstOrDefault(x => x.JlCode.Equals(jlCode, StringComparison.OrdinalIgnoreCase));
-
-            if (jlDto == null)
-                return null;
-
-            if (jlDto.ReadyToPack == "TAK" || jlDto.DestZoneId == 102)
-                jlDto.Status = 1;
-
-            if (jlDto.ReadyToPack == "NIE" && jlDto.DestZoneId != 102 && jlDto.Clients.Count() == 1)
-                jlDto.Status = await _packingRepository.IsJlReadyToPack(Convert.ToInt32(jlDto.Clients.First().ClientErpId), jlDto.DestZoneId) ? 1 : 2;
-            else
-                jlDto.Status = 1;
-
-            jlDto.Status = await IsJlInProgress(jlDto.JlCode) ? 3 : jlDto.Status;
-
-            return jlDto.ToJlData();
+            var request = new GetJlListRequest
+            {
+                Code = jlCode
+            };
+            var jl = await _packingRepository.GetJlsToPack(request);
+            return jl.FirstOrDefault();
         }
 
         public async Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl)
@@ -163,9 +102,9 @@ namespace WarehousePacking.Infrastructure.Services
             return await _packingRepository.UpdateJlRealization(jl);
         }
 
-        public async Task<IEnumerable<PackageData>> GetPackagesForClient(int clientId, string? addressName, string? addressCity, string? addressStreet, string? addressPostalCode, string? addressCountry, DocumentStatus status)
+        public async Task<IEnumerable<PackageData>> GetPackagesForClient(int clientId, int addressId, int addressType, DocumentStatus status)
         {
-            var packages = await _packingRepository.GetPackagesForClient(clientId, addressName, addressCity, addressStreet, addressPostalCode, addressCountry, status);
+            var packages = await _packingRepository.GetPackagesForClient(clientId, addressId, addressType, status);
 
             foreach (var package in packages)
             {
@@ -226,6 +165,22 @@ namespace WarehousePacking.Infrastructure.Services
             catch (SqlException ex) when (ex.Number == 50001)
             {
                 _logger.LogWarning(ex, "Update package courier conflict for package {PackageId}", request.PackageId);
+                throw new InvalidOperationException(ex.Message);
+            }
+        }
+
+        public async Task<bool> CanChangeCourier(UpdatePackageCourierRequest request)
+        {
+            try
+            {
+                string courier = request.Courier.GetDescription();
+                var result = await _packingRepository.CanChangeCourier(request, courier);
+                _logger.LogInformation("CanChangeCourier for package {PackageId} to {Courier}: {Succeeded}", request.PackageId, courier, result);
+                return result;
+            }
+            catch (SqlException ex) when (ex.Number == 50001)
+            {
+                _logger.LogWarning(ex, "CanChangeCourier conflict for package {PackageId}", request.PackageId);
                 throw new InvalidOperationException(ex.Message);
             }
         }
@@ -398,6 +353,11 @@ namespace WarehousePacking.Infrastructure.Services
         public async Task<DocumentInfo?> GetDocumentInfoAsync(int documentId, int documentType)
         {
             return await _packingRepository.GetDocumentInfoAsync(documentId, documentType);
+        }
+
+        public async Task<bool> RemoveJlFromPackingList(string code)
+        {
+            return await _packingRepository.RemoveJlFromPackingList(code);
         }
     }
 }

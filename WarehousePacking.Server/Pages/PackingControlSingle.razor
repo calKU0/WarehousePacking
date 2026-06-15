@@ -65,7 +65,7 @@
 
     <FinishPackingModal @ref="FinishPackingModal"
                         Courier="@CurrentJl.Courier"
-                        Country="@CurrentJl.Country"
+                        Country="@CurrentJl.DestinationCountry"
                         CourierSrc="@CourierHelper.GetCourierLogo(CurrentJl.ShipmentServices, CurrentJl.Courier)"
                         OnCourierLabel="HandleCourierLabel"
                         OnBufor="HandleBufor"
@@ -98,32 +98,33 @@
         //CurrentJl.LogoCourier = item.LogoCourier;
         CurrentJl.ShipmentServices = item.ShipmentServices;
         CurrentJl.ClientSymbol = item.ClientSymbol;
-        CurrentJl.Country = item.DestinationCountry;
+        CurrentJl.DestinationCountry = item.DestinationCountry;
 
         CurrentJl.AddressName = item.AddressName;
         CurrentJl.AddressCountry = item.AddressCountry;
         CurrentJl.AddressCity = item.AddressCity;
         CurrentJl.AddressStreet = item.AddressStreet;
         CurrentJl.AddressPostalCode = item.AddressPostalCode;
-        CurrentJl.ClientName = item.ClientName;
+
+        CurrentJl.ClientSymbol = item.ClientSymbol;
         CurrentJl.ClientId = Convert.ToInt32(item.ClientErpId);
         StateHasChanged();
     }
 
     public void ClearJlData()
     {
-        CurrentJl.Courier = Courier.Unknown;
+        CurrentJl.Courier = Courier.MIX;
         CurrentJl.CourierName = "MIX";
         CurrentJl.ShipmentServices = new();
         CurrentJl.ClientSymbol = "MIX";
-        CurrentJl.Country = string.Empty;
+        CurrentJl.DestinationCountry = string.Empty;
 
         CurrentJl.AddressCity = string.Empty;
         CurrentJl.AddressName = string.Empty;
         CurrentJl.AddressCountry = string.Empty;
         CurrentJl.AddressStreet = string.Empty;
         CurrentJl.AddressPostalCode = string.Empty;
-        CurrentJl.ClientName = string.Empty;
+        CurrentJl.ClientSymbol = string.Empty;
         CurrentJl.ClientId = 0;
         CurrentJl.PackageClosed = false;
         PackageId = 0;

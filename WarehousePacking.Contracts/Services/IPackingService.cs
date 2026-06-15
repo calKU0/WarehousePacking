@@ -6,11 +6,11 @@ namespace WarehousePacking.Contracts.Services
 {
     public interface IPackingService
     {
-        Task<IEnumerable<JlData>> GetJlListAsync(PackingLevel? location = null);
+        Task<IEnumerable<JlData>> GetJlListAsync(GetJlListRequest? request = null);
 
         Task<IEnumerable<JlDto>> GetNotClosedPackagesAsync();
 
-        Task<JlData?> GetJlInfoByCodeAsync(string jl);
+        Task<JlData?> GetJlInfoByCodeAsync(string jlCode);
 
         Task<IEnumerable<JlItemDto>> GetJlItemsAsync(string jl);
 
@@ -30,7 +30,7 @@ namespace WarehousePacking.Contracts.Services
 
         Task<bool> UpdateJlRealization(JlInProgressDto jl);
 
-        Task<IEnumerable<PackageData>> GetPackagesForClient(int clientId, string? addressName, string? addressCity, string? addressStreet, string? addressPostalCode, string? addressCountry, DocumentStatus status);
+        Task<IEnumerable<PackageData>> GetPackagesForClient(int clientId, int addressId, int addressType, DocumentStatus status);
 
         Task<IEnumerable<CourierConfiguration>> GetCourierConfiguration(string? courierName, PackingLevel? level, string? country);
 
@@ -49,6 +49,7 @@ namespace WarehousePacking.Contracts.Services
         Task<bool> OpenPackage(int packageId);
 
         Task<bool> UpdatePackageCourier(UpdatePackageCourierRequest request);
+        Task<bool> CanChangeCourier(UpdatePackageCourierRequest request);
 
         Task<bool> UpdatePackageDimensions(UpdatePackageDimensionsRequest dimensions);
 
@@ -65,5 +66,6 @@ namespace WarehousePacking.Contracts.Services
         Task<bool> MergePackages(MergePackagesDto request);
 
         Task<bool> BufferPackage(string barcode);
+        Task<bool> RemoveJlFromPackingList(string code);
     }
 }

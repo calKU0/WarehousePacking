@@ -144,7 +144,6 @@
                                                         <span>Inne: <strong>@section.Summary.Other</strong></span>
 
                                                     </div>
-
                                                 </div>
                                             </td>
                                         </tr>
@@ -153,7 +152,7 @@
                                         {
                                             <tr>
                                                 <td colspan="7" class="text-center text-muted py-2">
-                                                    Brak danych
+                                                    Brak zadań
                                                 </td>
                                             </tr>
                                         }
@@ -161,7 +160,7 @@
                                         {
                                             @foreach (var row in section.Rows)
                                             {
-                                                <tr class="@row.AnimationClass" @key="row.Key">
+                                                <tr class="@($"{ElapsedClassHelper.GetRowClass(row.OldestDocumentDate, ColorConfig.ZoneLastActivityThresholdMinutes)} {row.AnimationClass}".Trim())" @key="row.Key">
                                                     <td>@row.ZoneName</td>
                                                     <td>
                                                         <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.DpdCount)" />
@@ -179,29 +178,23 @@
                                                         <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.OtherCount)" />
                                                     </td>
                                                     <td>
-                                                        @if (row.OldestDocumentDate.HasValue)
+                                                        @if (row.OldestDocumentDate.Date < DateTime.Today)
                                                         {
-                                                            @if (row.OldestDocumentDate.Value.Date < DateTime.Today)
-                                                            {
-                                                                <span class="text-danger fw-bold">Zaległe</span>
-                                                            }
-                                                            else if (row.OldestDocumentDate.Value == row.LatestDocumentDate.Value)
-                                                            {
-                                                                @row.OldestDocumentDate.Value.ToString("HH:mm")
-                                                            }
-                                                            else
-                                                            {
-                                                                <span>
-                                                                    @row.OldestDocumentDate.Value.ToString("HH:mm")
-                                                                    /
-                                                                    @row.LatestDocumentDate?.ToString("HH:mm")
-                                                                </span>
-                                                            }
+                                                            <span class="text-danger fw-bold">Zaległe</span>
+                                                        }
+                                                        else if (row.OldestDocumentDate == row.LatestDocumentDate)
+                                                        {
+                                                            @row.OldestDocumentDate.ToString("HH:mm")
                                                         }
                                                         else
                                                         {
-                                                            <span>-</span>
+                                                            <span>
+                                                                @row.OldestDocumentDate.ToString("HH:mm")
+                                                                /
+                                                                @row.LatestDocumentDate.ToString("HH:mm")
+                                                            </span>
                                                         }
+                                                        
                                                     </td>
                                                     <td title="@row.OperatorsList">@row.OperatorsList</td>
                                                 </tr>
@@ -252,11 +245,11 @@
                                 {
                                     @foreach (var row in OperatorRows)
                                     {
-                                        <tr class="@($"{GetElapsedRowClass(row.Data.LastOperationDate)} {row.AnimationClass}".Trim())" @key="row.Key">
+                                        <tr class="@($"{ElapsedClassHelper.GetRowClass(row.Data.LastOperationDate, ColorConfig.OperatorLastActivityRedThresholdMinutes, ColorConfig.OperatorLastActivityYellowThresholdMinutes)} {row.AnimationClass}".Trim())" @key="row.Key">
                                             <td>@row.Data.Operator</td>
                                             <td>@row.Data.SourceZone</td>
                                             <td class="dashboard-elapsed-cell">
-                                                <span class="badge @GetElapsedBadgeClass(row.Data.LastOperationDate) dashboard-elapsed-badge dashboard-time-text">
+                                                <span class="badge @ElapsedClassHelper.GetBadgeClass(row.Data.LastOperationDate, ColorConfig.OperatorLastActivityRedThresholdMinutes, ColorConfig.OperatorLastActivityYellowThresholdMinutes) dashboard-elapsed-badge dashboard-time-text">
                                                     <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Data.LastOperationDate)" CssClass="dashboard-time-text" />
                                                 </span>
                                             </td>
@@ -286,8 +279,8 @@
         int OtherCount,
         string OperatorsList,
         PackingWarehouse Warehouse,
-        DateTime? OldestDocumentDate,
-        DateTime? LatestDocumentDate);
+        DateTime OldestDocumentDate,
+        DateTime LatestDocumentDate);
 
     private sealed class ZoneTaskRowView
     {
@@ -315,8 +308,8 @@
         public int PersonalCollectionCount { get; set; }
         public int OtherCount { get; set; }
         public string OperatorsList { get; set; } = string.Empty;
-        public DateTime? OldestDocumentDate { get; set; }
-        public DateTime? LatestDocumentDate { get; set; }
+        public DateTime OldestDocumentDate { get; set; }
+        public DateTime LatestDocumentDate { get; set; }
         public string AnimationClass { get; set; } = string.Empty;
     }
 
@@ -342,6 +335,7 @@
 
     [Parameter] public List<WarehouseTask> Tasks { get; set; } = new();
     [Parameter] public List<WarehouseOperation> RecentOperations { get; set; } = new();
+    [Parameter] public DashboardColorConfiguration ColorConfig { get; set; } = new();
     [Parameter] public bool IsLoading { get; set; }
 
     private List<ZoneTaskRowView> ZoneRows { get; set; } = new();
@@ -660,40 +654,6 @@
 
         OperatorRows = OperatorRows.Where(x => !ReferenceEquals(x, row)).ToList();
         await InvokeAsync(StateHasChanged);
-    }
-
-    private string GetElapsedBadgeClass(DateTime start)
-    {
-        var elapsed = DashboardClock.Now - FormatHelper.ToLocalTime(start);
-
-        if (elapsed.TotalMinutes >= 45)
-        {
-            return "text-bg-danger";
-        }
-
-        if (elapsed.TotalMinutes >= 20)
-        {
-            return "text-bg-warning";
-        }
-
-        return "text-bg-success";
-    }
-
-    private string GetElapsedRowClass(DateTime start)
-    {
-        var elapsed = DashboardClock.Now - FormatHelper.ToLocalTime(start);
-
-        if (elapsed.TotalMinutes >= 45)
-        {
-            return "table-danger";
-        }
-
-        if (elapsed.TotalMinutes >= 20)
-        {
-            return "table-warning";
-        }
-
-        return string.Empty;
     }
 
     public ValueTask DisposeAsync()
