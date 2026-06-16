@@ -5,6 +5,9 @@ namespace WarehousePacking.Server.Helpers
 {
     public static class CourierHelper
     {
+
+        private static string imageVersion = "v=2";
+
         public static readonly Courier[] AllowedCouriersForLabel =
         {
             Courier.GLS,
@@ -83,12 +86,14 @@ namespace WarehousePacking.Server.Helpers
 
             foreach (var ext in extensions)
             {
-                string relativePath = $"{basePath}{fileName}{ext}";
+                string cleanRelativePath = $"{basePath}{fileName}{ext}";
 
-                string physicalPath = Path.Combine(wwwRoot, relativePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                string physicalPath = Path.Combine(wwwRoot, cleanRelativePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
 
                 if (File.Exists(physicalPath))
-                    return relativePath;
+                {
+                    return $"{cleanRelativePath}?{imageVersion}";
+                }
             }
 
             return string.Empty;

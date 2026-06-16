@@ -1,8 +1,217 @@
-﻿.table th, .table td {
+﻿/* --- Global & Typography --- */
+.tracking-wide {
+    letter-spacing: 0.05em;
+}
+
+/* --- Table Container & Scrollbar --- */
+.table-card {
+    overflow: hidden;
+    border-radius: 0.5rem;
+}
+
+.pro-table-wrapper {
+    /* Calculates exact screen height minus the header/margins to prevent page scrolling */
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    will-change: scroll-position;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    scrollbar-width: thin; /* Matches the 8px width */
+    scrollbar-color: #cdd3d8 #f8f9fa; /* Thumb color, then Track color */
+}
+
+.pro-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #fff;
+    background-clip: padding-box;
+    text-align: center;
+    vertical-align: middle;
+    padding: 1rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.pro-table td {
+    padding: 1.1rem 1rem;
     vertical-align: middle;
     text-align: center;
 }
 
-.table-hover tbody tr:hover {
-    background-color: #f1f1f1;
+.clickable-row {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+/* --- Custom Status Colors (Softer, Modern Look) --- */
+/* Soft Green */
+.row-status-ready td {
+    background-color: #f0fdf4 !important;
+}
+
+.row-status-ready:hover td {
+    background-color: #dcfce7 !important;
+}
+
+/* Soft Red */
+.row-status-error td {
+    background-color: #fef2f2 !important;
+}
+
+.row-status-error:hover td {
+    background-color: #fee2e2 !important;
+}
+
+/* Soft Yellow */
+.row-status-warning td {
+    background-color: #fffbeb !important;
+}
+
+.row-status-warning:hover td {
+    background-color: #fef3c7 !important;
+}
+
+/* Keep alternating clean for unmarked rows */
+.pro-table tbody tr:not([class*='row-status-']):nth-child(even) td {
+    background-color: #f8f9fa !important;
+}
+
+/* --- Courier Table Logo Alignment (SCALED DOWN) --- */
+.logo-cell {
+    position: relative;
+    padding: 0 !important;
+    width: 60px;
+    height: 40px;
+}
+
+.logo-wrapper, .fallback-icon {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+    border-radius: 4px;
+    border: 1px solid #f1f3f5;
+}
+
+.courier-logo-img {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+    padding: 4px;
+}
+
+/* --- Sidebar Specifics --- */
+.sticky-sidebar {
+    position: sticky;
+    top: 1.5rem;
+}
+
+.scanner-input-group:focus-within {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.scanner-input-group input:focus {
+    box-shadow: none; /* Handled by wrapper */
+}
+
+.stats-panel {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+/* --- Courier Summary Container (SCALED DOWN) --- */
+.summary-container {
+    background-color: transparent;
+}
+
+.summary-row {
+    padding: 0.5rem 0.75rem;
+    transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+    .summary-row:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    }
+
+.summary-logo-wrapper, .summary-icon-fallback {
+    width: 36px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 4px;
+}
+
+.summary-logo-wrapper {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+.summary-logo-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    padding: 2px;
+}
+
+.summary-icon-fallback {
+    font-size: 1rem;
+}
+
+.summary-courier-name {
+    font-size: 0.9rem;
+    color: #343a40;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+}
+
+/* --- Status Legend Elements --- */
+.status-legend-item {
+    background-color: #fff;
+    border: 1px solid #e9ecef;
+}
+
+.legend-square {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    margin-right: 0.75rem;
+    border-width: 1px;
+    border-style: solid;
+}
+
+/* Legend Colors matching the row soft colors */
+.bg-success-soft {
+    background-color: #dcfce7;
+    border-color: #86efac !important;
+}
+
+.bg-danger-soft {
+    background-color: #fee2e2;
+    border-color: #fca5a5 !important;
+}
+
+.bg-warning-soft {
+    background-color: #fef3c7;
+    border-color: #fcd34d !important;
+}
+
+.legend-text {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #495057;
 }

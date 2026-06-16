@@ -253,8 +253,8 @@ namespace WarehousePacking.Infrastructure.Services
                         LocSourceNr = jl.LocationCode,
                         LocDestNr = string.IsNullOrEmpty(locDestNr) ? MapStationNumber(jl.StationNumber) : locDestNr,
                         LuSourceNr = jl.JlCode,
-                        LuDestEan = string.IsNullOrEmpty(jl.ScannedCode) ? jl.TrackingNumber : jl.ScannedCode,
-                        LuDestNr = jl.TrackingNumber,
+                        LuDestEan = string.IsNullOrEmpty(jl.ScannedCode) ? jl.TrackingNumber.Trim() : jl.ScannedCode.Trim(),
+                        LuDestNr = jl.TrackingNumber.Trim(),
                         LuDestTypeSymbol = string.IsNullOrEmpty(locDestNr) ? luDestType : "PALETA",
                         ItemNr = item.ItemCode,
                         ItemQty = item.Quantity.ToString().Replace(",", "."),
@@ -294,7 +294,7 @@ namespace WarehousePacking.Infrastructure.Services
             {
                 new CloseLuItems
                 {
-                    LuNr = request.PackageNumber,
+                    LuNr = request.PackageNumber.Trim(),
                     LocDestNr = packageDestination
                 }
             }

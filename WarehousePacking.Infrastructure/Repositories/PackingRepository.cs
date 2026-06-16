@@ -20,7 +20,7 @@ namespace WarehousePacking.Infrastructure.Repositories
 
         public async Task<IEnumerable<JlData>> GetJlsToPack(GetJlListRequest? request = null)
         {
-            const string procedure = "kp.GetJlsToPack1";
+            const string procedure = "kp.GetJlsToPack";
 
             return await _context.QueryAsync<JlData, ShipmentServices, JlData>(
                 procedure,

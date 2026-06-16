@@ -9,31 +9,31 @@
     <div class="row g-3 mb-3">
         <div class="col-12 col-md-3">
             <DashboardStatCard Title="Zadania/Dokumenty"
-                             Subtitle="Do kompletacji"
-                             Value="@($"{FormatHelper.FormatQuantity(TasksCount)} / {FormatHelper.FormatQuantity(DocumentsCount)}")"
-                             IconClass="bi bi-list-check"
-                             AccentClass="dashboard-kpi-primary" />
+                            Subtitle="Do kompletacji"
+                            Value="@($"{FormatHelper.FormatQuantity(TasksCount)} / {FormatHelper.FormatQuantity(DocumentsCount)}")"
+                            IconClass="bi bi-list-check"
+                            AccentClass="dashboard-kpi-primary" />
         </div>
         <div class="col-12 col-md-3">
             <DashboardStatCard Title="Strefy"
-                             Subtitle="Aktywne"
-                             Value="@FormatHelper.FormatQuantity(ZoneCount)"
-                             IconClass="bi bi-diagram-3"
-                             AccentClass="dashboard-kpi-info" />
+                            Subtitle="Aktywne"
+                            Value="@FormatHelper.FormatQuantity(ZoneCount)"
+                            IconClass="bi bi-diagram-3"
+                            AccentClass="dashboard-kpi-info" />
         </div>
         <div class="col-12 col-md-3">
             <DashboardStatCard Title="W realizacji"
-                             Subtitle="Zadania"
-                             Value="@FormatHelper.FormatQuantity(InProgressTasksCount)"
-                             IconClass="bi bi-hourglass-split"
-                             AccentClass="dashboard-kpi-warning" />
+                            Subtitle="Zadania"
+                            Value="@FormatHelper.FormatQuantity(InProgressTasksCount)"
+                            IconClass="bi bi-hourglass-split"
+                            AccentClass="dashboard-kpi-warning" />
         </div>
         <div class="col-12 col-md-3">
             <DashboardStatCard Title="Operatorzy"
-                             Subtitle="Aktywni (5 min)"
-                             Value="@FormatHelper.FormatQuantity(ActiveOperatorsCount)"
-                             IconClass="bi bi-people"
-                             AccentClass="dashboard-kpi-success" />
+                            Subtitle="Aktywni (5 min)"
+                            Value="@FormatHelper.FormatQuantity(ActiveOperatorsCount)"
+                            IconClass="bi bi-people"
+                            AccentClass="dashboard-kpi-success" />
         </div>
     </div>
 
@@ -41,7 +41,7 @@
         <div class="col-12 col-xl-8 d-flex">
             <div class="card shadow-sm h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-list-check me-2"></i>@DashboardPanel.Picking.GetDescription() - Strefy</span>
+                    <span><i class="bi bi-list-check me-2"></i>@DashboardPanel.Picking.GetDescription() - Strefy (Dokumeny zapalowane / Wszystkie)</span>
                 </div>
                 <div class="card-body p-0 mb-0 dashboard-scroll-host">
                     <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
@@ -59,20 +59,7 @@
                                             {
                                                 <i class="bi bi-truck text-muted"></i>
                                             }
-                                            <span>(@FormatHelper.FormatQuantity(DpdTotalCount))</span>
-                                        </div>
-                                    </th>
-                                    <th>
-                                        <div class="d-flex align-items-center gap-2">
-                                            @if (!string.IsNullOrWhiteSpace(GlsLogo))
-                                            {
-                                                <img src="@GlsLogo" alt="GLS" style="max-height: 32px; max-width: 48px; object-fit: contain;" />
-                                            }
-                                            else
-                                            {
-                                                <i class="bi bi-truck text-muted"></i>
-                                            }
-                                            <span>(@FormatHelper.FormatQuantity(GlsTotalCount))</span>
+                                            <span>(@FormatHelper.FormatQuantity(DpdTasksTotalCount)/@FormatHelper.FormatQuantity(DpdDocumentsTotalCount))</span>
                                         </div>
                                     </th>
                                     <th>
@@ -85,19 +72,32 @@
                                             {
                                                 <i class="bi bi-truck text-muted"></i>
                                             }
-                                            <span>(@FormatHelper.FormatQuantity(FedexTotalCount))</span>
+                                            <span>(@FormatHelper.FormatQuantity(FedexTasksTotalCount)/@FormatHelper.FormatQuantity(FedexDocumentsTotalCount))</span>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="d-flex align-items-center gap-2">
+                                            @if (!string.IsNullOrWhiteSpace(GlsLogo))
+                                            {
+                                                <img src="@GlsLogo" alt="GLS" style="max-height: 32px; max-width: 48px; object-fit: contain;" />
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-truck text-muted"></i>
+                                            }
+                                            <span>(@FormatHelper.FormatQuantity(GlsTasksTotalCount)/@FormatHelper.FormatQuantity(GlsDocumentsTotalCount))</span>
                                         </div>
                                     </th>
                                     <th>
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="bi bi-truck"></i>                             
-                                            <span>Odbiór wła. (@FormatHelper.FormatQuantity(PersonalCollectionTotalCount))</span>
+                                            <span>OW. (@FormatHelper.FormatQuantity(PersonalCollectionTasksTotalCount)/@FormatHelper.FormatQuantity(PersonalCollectionDocumentsTotalCount))</span>
                                         </div>
                                     </th>
                                     <th>
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="bi bi-truck"></i>
-                                            <span>Inne (@FormatHelper.FormatQuantity(OtherTotalCount))</span>
+                                            <span>Inne (@FormatHelper.FormatQuantity(OtherTasksTotalCount)/@FormatHelper.FormatQuantity(OtherDocumentsTotalCount))</span>
                                         </div>
                                     </th>
                                     <th>Data zlc.</th>
@@ -334,28 +334,36 @@
     }
 
     [Parameter] public List<WarehouseTask> Tasks { get; set; } = new();
+    [Parameter] public List<WarehouseDocument> Documents { get; set; } = new();
     [Parameter] public List<WarehouseOperation> RecentOperations { get; set; } = new();
     [Parameter] public DashboardColorConfiguration ColorConfig { get; set; } = new();
     [Parameter] public bool IsLoading { get; set; }
 
     private List<ZoneTaskRowView> ZoneRows { get; set; } = new();
     private List<OperatorRowView> OperatorRows { get; set; } = new();
-    private List<(Courier Courier, DateTime CreatedDate)> _documentsNormalized = new();
+    private List<(Courier Courier, DateTime CreatedDate)> _taskDocumentsNormalized = new();
+    private List<Courier> _documentsCouriers = new();
 
     private int TasksCount => Tasks.Count;
-    private int DocumentsCount => _documentsNormalized.Count;
+    private int DocumentsCount => Documents.Count;
     private int ZoneCount => Tasks.Select(x => x.ZoneId).Distinct().Count();
     private int InProgressTasksCount => Tasks.Count(x => x.Status is WarehouseTaskStatus.InExecution or WarehouseTaskStatus.Processing);
     private int ActiveOperatorsCount => OperatorRows.Count;
     private string LongestActiveElapsed => OperatorRows.Any() ? FormatHelper.FormatElapsed(OperatorRows.Min(x => x.Data.LastOperationDate)) : "-";
 
-    private int DpdTotalCount => _documentsNormalized.Count(x => x.Courier == Courier.DPD);
-    private int GlsTotalCount => _documentsNormalized.Count(x => x.Courier == Courier.GLS);
-    private int FedexTotalCount => _documentsNormalized.Count(x => x.Courier == Courier.Fedex);
-    private int PersonalCollectionTotalCount => _documentsNormalized.Count(x => x.Courier == Courier.Personal_Collection);
-
     private static readonly Courier[] MainCouriers = { Courier.DPD, Courier.GLS, Courier.Fedex, Courier.Personal_Collection };
-    private int OtherTotalCount => _documentsNormalized.Count(x => !MainCouriers.Contains(x.Courier));
+
+    private int DpdTasksTotalCount => _taskDocumentsNormalized.Count(x => x.Courier == Courier.DPD);
+    private int GlsTasksTotalCount => _taskDocumentsNormalized.Count(x => x.Courier == Courier.GLS);
+    private int FedexTasksTotalCount => _taskDocumentsNormalized.Count(x => x.Courier == Courier.Fedex);
+    private int PersonalCollectionTasksTotalCount => _taskDocumentsNormalized.Count(x => x.Courier == Courier.Personal_Collection);
+    private int OtherTasksTotalCount => _taskDocumentsNormalized.Count(x => !MainCouriers.Contains(x.Courier));
+
+    private int DpdDocumentsTotalCount => _documentsCouriers.Count(x => x == Courier.DPD);
+    private int GlsDocumentsTotalCount => _documentsCouriers.Count(x => x == Courier.GLS);
+    private int FedexDocumentsTotalCount => _documentsCouriers.Count(x => x == Courier.Fedex);
+    private int PersonalCollectionDocumentsTotalCount => _documentsCouriers.Count(x => x == Courier.Personal_Collection);
+    private int OtherDocumentsTotalCount => _documentsCouriers.Count(x => !MainCouriers.Contains(x));
 
     private static readonly ShipmentServices ShipmentServices = new();
     private string DpdLogo => CourierHelper.GetCourierLogo(ShipmentServices, Courier.DPD);
@@ -379,13 +387,19 @@
 
     protected override void OnParametersSet()
     {
-        _documentsNormalized = Tasks
+        _taskDocumentsNormalized = Tasks
             .SelectMany(t => t.Documents)
             .Select(d => (
                 Courier: CourierHelper.GetCourierFromName(d.CourierName),
                 CreatedDate: d.CreatedDate
             ))
             .ToList();
+
+        _documentsCouriers = Documents
+        .Select(d => (
+            CourierHelper.GetCourierFromName(d.CourierName)
+        ))
+        .ToList();
 
         SyncZoneRows();
         SyncOperatorRows();

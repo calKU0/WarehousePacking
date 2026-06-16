@@ -91,7 +91,10 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
                     PrivatePerson = true,
                     ClientName = package.Recipient.Name,
                     ContactName = package.Recipient.Name,
-                    Email = package.Recipient.Email,
+                    Email = package.Recipient.Email
+                            .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                            .First()
+                            .Trim(),
                     Address = new()
                     {
                         CountryId = countryId,

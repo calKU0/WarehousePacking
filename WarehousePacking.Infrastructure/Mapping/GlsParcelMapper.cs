@@ -15,7 +15,10 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
                 rcity = package.Recipient.City,
                 rstreet = package.Recipient.Street,
                 rphone = package.Recipient.Phone,
-                rcontact = package.Recipient.Email,
+                rcontact = package.Recipient.Email
+                            .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                            .First()
+                            .Trim(),
                 notes = package.Description,
                 references = package.References,
                 quantity = package.PackageQuantity,

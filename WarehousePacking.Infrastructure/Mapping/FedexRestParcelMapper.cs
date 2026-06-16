@@ -109,7 +109,10 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
                     },
                     Contact = new Contact
                     {
-                        EmailAddress = package.Recipient.Email,
+                        EmailAddress = package.Recipient.Email
+                            .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                            .First()
+                            .Trim(),
                         PhoneNumber = package.Recipient.Phone,
                         CompanyName = package.Recipient.Name,
                     }

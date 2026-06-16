@@ -120,7 +120,12 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
                     CountryCode = packageInfo.Recipient.Country,
                     PostalCode = packageInfo.Recipient.PostalCode.Replace("-", ""),
                     Phone = string.IsNullOrEmpty(packageInfo.Recipient.Phone) ? null : packageInfo.Recipient.Phone,
-                    Email = string.IsNullOrEmpty(packageInfo.Recipient.Email) ? null : packageInfo.Recipient.Email
+                    Email = string.IsNullOrWhiteSpace(packageInfo.Recipient.Email)
+                        ? null
+                        : packageInfo.Recipient.Email
+                            .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                            .FirstOrDefault()?
+                            .Trim()
                 },
                 Sender = new()
                 {

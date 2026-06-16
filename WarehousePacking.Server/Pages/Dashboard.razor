@@ -87,6 +87,7 @@
                     {
                         case DashboardPanel.Picking:
                             <DashboardPickingPanel Tasks="Tasks"
+                                                Documents="TaskDocuments"
                                                 RecentOperations="TaskRecentOperations"
                                                 ColorConfig="ColorConfig"
                                                 IsLoading="IsPickingLoading" />
@@ -154,6 +155,7 @@
     private DateTime? LastRefresh;
 
     private List<WarehouseTask> Tasks = new();
+    private List<WarehouseDocument> TaskDocuments = new();
     private List<WarehouseOperation> TaskRecentOperations = new();
 
     private List<JlData> PackingQueue = new();
@@ -416,11 +418,22 @@
         
         try
         {
-            var documentsTask = DashboardService.GetWarehouseTasks(new GetWarehouseTasksRequest
+            var tasks = DashboardService.GetWarehouseTasks(new GetWarehouseTasksRequest
             {
                 Statuses =
                 [
                     WarehouseTaskStatus.New,
+                    WarehouseTaskStatus.InExecution,
+                    WarehouseTaskStatus.Processing,
+                    WarehouseTaskStatus.ReadyForExecution
+                ]
+            });
+
+            var documentTasks = DashboardService.GetWarehouseDocuments(new GetWarehouseDocumentsRequest
+            {
+                Types = [WarehouseDocumentType.IssueOrder],
+                Statuses =
+                [
                     WarehouseTaskStatus.InExecution,
                     WarehouseTaskStatus.Processing,
                     WarehouseTaskStatus.ReadyForExecution
@@ -433,9 +446,10 @@
                 Date = DateTime.UtcNow.AddMinutes(-5)
             });
 
-            await Task.WhenAll(documentsTask, operationsTask);
+            await Task.WhenAll(tasks, documentTasks, operationsTask);
 
-            Tasks = documentsTask.Result ?? new List<WarehouseTask>();
+            Tasks = tasks.Result ?? new List<WarehouseTask>();
+            TaskDocuments = documentTasks.Result ?? new List<WarehouseDocument>();
             TaskRecentOperations = operationsTask.Result ?? new List<WarehouseOperation>();
 
             LastRefresh = DateTime.Now;

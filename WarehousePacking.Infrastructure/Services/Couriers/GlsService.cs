@@ -155,7 +155,7 @@ namespace WarehousePacking.Infrastructure.Services.Couriers
                     .ToArray();
 
                 var pickupResponse = await _client.adePickup_CreateAsync(_sessionId, trackingNumbers, $"Zamknięcie trasy GLS {DateTime.Now}");
-                if (pickupResponse == null || pickupResponse.@return.id != 0)
+                if (pickupResponse == null || pickupResponse.@return.id == 0)
                 {
                     response.Success = false;
                     response.ErrorMessage = $"Błąd przy generowaniu protokołu GLS. Nie udało się wygenerować potwierdzeń nadania.";
