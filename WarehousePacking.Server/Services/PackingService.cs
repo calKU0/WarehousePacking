@@ -602,7 +602,7 @@ namespace WarehousePacking.Server.Services
 
         public async Task<bool> RemoveJlFromPackingList(string code)
         {
-            var response = await _dbClient.DeleteAsync($"api/packing/remove-jl-from-packing-list?code={code}");
+            var response = await _dbClient.DeleteAsync($"api/packing/remove-jl-from-packing-list?jlCode={code}");
 
             if (response.IsSuccessStatusCode)
             {

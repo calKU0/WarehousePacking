@@ -59,13 +59,17 @@
                     <label class="form-label">Kraj</label>
                     <InputText @bind-Value="Package.Recipient.Country" class="form-control" disabled="@(!Package.ManualEdit)" autocomplete="off" />
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-3">
                     <label class="form-label">Telefon</label>
                     <InputText @bind-Value="Package.Recipient.Phone" class="form-control" disabled="@(!Package.ManualEdit)" autocomplete="off" />
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-3">
                     <label class="form-label">Mail</label>
                     <InputText @bind-Value="Package.Recipient.Email" type="email" class="form-control" disabled="@(!Package.ManualEdit)" autocomplete="off" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Opis</label>
+                    <InputText @bind-Value="Package.Description" class="form-control" disabled="@(!Package.ManualEdit)" autocomplete="off" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Pobranie</label>
@@ -117,12 +121,34 @@
 
             <!-- Buttons Full Width Row -->
             <div class="row g-2 mb-4">
-                <div class="col-md-6 d-grid">
-                    <button class="btn btn-success tall-btn" disabled="@(Package.Id == 0 && Package.ManualSend == false)" @onclick="SendPackage">Wyślij paczkę</button>
-                </div>
-                <div class="col-md-6 d-grid">
-                    <button class="btn btn-secondary tall-btn" disabled="@(Package.Id == 0 && Package.ManualSend == false)" @onclick="ClearData">Wyczyść</button>
-                </div>
+                <button class="btn btn-success tall-btn"
+                        disabled="@((Package.Id == 0 && Package.ManualSend == false) || IsSendingPackage)"
+                        @onclick="SendPackage">
+
+                    @if (IsSendingPackage)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Wysyłanie...</span>
+                    }
+                    else
+                    {
+                        <span>Wyślij paczkę</span>
+                    }
+                </button>
+                <button class="btn btn-success tall-btn"
+                        disabled="@((Package.Id == 0 && Package.ManualSend == false) || IsSendingPackage)"
+                        @onclick="ClearData">
+
+                    @if (IsSendingPackage)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Wysyłanie...</span>
+                    }
+                    else
+                    {
+                        <span>Wyczyść</span>
+                    }
+                </button>
             </div>
         </div>
 
@@ -246,6 +272,7 @@
 <DocumentElementsSelectModal @ref="DocumentElementsSelectModal" />
 
 @code {
+    private bool IsSendingPackage = false;
     private string Barcode { get; set; } = string.Empty;
     private PackageData Package { get; set; } = new();
     private WorkstationSettings WorkstationSettings = new();
@@ -324,6 +351,7 @@
             if (response == null)
             {
                 Toast.Show("Brak paczki!", $"Nie znalaziono paczki o podanym kodzie kreskowym w systemie");
+                await ClearData();
                 return;
             }
 
@@ -360,7 +388,7 @@
         catch (Exception ex)
         {
             Toast.Show("Błąd!", $"Błąd przy próbie pobrania danych paczki: {ex.Message}");
-            Barcode = string.Empty;
+            await ClearData();
         }
         finally
         {
@@ -372,8 +400,14 @@
 
     private async Task SendPackage()
     {
+        if (IsSendingPackage)
+            return;
+
         try
         {
+            IsSendingPackage = true;
+            await InvokeAsync(StateHasChanged);
+
             if (Package.ManualSend == false)
             {
                 var isReady = await ShipmentService.IsPackageReadyToShip(Barcode);
@@ -410,7 +444,6 @@
                 {
                     await ClientPrinterService.PrintCrystalAsync(WorkstationSettings.PrinterInvoice, Package.Recipient.Country != "PL" ? "InvoiceEN" : "InvoicePL", new Dictionary<string, string> { { "DocumentId", Package.InvoiceId.ToString() } });
                 }
-                await ClearData();
             }
             else
             {
@@ -420,7 +453,12 @@
         catch (Exception ex)
         {
             Toast.Show("Błąd!", $"Błąd przy próbie wysłania paczki: {ex.Message}", ToastType.Error, 10000);
+        }
+        finally
+        {
             await ClearData();
+            IsSendingPackage = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -710,7 +748,6 @@
         }
         finally
         {
-            ClosingRoutes.Remove(courier);
             await InvokeAsync(StateHasChanged);
         }
     }

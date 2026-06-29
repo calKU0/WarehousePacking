@@ -76,7 +76,7 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
                     phoneNo = package.Recipient.Phone,
                     email = package.Recipient.Email
                             .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                            .First()
+                            .FirstOrDefault()?
                             .Trim()
                 }
             };

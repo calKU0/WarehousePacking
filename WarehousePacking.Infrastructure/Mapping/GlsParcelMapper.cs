@@ -17,7 +17,7 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
                 rphone = package.Recipient.Phone,
                 rcontact = package.Recipient.Email
                             .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                            .First()
+                            .FirstOrDefault()?
                             .Trim(),
                 notes = package.Description,
                 references = package.References,

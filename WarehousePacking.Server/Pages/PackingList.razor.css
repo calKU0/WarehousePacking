@@ -47,37 +47,33 @@
     transition: all 0.2s ease-in-out;
 }
 
-/* --- Custom Status Colors (Softer, Modern Look) --- */
-/* Soft Green */
-.row-status-ready td {
-    background-color: #f0fdf4 !important;
+/* Default cell background per status */
+.pro-table tbody tr.row-status-ready > td {
+    background-color: #bbf7d0;
 }
 
-.row-status-ready:hover td {
-    background-color: #dcfce7 !important;
+.pro-table tbody tr.row-status-error > td {
+    background-color: #fecaca;
 }
 
-/* Soft Red */
-.row-status-error td {
-    background-color: #fef2f2 !important;
+.pro-table tbody tr.row-status-warning > td {
+    background-color: #fde68a;
 }
 
-.row-status-error:hover td {
-    background-color: #fee2e2 !important;
+/* Hover - slightly stronger */
+.pro-table.table-hover tbody tr.row-status-ready:hover > td {
+    background-color: #86efac;
+    --bs-table-bg-state: transparent;
 }
 
-/* Soft Yellow */
-.row-status-warning td {
-    background-color: #fffbeb !important;
+.pro-table.table-hover tbody tr.row-status-error:hover > td {
+    background-color: #fca5a5;
+    --bs-table-bg-state: transparent;
 }
 
-.row-status-warning:hover td {
-    background-color: #fef3c7 !important;
-}
-
-/* Keep alternating clean for unmarked rows */
-.pro-table tbody tr:not([class*='row-status-']):nth-child(even) td {
-    background-color: #f8f9fa !important;
+.pro-table.table-hover tbody tr.row-status-warning:hover > td {
+    background-color: #fcd34d;
+    --bs-table-bg-state: transparent;
 }
 
 /* --- Courier Table Logo Alignment (SCALED DOWN) --- */

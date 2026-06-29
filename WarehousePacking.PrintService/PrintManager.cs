@@ -68,7 +68,6 @@ namespace WarehousePacking.PrintService
                 throw new Exception($"Failed to print to network printer {printerName}");
         }
 
-        // Copy your existing methods here unchanged
         private static void PrintPdf(byte[] pdfBytes, string printerName)
         {
             try
@@ -83,6 +82,11 @@ namespace WarehousePacking.PrintService
 
                         var pdfPageSize = pdfDocument.PageSizes[0];
                         bool isLandscape = pdfPageSize.Width > pdfPageSize.Height;
+
+                        if (printDocument.PrinterSettings.CanDuplex)
+                        {
+                            printDocument.PrinterSettings.Duplex = isLandscape ? Duplex.Horizontal : Duplex.Vertical;
+                        }
 
                         // pick A4 if available, otherwise the largest available size
                         var paperSizes = printDocument.PrinterSettings.PaperSizes.Cast<PaperSize>();

@@ -1,4 +1,4 @@
-﻿@page "/kontrola-pakowania"
+@page "/kontrola-pakowania"
 @using WarehousePacking.Contracts.DTOs
 @using WarehousePacking.Contracts.DTOs.Requests
 @using WarehousePacking.Server.Helpers
@@ -67,7 +67,7 @@
                                     _ => ""
                                 };
 
-                                <tr class="@rowClass clickable-row" ondblclick="@(() => OnRowDoubleClick(item))">
+                                <tr class="clickable-row @rowClass" ondblclick="@(() => OnRowDoubleClick(item))">
                                     <td class="fw-medium">@item.Location</td>
                                     <td class="font-monospace fw-bold">@item.Code</td>
                                     <td class="logo-cell">

@@ -173,7 +173,7 @@ namespace WarehousePacking.Infrastructure.Services.Couriers
 
                 response.Courier = Courier.GLS;
                 response.DataType = PrintDataType.PDF;
-                response.DataBase64 = new List<string> { protocolResponse.receipt };
+                response.DataBase64 = new List<string> { protocolResponse.receipt, protocolResponse.receipt }; // Adding 2 times for copy of protocol
                 response.Success = true;
             }
             catch (Exception ex)

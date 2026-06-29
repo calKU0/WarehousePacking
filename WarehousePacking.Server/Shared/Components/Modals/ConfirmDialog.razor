@@ -10,7 +10,21 @@
                     <p>@Message</p>
                 </div>
                 <div class="modal-footer d-flex gap-2 w-100">
-                    <button class="btn btn-danger btn-lg tall-btn" style="flex: 7;" @onclick="OnConfirm">Potwierdź</button>
+                    <button class="btn btn-danger btn-lg tall-btn"
+                            style="flex: 7;"
+                            disabled="@IsProcessing"
+                            @onclick="OnConfirm">
+
+                        @if (IsProcessing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                            <span>Przetwarzanie...</span>
+                        }
+                        else
+                        {
+                            <span>Potwierdź</span>
+                        }
+                    </button>
                     <button class="btn btn-secondary btn-lg tall-btn" style="flex: 3;" @onclick="OnCancel">Anuluj</button>
                 </div>
             </div>
@@ -23,6 +37,8 @@
     private string Title { get; set; } = string.Empty;
     private string Message { get; set; } = string.Empty;
     protected bool IsVisible { get; set; }
+
+    private bool IsProcessing;
 
     // Dynamic action for confirm
     private Func<Task> ConfirmAction { get; set; } = () => Task.CompletedTask;
@@ -46,8 +62,21 @@
 
     private async Task OnConfirm()
     {
-        await ConfirmAction.Invoke();
-        Hide();
+        if (IsProcessing)
+            return;
+
+        try
+        {
+            IsProcessing = true;
+            await InvokeAsync(StateHasChanged);
+
+            await ConfirmAction.Invoke();
+            Hide();
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
     }
 
     private async Task OnCancel()

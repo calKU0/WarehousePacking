@@ -166,10 +166,10 @@
                                                         <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.DpdCount)" />
                                                     </td>
                                                     <td>
-                                                        <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.GlsCount)" />
+                                                        <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.FedexCount)" />
                                                     </td>
                                                     <td>
-                                                        <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.FedexCount)" />
+                                                        <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.GlsCount)" />
                                                     </td>
                                                     <td>
                                                         <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.PersonalCollectionCount)" />
@@ -341,7 +341,7 @@
 
     private List<ZoneTaskRowView> ZoneRows { get; set; } = new();
     private List<OperatorRowView> OperatorRows { get; set; } = new();
-    private List<(Courier Courier, DateTime CreatedDate)> _taskDocumentsNormalized = new();
+    private List<(Courier Courier, DateTime CreatedDate, int DocumentId)> _taskDocumentsNormalized = new();
     private List<Courier> _documentsCouriers = new();
 
     private int TasksCount => Tasks.Count;
@@ -353,11 +353,11 @@
 
     private static readonly Courier[] MainCouriers = { Courier.DPD, Courier.GLS, Courier.Fedex, Courier.Personal_Collection };
 
-    private int DpdTasksTotalCount => _taskDocumentsNormalized.Count(x => x.Courier == Courier.DPD);
-    private int GlsTasksTotalCount => _taskDocumentsNormalized.Count(x => x.Courier == Courier.GLS);
-    private int FedexTasksTotalCount => _taskDocumentsNormalized.Count(x => x.Courier == Courier.Fedex);
-    private int PersonalCollectionTasksTotalCount => _taskDocumentsNormalized.Count(x => x.Courier == Courier.Personal_Collection);
-    private int OtherTasksTotalCount => _taskDocumentsNormalized.Count(x => !MainCouriers.Contains(x.Courier));
+    private int DpdTasksTotalCount => _taskDocumentsNormalized.Where(x => x.Courier == Courier.DPD).DistinctBy(x => x.DocumentId).Count();
+    private int GlsTasksTotalCount => _taskDocumentsNormalized.Where(x => x.Courier == Courier.GLS).DistinctBy(x => x.DocumentId).Count();
+    private int FedexTasksTotalCount => _taskDocumentsNormalized.Where(x => x.Courier == Courier.Fedex).DistinctBy(x => x.DocumentId).Count();
+    private int PersonalCollectionTasksTotalCount => _taskDocumentsNormalized.Where(x => x.Courier == Courier.Personal_Collection).DistinctBy(x => x.DocumentId).Count();
+    private int OtherTasksTotalCount => _taskDocumentsNormalized.Where(x => !MainCouriers.Contains(x.Courier)).DistinctBy(x => x.DocumentId).Count();
 
     private int DpdDocumentsTotalCount => _documentsCouriers.Count(x => x == Courier.DPD);
     private int GlsDocumentsTotalCount => _documentsCouriers.Count(x => x == Courier.GLS);
@@ -391,7 +391,8 @@
             .SelectMany(t => t.Documents)
             .Select(d => (
                 Courier: CourierHelper.GetCourierFromName(d.CourierName),
-                CreatedDate: d.CreatedDate
+                CreatedDate: d.CreatedDate,
+                DocumentId: d.Id
             ))
             .ToList();
 

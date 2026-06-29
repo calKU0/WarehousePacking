@@ -1294,13 +1294,15 @@ namespace WarehousePacking.Server.Shared.Base
             try
             {
                 FinishPackingModal.Hide();
-                string internalBarcode = string.Empty;
-                if (!string.IsNullOrEmpty(CurrentJl.InternalBarcode))
-                    internalBarcode = CurrentJl.InternalBarcode;
-                else
-                    internalBarcode = await TextBoxModal.Show("Numer wewnętrzny", "Wprowadź numer wewnętrzny", "Kod kreskowy");
 
-                if (string.IsNullOrEmpty(internalBarcode)) return;
+                if (string.IsNullOrEmpty(CurrentJl.InternalBarcode))
+                    CurrentJl.InternalBarcode = await PackingService.GenerateInternalBarcode(Settings.StationNumber);
+
+                if (string.IsNullOrEmpty(CurrentJl.InternalBarcode))
+                {
+                    Toast.Show("Błąd!", "Nie udało się wygenerować numeru wewnętrznego. Spróbuj ponownie.");
+                    return;
+                }
 
                 Dimensions dimensions = new();
                 if (Settings.PackingLevel == PackingLevel.Bottom && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
@@ -1311,12 +1313,9 @@ namespace WarehousePacking.Server.Shared.Base
                 IsFinishingLoading = true;
                 await InvokeAsync(StateHasChanged);
 
-                await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, internalBarcode, DocumentStatus.Ready);
-                await ClosePackage(internalBarcode, dimensions);
-                if (Settings.PackingLevel == PackingLevel.Bottom && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
-                {
-                    await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", internalBarcode } });
-                }
+                await CloseJlInWMS(CurrentJl.CourierName, CurrentJl.InternalBarcode, CurrentJl.InternalBarcode, DocumentStatus.Ready);
+                await ClosePackage(CurrentJl.InternalBarcode, dimensions);
+                await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", CurrentJl.InternalBarcode } });      
 
                 switch (_currentPackingFlow)
                 {
@@ -1416,14 +1415,14 @@ namespace WarehousePacking.Server.Shared.Base
 
                 FinishPackingModal.Hide();
 
-                string internalBarcode = string.Empty;
-                if (!string.IsNullOrEmpty(CurrentJl.InternalBarcode))
-                    internalBarcode = CurrentJl.InternalBarcode;
-                else
-                    internalBarcode = await TextBoxModal.Show("Numer wewnętrzny", "Wprowadź numer wewnętrzny", "Kod kreskowy");
+                if (string.IsNullOrEmpty(CurrentJl.InternalBarcode))
+                    CurrentJl.InternalBarcode = await PackingService.GenerateInternalBarcode(Settings.StationNumber);
 
-                if (string.IsNullOrEmpty(internalBarcode))
+                if (string.IsNullOrEmpty(CurrentJl.InternalBarcode))
+                {
+                    Toast.Show("Błąd!", "Nie udało się wygenerować numeru wewnętrznego. Spróbuj ponownie.");
                     return;
+                }
 
                 Dimensions dimensions = new();
                 if (Settings.PackingLevel == PackingLevel.Bottom && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
@@ -1434,12 +1433,9 @@ namespace WarehousePacking.Server.Shared.Base
                 IsFinishingLoading = true;
                 await InvokeAsync(StateHasChanged);
 
-                await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, internalBarcode, DocumentStatus.Bufor);
-                await ClosePackage(internalBarcode, dimensions, DocumentStatus.Bufor);
-                if (Settings.PackingLevel == PackingLevel.Bottom && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
-                {
-                    await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", internalBarcode } });
-                }
+                await CloseJlInWMS(CurrentJl.CourierName, CurrentJl.InternalBarcode, CurrentJl.InternalBarcode, DocumentStatus.Bufor);
+                await ClosePackage(CurrentJl.InternalBarcode, dimensions, DocumentStatus.Bufor);
+                await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", CurrentJl.InternalBarcode } });               
 
                 switch (_currentPackingFlow)
                 {
