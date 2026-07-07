@@ -135,7 +135,7 @@
                         <span>Wyślij paczkę</span>
                     }
                 </button>
-                <button class="btn btn-success tall-btn"
+                <button class="btn btn-danger tall-btn"
                         disabled="@((Package.Id == 0 && Package.ManualSend == false) || IsSendingPackage)"
                         @onclick="ClearData">
 
@@ -444,6 +444,8 @@
                 {
                     await ClientPrinterService.PrintCrystalAsync(WorkstationSettings.PrinterInvoice, Package.Recipient.Country != "PL" ? "InvoiceEN" : "InvoicePL", new Dictionary<string, string> { { "DocumentId", Package.InvoiceId.ToString() } });
                 }
+
+                await ClearData();
             }
             else
             {
@@ -453,10 +455,10 @@
         catch (Exception ex)
         {
             Toast.Show("Błąd!", $"Błąd przy próbie wysłania paczki: {ex.Message}", ToastType.Error, 10000);
+            await ClearData();
         }
         finally
         {
-            await ClearData();
             IsSendingPackage = false;
             await InvokeAsync(StateHasChanged);
         }

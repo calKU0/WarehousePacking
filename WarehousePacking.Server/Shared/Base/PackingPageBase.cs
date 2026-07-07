@@ -779,7 +779,7 @@ namespace WarehousePacking.Server.Shared.Base
                 StationNumber = Settings.StationNumber,
                 Courier = courier,
                 JlCode = CurrentJl.Code,
-                Type = string.Empty,
+                Type = PackingToBufor ? "PALETA" : string.Empty,
                 Weight = PackedItems.Where(i => i.JlCode == CurrentJl.Code).Sum(i => i.ItemWeight * i.JlQuantity),
                 Status = status,
                 Items = PackedWmsItems
@@ -1315,7 +1315,7 @@ namespace WarehousePacking.Server.Shared.Base
 
                 await CloseJlInWMS(CurrentJl.CourierName, CurrentJl.InternalBarcode, CurrentJl.InternalBarcode, DocumentStatus.Ready);
                 await ClosePackage(CurrentJl.InternalBarcode, dimensions);
-                await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", CurrentJl.InternalBarcode } });      
+                await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", CurrentJl.InternalBarcode } });
 
                 switch (_currentPackingFlow)
                 {
@@ -1435,7 +1435,7 @@ namespace WarehousePacking.Server.Shared.Base
 
                 await CloseJlInWMS(CurrentJl.CourierName, CurrentJl.InternalBarcode, CurrentJl.InternalBarcode, DocumentStatus.Bufor);
                 await ClosePackage(CurrentJl.InternalBarcode, dimensions, DocumentStatus.Bufor);
-                await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", CurrentJl.InternalBarcode } });               
+                await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", CurrentJl.InternalBarcode } });
 
                 switch (_currentPackingFlow)
                 {

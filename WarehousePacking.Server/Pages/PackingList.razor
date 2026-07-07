@@ -619,7 +619,7 @@
                     {
                         var success = await PackingService.MergePackages(result);
                         if (success)
-                            Toast.Show("Sukces!", $"Paczki została pomyślnie połączone. Kod kreskowy paczki:<br><b>{result.InitialBarcode}</b>", ToastType.Success);
+                            Toast.Show("Sukces!", $"Paczki zostały pomyślnie połączone. Kod kreskowy paczki:<br><b>{result.InitialBarcode}</b>", ToastType.Success);
                     }
                 }
                 catch (Exception ex)

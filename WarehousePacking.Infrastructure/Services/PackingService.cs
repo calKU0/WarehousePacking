@@ -291,13 +291,13 @@ namespace WarehousePacking.Infrastructure.Services
                 Proces = "PCK",
                 DestStatusLuId = "14",
                 Items = new List<CloseLuItems>
-            {
-                new CloseLuItems
                 {
-                    LuNr = request.PackageNumber.Trim(),
-                    LocDestNr = packageDestination
+                    new CloseLuItems
+                    {
+                        LuNr = request.PackageNumber.Trim(),
+                        LocDestNr = packageDestination
+                    }
                 }
-            }
             };
 
             var response = await _wmsApi.CloseJl(wmsRequest);
