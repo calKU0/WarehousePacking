@@ -21,6 +21,21 @@ namespace WarehousePacking.Infrastructure.Clients
             _httpClient = httpClient;
         }
 
+        private static readonly SemaphoreSlim _logLock = new(1, 1);
+
+        private static async Task LogAsync(string file, string text, CancellationToken cancellationToken)
+        {
+            await _logLock.WaitAsync(cancellationToken);
+            try
+            {
+                await File.AppendAllTextAsync(file, text, cancellationToken);
+            }
+            finally
+            {
+                _logLock.Release();
+            }
+        }
+
         public async Task<IEnumerable<JlDto>> GetJlListAsync(CancellationToken cancellationToken = default)
         {
             var request = new { warehouseId = "6" };
@@ -59,8 +74,8 @@ namespace WarehousePacking.Infrastructure.Clients
                 var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
                 // Log the raw response
-                await File.AppendAllTextAsync(logFile,
-                    $"[{DateTime.UtcNow:O}] Received Response ({(int)response.StatusCode})\n{responseBody}\n\n",
+                await LogAsync(logFile,
+                    $"[{DateTime.UtcNow:O}] Sending Request to {url}\n{requestJson}\n\n",
                     cancellationToken);
 
                 // Throw if not success
@@ -72,7 +87,7 @@ namespace WarehousePacking.Infrastructure.Clients
             }
             catch (Exception ex)
             {
-                await File.AppendAllTextAsync(logFile,
+                await LogAsync(logFile,
                     $"[{DateTime.UtcNow:O}] ERROR: {ex}\n\n",
                     cancellationToken);
                 throw;
@@ -88,7 +103,7 @@ namespace WarehousePacking.Infrastructure.Clients
             {
                 // Serialize the request to JSON for logging
                 var requestJson = JsonSerializer.Serialize(request, _jsonOptions);
-                await File.AppendAllTextAsync(logFile,
+                await LogAsync(logFile,
                     $"[{DateTime.UtcNow:O}] Sending Request to {url}\n{requestJson}\n\n",
                     cancellationToken);
 
@@ -97,7 +112,7 @@ namespace WarehousePacking.Infrastructure.Clients
                 var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
                 // Log the raw response
-                await File.AppendAllTextAsync(logFile,
+                await LogAsync(logFile,
                     $"[{DateTime.UtcNow:O}] Received Response ({(int)response.StatusCode})\n{responseBody}\n\n",
                     cancellationToken);
 
@@ -110,7 +125,7 @@ namespace WarehousePacking.Infrastructure.Clients
             }
             catch (Exception ex)
             {
-                await File.AppendAllTextAsync(logFile,
+                await LogAsync(logFile,
                     $"[{DateTime.UtcNow:O}] ERROR: {ex}\n\n",
                     cancellationToken);
                 throw;

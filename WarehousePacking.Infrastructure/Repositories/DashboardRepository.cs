@@ -1,7 +1,10 @@
-﻿using WarehousePacking.Contracts.DTOs.Dashboards;
+﻿using WarehousePacking.Contracts.Data.Enums;
+using WarehousePacking.Contracts.DTOs.Dashboards;
 using WarehousePacking.Contracts.DTOs.Requests;
 using WarehousePacking.Contracts.Repositories;
 using WarehousePacking.Infrastructure.Data;
+using WarehousePacking.Infrastructure.DTOs;
+using WarehousePacking.Infrastructure.Helpers;
 
 namespace WarehousePacking.Infrastructure.Repositories
 {
@@ -105,6 +108,33 @@ namespace WarehousePacking.Infrastructure.Repositories
 
             var result = await _context.QuerySingleOrDefaultAsync<DashboardColorConfiguration>(procedure);
             return result;
+        }
+
+        public async Task<IEnumerable<WarehouseLu>> GetLusAsync(GetLusRequest request)
+        {
+            const string procedure = "kp.GetJls";
+
+            var rows = await _context.QueryAsync<LusRow>(procedure, new { Status = request.Status.GetDescription(), PreviousOperationId = request.PreviousOperationId });
+
+            return rows.Select(r => new WarehouseLu
+            {
+                Id = r.Id,
+                Code = r.Code,
+                ZoneId = r.ZoneId,
+                Zone = r.Zone,
+                Warehouse = r.Warehouse,
+                LastOperationDate = r.LastOperationDate,
+                LastOperationOperator = r.LastOperationOperator,
+                ProductsCount = r.ProductsCount,
+                ProductsSum = r.ProductsSum,
+                Weight = r.Weight,
+                Couriers = string.IsNullOrWhiteSpace(r.Couriers)
+                    ? new List<Courier>()
+                    : r.Couriers
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(x => (Courier)int.Parse(x))
+                        .ToList()
+            });
         }
     }
 }

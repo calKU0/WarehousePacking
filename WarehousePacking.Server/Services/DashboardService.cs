@@ -128,6 +128,11 @@ namespace WarehousePacking.Server.Services
             );
         }
 
+        public async Task<List<WarehouseLu>> GetLus(GetLusRequest request)
+        {
+            return await GetAsync<List<WarehouseLu>>($"api/dashboards/lus?Status={request.Status}&PreviousOperationId={request.PreviousOperationId}");
+        }
+
         public async Task<DashboardColorConfiguration> GetColorConfiguration()
         {
             return await GetAsync<DashboardColorConfiguration>("api/dashboards/color-configuration");

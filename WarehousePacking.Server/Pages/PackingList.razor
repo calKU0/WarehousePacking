@@ -473,6 +473,8 @@
             if (packagesInBufor?.Where(p => p.Courier == jl.Courier).Any() == true)
             {
                 selectedPackage = await PackagesInBuforModal.Show(packagesInBufor);
+                if (PackagesInBuforModal.WasCancelled)
+                    return;
             }
 
             //
@@ -489,7 +491,9 @@
 
             if (matchingJls.Any())
             {
-                selectedMergeJls = await MergeJlsModal.Show(matchingJls);
+                selectedMergeJls = await MergeJlsModal.Show(matchingJls, Settings.PrinterLabel, jl);
+                if (MergeJlsModal.WasCancelled)
+                    return;
             }
 
             //

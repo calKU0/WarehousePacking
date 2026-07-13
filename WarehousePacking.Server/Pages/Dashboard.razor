@@ -93,7 +93,7 @@
                                                 IsLoading="IsPickingLoading" />
                             break;
                         case DashboardPanel.Sorting:
-                            <DashboardSortingPanel Documents="SortingDocuments"
+                            <DashboardSortingPanel LusToSort="LusToSort"
                                                 RecentOperations="SortingRecentOperations"
                                                 ColorConfig="ColorConfig"
                                                 IsLoading="IsSortingLoading" />
@@ -105,7 +105,7 @@
                                                 IsLoading="IsPackingLoading" />
                             break;
                         case DashboardPanel.Loading:
-                            <DashboardLoadingPanel Documents="LoadingDocuments"
+                            <DashboardLoadingPanel LusToLoad="LusToLoad"
                                                 RecentOperations="LoadingRecentOperations"
                                                 ColorConfig="ColorConfig"
                                                 IsLoading="IsLoadingLoading"/>
@@ -161,15 +161,15 @@
     private List<JlData> PackingQueue = new();
     private List<JlInProgressDto> PackingInProgress = new();
 
-    private List<WarehouseDocument> LoadingDocuments = new();
+    private List<WarehouseLu> LusToLoad = new();
     private List<WarehouseOperation> LoadingRecentOperations = new();
 
-    private List<WarehouseDocument> SortingDocuments = new();
+    private List<WarehouseLu> LusToSort = new();
     private List<WarehouseOperation> SortingRecentOperations = new();
 
     private List<WarehouseDocument> ReceivingDocuments = new();
     private List<WarehouseOperation> ReceivingRecentOperations = new();
-   
+
 
     private bool IsCurrentPanelLoading => ActivePanel switch
     {
@@ -203,7 +203,7 @@
             .OrderBy(p => (int)p.Panel)
             .Select(p => p.Panel)
             .ToArray();
-             
+
         if (!PanelOrder.Any())
         {
             PanelOrder = new[] { DashboardPanel.Picking };
@@ -212,7 +212,7 @@
         ActivePanel = PanelOrder[0];
 
         await RefreshCurrentPanelAsync(true, false);
-        
+
         _refreshCountdown = CurrentConfig.RefreshIntervalSeconds;
         _slideCountdown = CurrentConfig.SlideIntervalSeconds;
 
@@ -292,7 +292,7 @@
     {
         var nextIndex = (ActivePanelIndex + offset + PanelOrder.Length) % PanelOrder.Length;
         ActivePanel = PanelOrder[nextIndex];
-        
+
         if (resetSlide) RestartSliderTimer();
         if (resetRefresh) RestartRefreshTimer();
 
@@ -415,7 +415,7 @@
 
         IsPickingLoading = true;
         await InvokeAsync(StateHasChanged);
-        
+
         try
         {
             var tasks = DashboardService.GetWarehouseTasks(new GetWarehouseTasksRequest
@@ -508,7 +508,7 @@
             return;
         }
 
-        if (!force && LoadingDocuments.Any())
+        if (!force && LusToLoad.Any())
         {
             return;
         }
@@ -518,16 +518,10 @@
 
         try
         {
-            var documentsTask = DashboardService.GetWarehouseDocuments(new GetWarehouseDocumentsRequest
+            var lusTask = DashboardService.GetLus(new GetLusRequest
             {
-                Types = [WarehouseDocumentType.Loading],
-                Statuses =
-                [
-                    WarehouseTaskStatus.New,
-                    WarehouseTaskStatus.InExecution,
-                    WarehouseTaskStatus.Processing,
-                    WarehouseTaskStatus.ReadyForExecution
-                ]
+                Status = LogisticUnitStatus.ReadyForLoading,
+                PreviousOperationId = WarehouseDocumentType.Packing
             });
 
             var operationsTask = DashboardService.GetWarehouseOperations(new GetWarehouseOperationsRequest
@@ -536,9 +530,9 @@
                 Date = DateTime.UtcNow.AddMinutes(-5)
             });
 
-            await Task.WhenAll(documentsTask, operationsTask);
+            await Task.WhenAll(lusTask, operationsTask);
 
-            LoadingDocuments = documentsTask.Result ?? new List<WarehouseDocument>();
+            LusToLoad = lusTask.Result ?? new List<WarehouseLu>();
             LoadingRecentOperations = operationsTask.Result ?? new List<WarehouseOperation>();
 
             LastRefresh = DateTime.Now;
@@ -560,7 +554,7 @@
             return;
         }
 
-        if (!force && SortingDocuments.Any())
+        if (!force && LusToSort.Any())
         {
             return;
         }
@@ -570,16 +564,10 @@
 
         try
         {
-            var documentsTask = DashboardService.GetWarehouseDocuments(new GetWarehouseDocumentsRequest
+            var jlsTask = DashboardService.GetLus(new GetLusRequest
             {
-                Types = [WarehouseDocumentType.Sorting],
-                Statuses =
-                [
-                    WarehouseTaskStatus.New,
-                    WarehouseTaskStatus.InExecution,
-                    WarehouseTaskStatus.Processing,
-                    WarehouseTaskStatus.ReadyForExecution
-                ]
+                Status = LogisticUnitStatus.ReadyForSorting,
+                PreviousOperationId = WarehouseDocumentType.Task
             });
 
             var operationsTask = DashboardService.GetWarehouseOperations(new GetWarehouseOperationsRequest
@@ -588,9 +576,9 @@
                 Date = DateTime.UtcNow.AddMinutes(-5)
             });
 
-            await Task.WhenAll(documentsTask, operationsTask);
+            await Task.WhenAll(jlsTask, operationsTask);
 
-            SortingDocuments = documentsTask.Result ?? new List<WarehouseDocument>();
+            LusToSort = jlsTask.Result ?? new List<WarehouseLu>();
             SortingRecentOperations = operationsTask.Result ?? new List<WarehouseOperation>();
 
             LastRefresh = DateTime.Now;
@@ -644,6 +632,12 @@
 
             ReceivingDocuments = documentsTask.Result ?? new List<WarehouseDocument>();
             ReceivingRecentOperations = operationsTask.Result ?? new List<WarehouseOperation>();
+            var excludedErpTypes = new HashSet<int>
+            {
+                2033, 2045, 2041, 2042, 2013, 2009
+            };
+
+            ReceivingDocuments = ReceivingDocuments.Where(d => !excludedErpTypes.Contains(d.ErpType)).ToList();
 
             LastRefresh = DateTime.Now;
         }

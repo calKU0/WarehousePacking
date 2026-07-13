@@ -32,5 +32,10 @@ namespace WarehousePacking.Infrastructure.Services
         {
             return await _dashboardRepository.GetColorConfigurationAsync();
         }
+
+        public async Task<IEnumerable<WarehouseLu>> GetLusAsync(GetLusRequest request)
+        {
+            return await _dashboardRepository.GetLusAsync(request);
+        }
     }
 }

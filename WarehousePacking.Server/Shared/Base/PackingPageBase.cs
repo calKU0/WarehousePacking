@@ -1200,7 +1200,7 @@ namespace WarehousePacking.Server.Shared.Base
                     {
                         var labelContent = response.LabelBase64;
                         await ClientPrinterService.PrintAsync(Settings.PrinterLabel, response.LabelType.ToString(), labelContent);
-                        ShipmentModal.Show(CurrentJl.InternalBarcode, response.TrackingNumber, response.LabelBase64, response.LabelType, Settings.PrinterLabel, package.HasInvoice);
+                        ShipmentModal.Show(CurrentJl.InternalBarcode, response.LabelType, Settings.PrinterLabel, package.HasInvoice, true, null, response.TrackingNumber, response.LabelBase64);
                         if (package.HasInvoice)
                         {
                             await ClientPrinterService.PrintCrystalAsync(Settings.PrinterInvoice, package.Recipient.Country != "PL" ? "InvoiceEN" : "InvoicePL", new Dictionary<string, string> { { "DocumentId", package.InvoiceId.ToString() } });
@@ -1274,7 +1274,7 @@ namespace WarehousePacking.Server.Shared.Base
             {
                 Toast.Show("Błąd!", $"Błąd przy próbie zwalniania jl w WMS. Spróbuj ponowanie: {ex.Message}");
                 ShipmentModal.KeepOpenAfterOk();
-                ShipmentModal.Show(CurrentJl.InternalBarcode, data.TrackingNumber, string.Empty, PrintDataType.ZPL, Settings.PrinterLabel, false, true, data.ScannedCode);
+                ShipmentModal.Show(CurrentJl.InternalBarcode, PrintDataType.ZPL, Settings.PrinterLabel, false, true, data.ScannedCode, data.TrackingNumber, string.Empty);
             }
             finally
             {
@@ -1311,33 +1311,13 @@ namespace WarehousePacking.Server.Shared.Base
                 }
 
                 IsFinishingLoading = true;
-                await InvokeAsync(StateHasChanged);
 
-                await CloseJlInWMS(CurrentJl.CourierName, CurrentJl.InternalBarcode, CurrentJl.InternalBarcode, DocumentStatus.Ready);
                 await ClosePackage(CurrentJl.InternalBarcode, dimensions);
                 await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", CurrentJl.InternalBarcode } });
 
-                switch (_currentPackingFlow)
-                {
-                    case PackingFlow.FinishPacking:
-                        await CollaborationService.LeaveSessionAsync(PackageId, UserSession.Username, closeSession: true);
+                await InvokeAsync(StateHasChanged);
 
-                        foreach (var jl in MergeJls)
-                        {
-                            await PackingService.RemoveJlRealization(jl.jlName, UserSession.Username, false);
-                            await PackingService.RemoveJlFromPackingList(jl.jlName);
-                        }
-                        await PackingService.RemoveJlRealization(Jl, UserSession.Username, false);
-                        await PackingService.RemoveJlFromPackingList(Jl);
-
-                        Navigation.NavigateTo("/kontrola-pakowania");
-                        break;
-
-                    case PackingFlow.NextPackage:
-                        await HandleNextPackage();
-                        await ScanInputComponent.FocusAsync();
-                        break;
-                }
+                ShipmentModal.Show(CurrentJl.InternalBarcode, PrintDataType.ZPL, Settings.PrinterLabel, false, true, null, null, null);
             }
             catch (Exception ex)
             {

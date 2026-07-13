@@ -7,7 +7,7 @@
         <div class="modal-container">
             <div class="modal-header">
                 <h5 class="modal-title">Dopakuj towary do paczki</h5>
-                <button type="button" class="btn-close" @onclick="Close" aria-label="Close"></button>
+                <button type="button" class="btn-close" @onclick="Cancel" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p>Klient posiada zabuforowane paczki/palety. Zeskanuj lub wybierz paczkę:</p>
@@ -41,7 +41,7 @@
                 </table>
             </div>
             <div class="modal-footer d-flex w-100">
-                <button class="btn btn-secondary btn-lg tall-btn" style="flex: 3;" @onclick="Close">Utwórz nową paczkę (bez dopakowania)</button>
+                <button class="btn btn-secondary btn-lg tall-btn" style="flex: 3;" @onclick="SkipBuforing">Utwórz nową paczkę (bez dopakowania)</button>
             </div>
         </div>
     </div>
@@ -57,11 +57,13 @@
     private ElementReference InputRef;
     private bool PendingFocus;
 
+    public bool WasCancelled { get; private set; }
 
     public async Task<PackageSelectionResult?> Show(List<PackageData> avaliablePackages)
     {
         AvaliablePackages = avaliablePackages;
         ScanInput = string.Empty;
+        WasCancelled = false;
 
         IsVisible = true;
         await InvokeAsync(StateHasChanged); // ensure render scheduled
@@ -105,7 +107,15 @@
         Confirm();
     }
 
-    private void Close()
+    private void Cancel()
+    {
+        WasCancelled = true;
+        IsVisible = false;
+        _tcs?.TrySetResult(null);
+        StateHasChanged();
+    }
+
+    private void SkipBuforing()
     {
         IsVisible = false;
         _tcs?.TrySetResult(null);

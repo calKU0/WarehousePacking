@@ -439,7 +439,7 @@
 
                 var labelContent = response.LabelBase64;
                 await ClientPrinterService.PrintAsync(WorkstationSettings.PrinterLabel, response.LabelType.ToString(), labelContent);
-                ShipmentModal.Show(Barcode, response.TrackingNumber, response.LabelBase64, response.LabelType, WorkstationSettings.PrinterLabel, Package.HasInvoice, false);
+                ShipmentModal.Show(Barcode, response.LabelType, WorkstationSettings.PrinterLabel, Package.HasInvoice, false, null, response.TrackingNumber, response.LabelBase64);
                 if (Package.HasInvoice)
                 {
                     await ClientPrinterService.PrintCrystalAsync(WorkstationSettings.PrinterInvoice, Package.Recipient.Country != "PL" ? "InvoiceEN" : "InvoicePL", new Dictionary<string, string> { { "DocumentId", Package.InvoiceId.ToString() } });
@@ -492,7 +492,7 @@
         await CreatePackageForDocument(documentInfo);
         Toast.Show("Sukces", $"Stworzono paczkę.", ToastType.Success);
     }
-
+    
     private bool TryParseDocumentBarcode(string barcode, out int documentId, out int documentType)
     {
         documentId = 0;

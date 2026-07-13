@@ -59,6 +59,20 @@ namespace WarehousePacking.API.Controllers
             }
         }
 
+        [HttpGet("lus")]
+        public async Task<IActionResult> GetLus([FromQuery] GetLusRequest request)
+        {
+            try
+            {
+                var list = await _dashboardService.GetLusAsync(request);
+                return Ok(list);
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
+        }
+
         [HttpGet("color-configuration")]
         public async Task<IActionResult> GetColorConfiguration()
         {

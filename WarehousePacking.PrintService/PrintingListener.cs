@@ -63,6 +63,8 @@ namespace WarehousePacking.PrintService
                         {
                             var body = reader.ReadToEnd();
 
+                            Logger.Info("Received print request");
+
                             var job = JsonSerializer.Deserialize<PrintJob>(
                                 body,
                                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -79,7 +81,17 @@ namespace WarehousePacking.PrintService
                                 response.Close();
 
                                 // Druk w tle
-                                Task.Run(() => PrintManager.Print(job));
+                                Task.Run(() =>
+                                {
+                                    try
+                                    {
+                                        PrintManager.Print(job);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Logger.Error("Błąd podczas drukowania w tle: " + ex);
+                                    }
+                                });
 
                                 continue; // idź do kolejnego requestu
                             }

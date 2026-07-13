@@ -39,9 +39,10 @@
                                         <td>@element.Name</td>
                                         <td>@GetMaxQuantity(element)</td>
                                         <td style="max-width: 150px;">
-                                            <InputNumber @bind-Value="element.Quantity"
-                                                         @bind-Value:event="oninput"
-                                                         @onchange="(_) => EnsureAllowedQuantity(element)"
+                                            <InputNumber TValue="decimal"
+                                                         Value="element.Quantity"
+                                                         ValueChanged="@( (decimal value) => OnQuantityChanged(element, value) )"
+                                                         ValueExpression="@(() => element.Quantity)"
                                                          class="form-control"
                                                          disabled="@(!SelectedKeys.Contains(GetElementKey(element)))"
                                                          min="0"
@@ -117,6 +118,12 @@
     {
         var key = GetElementKey(element);
         return MaxQuantities.TryGetValue(key, out var max) ? max : element.Quantity;
+    }
+
+    private void OnQuantityChanged(DocumentElement element, decimal value)
+    {
+        element.Quantity = value;
+        EnsureAllowedQuantity(element);
     }
 
     private void EnsureAllowedQuantity(DocumentElement element)
