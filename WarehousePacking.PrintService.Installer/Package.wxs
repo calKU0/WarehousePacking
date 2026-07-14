@@ -113,6 +113,14 @@
                         Stop="both"
                         Remove="uninstall"
                         Wait="yes" />
+
+        <!-- Recovery tab: restart the service on the 1st, 2nd and 3rd failure -->
+        <util:ServiceConfig ServiceName="[SERVICENAME]"
+                             FirstFailureActionType="restart"
+                             SecondFailureActionType="restart"
+                             ThirdFailureActionType="restart"
+                             RestartServiceDelayInSeconds="60"
+                             ResetPeriodInDays="1" />
       </Component>
 
       <Component Id="RegistryProperties" Guid="*">
