@@ -74,7 +74,22 @@
                   Impersonate="no"
                   Return="ignore" />
 
+    <!-- Windows only grants "Log on as a service" automatically when a service account is
+         configured through the Services MMC console. A service created programmatically
+         (like our ServiceInstall below) doesn't get that right for free, so a custom
+         account fails to log on the first time with "service did not start due to a logon
+         failure". Grant it explicitly before the service tries to start - built-in virtual
+         accounts (LocalSystem/LocalService/NetworkService) already have it, so skip those. -->
+    <CustomAction Id="GrantLogonAsService"
+                  ExeCommand="powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File &quot;[INSTALLFOLDER]GrantLogonAsService.ps1&quot; -Account &quot;[SERVICEACCOUNT]&quot;"
+                  Directory="INSTALLFOLDER"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
     <InstallExecuteSequence>
+      <Custom Action="GrantLogonAsService" After="InstallFiles"
+              Condition="(SERVICEACCOUNT &lt;&gt; &quot;LocalSystem&quot;) AND (SERVICEACCOUNT &lt;&gt; &quot;LocalService&quot;) AND (SERVICEACCOUNT &lt;&gt; &quot;NetworkService&quot;) AND (SERVICEACCOUNT &lt;&gt; &quot;NT AUTHORITY\LocalService&quot;) AND (SERVICEACCOUNT &lt;&gt; &quot;NT AUTHORITY\NetworkService&quot;) AND (NOT REMOVE=&quot;ALL&quot;)" />
       <Custom Action="SetServiceManualStart" After="StartServices" Condition="(NOT SERVICE_AUTOSTART = &quot;1&quot;) AND (NOT REMOVE=&quot;ALL&quot;)" />
     </InstallExecuteSequence>
   </Package>
@@ -102,6 +117,10 @@
 
       <Component Id="RegistryProperties" Guid="*">
         <RegistryValue Root="HKLM" Key="SOFTWARE\KontrolaPakowania\PrintService" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <Component Id="GrantLogonScript" Guid="*">
+        <File Id="GrantLogonScriptFile" Source="Scripts\GrantLogonAsService.ps1" KeyPath="yes" />
       </Component>
 
       <Files Include="$(var.WarehousePacking.PrintService.TargetDir)\**\*">
