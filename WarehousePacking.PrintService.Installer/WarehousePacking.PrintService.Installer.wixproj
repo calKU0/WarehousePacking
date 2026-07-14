@@ -1,0 +1,25 @@
+<Project Sdk="WixToolset.Sdk/7.0.0">
+  <PropertyGroup>
+    <AcceptEula>wix7</AcceptEula>
+    <Platform>x64</Platform>
+    <OutputName>KontrolaPakowania.PrintService.Setup</OutputName>
+    <DefineConstants>PwaUrl=http://192.168.0.109:8092</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="7.0.0" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="7.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- WarehousePacking.PrintService only supports Platform=AnyCPU; strip our forced x64
+         Platform before MSBuild propagates it as a global property to that reference. -->
+    <ProjectReference Include="..\WarehousePacking.PrintService\WarehousePacking.PrintService.csproj"
+                       GlobalPropertiesToRemove="Platform" />
+  </ItemGroup>
+
+  <!-- Publish the built installer where the Blazor server serves it from, replacing the
+       manual KontrolaPakowania.rar download. -->
+  <Target Name="CopyMsiToServerDownloads" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFolder="$(MSBuildThisFileDirectory)..\WarehousePacking.Server\wwwroot\downloads\" />
+  </Target>
+</Project>

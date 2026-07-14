@@ -15,15 +15,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="wwwroot\downloads\KontrolaPakowania.rar">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Update="wwwroot\downloads\PrintingAgent.rar">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\downloads\Wydruki.rar">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\downloads\" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,39 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <UI>
+      <Dialog Id="ServiceConfigDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)">
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" />
+        </Control>
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)">
+          <Publish Event="NewDialog" Value="InstallDirDlg" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Service Configuration" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="320" Height="15" Transparent="yes" NoPrefix="yes" Text="Choose the account the print service should run as, and how it should start." />
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+
+        <!-- Service account -->
+        <Control Id="AccountLabel" Type="Text" X="20" Y="65" Width="150" Height="15" Text="Service account:" />
+        <Control Id="AccountEdit" Type="Edit" X="20" Y="80" Width="330" Height="18" Property="SERVICEACCOUNT" />
+
+        <!-- Password -->
+        <Control Id="PasswordLabel" Type="Text" X="20" Y="105" Width="150" Height="15" Text="Password (if required):" />
+        <Control Id="PasswordEdit" Type="Edit" X="20" Y="120" Width="330" Height="18" Property="SERVICEPASSWORD" Password="yes" />
+
+        <!-- Autostart -->
+        <Control Id="AutostartCheckBox" Type="CheckBox" X="20" Y="150" Width="330" Height="18"
+                 Property="SERVICE_AUTOSTART" CheckBoxValue="1"
+                 Text="Start the service automatically at boot" />
+
+        <Control Id="InstructionsLabel" Type="Text" X="20" Y="180" Width="330" Height="40"
+                 Text="Tip: Use &quot;LocalSystem&quot; for the default built-in account, or provide DOMAIN\User and a password for a custom account. Uncheck the box above if the service should be started manually." />
+      </Dialog>
+    </UI>
+  </Fragment>
+</Wix>

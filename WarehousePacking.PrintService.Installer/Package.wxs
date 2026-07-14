@@ -1,0 +1,139 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="KontrolaPakowania.PrintService"
+           Manufacturer="KontrolaPakowania"
+           Version="1.0.0"
+           UpgradeCode="589457ED-2DE8-44A8-A2CF-D10A96E173BD">
+    <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Install locations -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="KONTROLAPAKOWANIAFOLDER" Name="KontrolaPakowania">
+        <Directory Id="INSTALLFOLDER" Name="PrintingService" />
+        <Directory Id="WYDRUKIFOLDER" Name="Wydruki" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="DesktopFolder" />
+    <StandardDirectory Id="StartupFolder" />
+
+    <Icon Id="KontrolaPakowaniaIcon" SourceFile="Resources\KontrolaPakowania.ico" />
+
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
+    <!-- Service account / start-type, chosen by the user in ServiceConfigDlg -->
+    <Property Id="SERVICEACCOUNT" Value="LocalSystem" />
+    <Property Id="SERVICEPASSWORD" Secure="yes" Hidden="yes" />
+    <Property Id="SERVICE_AUTOSTART" Value="1" />
+
+    <!-- Hardcoded immutable service identity -->
+    <Property Id="SERVICENAME" Value="KontrolaPakowaniaPrintingService" />
+    <Property Id="SERVICEDISPLAYNAME" Value="KontrolaPakowania Print Service" />
+    <Property Id="SERVICEDESCRIPTION" Value="Prints labels and documents for KontrolaPakowania." />
+
+    <!-- Locate the installed Microsoft Edge executable for the PWA shortcut -->
+    <Property Id="EDGEEXEPATH" Secure="yes">
+      <RegistrySearch Id="LocateEdgeExe"
+                       Root="HKLM"
+                       Key="SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe"
+                       Type="raw" />
+    </Property>
+
+    <Feature Id="ProductFeature" Title="KontrolaPakowania.PrintService" Level="1">
+      <ComponentGroupRef Id="ServiceFiles" />
+      <ComponentGroupRef Id="PrintTemplates" />
+      <ComponentRef Id="DesktopShortcut" />
+      <ComponentRef Id="StartupShortcut" />
+    </Feature>
+
+    <UI>
+      <ui:WixUI Id="WixUI_InstallDir" />
+
+      <!-- Overwrite default VerifyReadyDlg transition with 1 -->
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Condition="0" />
+
+      <!-- Wire InstallDirDlg to ServiceConfigDlg (Order 5 executes after path validation at Order 1,2,3) -->
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="ServiceConfigDlg" Order="5" />
+
+      <!-- Overwrite default VerifyReadyDlg Back button -->
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="InstallDirDlg" Condition="0" />
+
+      <!-- Wire VerifyReadyDlg back to ServiceConfigDlg -->
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="ServiceConfigDlg" Condition="NOT Installed" Order="5" />
+    </UI>
+
+    <!-- The WiX-declared ServiceInstall always registers the service as Automatic; if the
+         user unchecks "start automatically" in ServiceConfigDlg we downgrade it to Manual
+         once the service has been installed and started, since ServiceInstall/@Start can't
+         be driven by a runtime property. -->
+    <CustomAction Id="SetServiceManualStart"
+                  ExeCommand="sc.exe config &quot;[SERVICENAME]&quot; start= demand"
+                  Directory="INSTALLFOLDER"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="SetServiceManualStart" After="StartServices" Condition="(NOT SERVICE_AUTOSTART = &quot;1&quot;) AND (NOT REMOVE=&quot;ALL&quot;)" />
+    </InstallExecuteSequence>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="ServiceFiles" Directory="INSTALLFOLDER">
+      <Component Id="ServiceExecutable" Guid="*">
+        <File Id="ServiceExe" Source="$(var.WarehousePacking.PrintService.TargetPath)" KeyPath="yes" />
+        <ServiceInstall Id="PrintServiceInstall"
+                        Name="[SERVICENAME]"
+                        DisplayName="[SERVICEDISPLAYNAME]"
+                        Description="[SERVICEDESCRIPTION]"
+                        Start="auto"
+                        Account="[SERVICEACCOUNT]"
+                        Password="[SERVICEPASSWORD]"
+                        ErrorControl="normal"
+                        Type="ownProcess" />
+        <ServiceControl Id="PrintServiceControl"
+                        Name="[SERVICENAME]"
+                        Start="install"
+                        Stop="both"
+                        Remove="uninstall"
+                        Wait="yes" />
+      </Component>
+
+      <Component Id="RegistryProperties" Guid="*">
+        <RegistryValue Root="HKLM" Key="SOFTWARE\KontrolaPakowania\PrintService" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <Files Include="$(var.WarehousePacking.PrintService.TargetDir)\**\*">
+        <Exclude Files="$(var.WarehousePacking.PrintService.TargetDir)\WarehousePacking.PrintService.exe" />
+      </Files>
+    </ComponentGroup>
+
+    <!-- Print templates (Crystal Reports .rpt files used by the service) -->
+    <ComponentGroup Id="PrintTemplates" Directory="WYDRUKIFOLDER">
+      <Files Include="..\WarehousePacking.PrintService\Prints\**\*" />
+    </ComponentGroup>
+
+    <!-- Desktop PWA icon: opens the KontrolaPakowania dashboard in an app-mode Edge window -->
+    <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="*">
+      <Shortcut Id="DesktopPwaShortcut"
+                Name="KontrolaPakowania"
+                Description="KontrolaPakowania"
+                Target="[EDGEEXEPATH]"
+                Arguments="--app=$(PwaUrl) --start-maximized"
+                Icon="KontrolaPakowaniaIcon" />
+      <RegistryValue Root="HKCU" Key="Software\KontrolaPakowania\PrintService" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <!-- Autostart: launches the same PWA window automatically when the machine starts up -->
+    <Component Id="StartupShortcut" Directory="StartupFolder" Guid="*">
+      <Shortcut Id="StartupPwaShortcut"
+                Name="KontrolaPakowania"
+                Description="KontrolaPakowania (autostart)"
+                Target="[EDGEEXEPATH]"
+                Arguments="--app=$(PwaUrl) --start-maximized"
+                Icon="KontrolaPakowaniaIcon" />
+      <RegistryValue Root="HKCU" Key="Software\KontrolaPakowania\PrintService" Name="StartupShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>
