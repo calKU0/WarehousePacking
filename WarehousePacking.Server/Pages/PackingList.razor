@@ -16,77 +16,76 @@
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 
-<div class="d-flex align-items-center mb-4">
-    <div class="bg-primary text-white rounded p-2 me-3 shadow-sm">
-        <i class="bi bi-box-seam fs-4"></i>
-    </div>
-    <h3 class="mb-0 fw-bold text-dark">Lista kuwet do spakowania</h3>
+<div class="app-page-header mb-4">
+    <span class="app-page-header__icon"><i class="bi bi-box-seam"></i></span>
+    <h1 class="app-page-header__title">Lista kuwet do spakowania</h1>
 </div>
 
-<div class="row g-4">
-    <div class="col-md-9">
-        <div class="card shadow-sm border-0 h-100 table-card">
+@* Sidebar gets a bigger share on compact panels (1024) where its content
+   would otherwise be cramped, and narrows again once there is room to spare.
+   Below 992px the two stack: seven columns plus a sidebar genuinely cannot
+   share that width, so the table takes the full row. *@
+<div class="row g-3">
+    <div class="col-12 col-lg-8 col-xxl-9">
+        <div class="app-card h-100">
             @if (IsLoading)
             {
-                <div class="d-flex flex-column align-items-center justify-content-center h-100 p-5">
-                    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-                    <span class="text-muted fw-medium">Ładowanie danych...</span>
+                <div class="app-empty">
+                    <div class="app-spinner"></div>
+                    <p class="app-empty__text">Ładowanie danych...</p>
                 </div>
             }
             else if (!JlList.Any())
             {
-                <div class="d-flex flex-column align-items-center justify-content-center h-100 p-5 text-muted">
-                    <i class="bi bi-inbox fs-1 mb-3 opacity-50"></i>
-                    <h5 class="fw-medium">Brak kuwet do spakowania</h5>
-                    <p class="small">Wszystkie zadania zostały ukończone.</p>
+                <div class="app-empty">
+                    <i class="bi bi-inbox app-empty__icon"></i>
+                    <p class="app-empty__title">Brak kuwet do spakowania</p>
+                    <p class="app-empty__text">Wszystkie zadania zostały ukończone.</p>
                 </div>
             }
             else
             {
-                <div class="table-responsive pro-table-wrapper">
-                    <table class="table table-hover align-middle mb-0 pro-table">
-                        <thead class="sticky-top bg-white shadow-sm">
+                <div class="app-scroll packing-list__scroll">
+                    <table class="app-table app-table--center app-table--interactive app-table--compact">
+                        <thead>
                             <tr>
-                                <th class="text-secondary fw-semibold">Lokalizacja</th>
-                                <th class="text-secondary fw-semibold">Kuweta</th>
-                                <th class="text-secondary fw-semibold">Kurier</th>
-                                <th class="text-secondary fw-semibold">Waga</th>
-                                <th class="text-secondary fw-semibold">Poza UE</th>
-                                <th class="text-secondary fw-semibold">Klient</th>
-                                <th class="text-secondary fw-semibold">Data dok.</th>
+                                <th>Lokalizacja</th>
+                                <th>Kuweta</th>
+                                <th>Kurier</th>
+                                <th>Waga</th>
+                                <th>Poza UE</th>
+                                <th>Klient</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            @foreach (var (item, index) in JlList.Select((value, i) => (value, i)))
+                        <tbody class="@(_animateRows ? "app-stagger" : null)">
+                            @foreach (var item in JlList)
                             {
                                 var rowClass = item.Status switch
                                 {
-                                    1 => "row-status-ready",
-                                    2 => "row-status-error",
-                                    3 => "row-status-warning",
+                                    1 => "is-ready",
+                                    2 => "is-error",
+                                    3 => "is-warning",
                                     _ => ""
                                 };
 
-                                <tr class="clickable-row @rowClass" ondblclick="@(() => OnRowDoubleClick(item))">
-                                    <td class="fw-medium">@item.Location</td>
-                                    <td class="font-monospace fw-bold">@item.Code</td>
-                                    <td class="logo-cell">
+                                <tr class="@rowClass" @key="item.Id" ondblclick="@(() => OnRowDoubleClick(item))">
+                                    <td class="fw-medium app-table__truncate" title="@item.Location">@item.Location</td>
+                                    <td class="app-table__code">@item.Code</td>
+                                    <td class="packing-list__logo-cell">
                                         @{
                                             var courierLogo = CourierHelper.GetCourierLogo(item.ShipmentServices, item.Courier);
                                         }
 
-                                        @if (!string.IsNullOrWhiteSpace(courierLogo))
-                                        {
-                                            <div class="logo-wrapper">
-                                                <img src="@courierLogo" alt="@item.Courier" class="courier-logo-img" />
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <div class="fallback-icon">
+                                        <div class="app-thumb app-thumb--wide mx-auto">
+                                            @if (!string.IsNullOrWhiteSpace(courierLogo))
+                                            {
+                                                <img src="@courierLogo" alt="@item.Courier" />
+                                            }
+                                            else
+                                            {
                                                 <i class="bi bi-truck text-secondary fs-5"></i>
-                                            </div>
-                                        }
+                                            }
+                                        </div>
                                     </td>
                                     <td>
                                         <span class="badge bg-light text-dark border">
@@ -103,8 +102,7 @@
                                             <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle">Nie</span>
                                         }
                                     </td>
-                                    <td class="text-muted">@item.ClientSymbol</td>
-                                    <td class="text-muted small">@item.DocumentDate.ToString("dd.MM.yyyy")</td>
+                                    <td class="text-muted app-table__truncate" title="@item.ClientSymbol">@item.ClientSymbol</td>
                                 </tr>
                             }
                         </tbody>
@@ -114,26 +112,30 @@
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 p-4 sticky-sidebar">
+    @* order-first: when stacked, the scan field belongs at the top — this is a
+       scanner-driven workflow. Restored to the right-hand column at lg+. *@
+    <div class="col-12 col-lg-4 col-xxl-3 order-first order-lg-last">
+        <div class="app-card packing-list__sidebar sticky-sidebar">
 
-            <div class="mb-4">
-                <label for="kuwetaInput" class="form-label fw-bold text-dark small text-uppercase tracking-wide">Zeskanuj Kuwetę</label>
-                <div class="input-group input-group-lg shadow-sm rounded scanner-input-group">
-                    <span class="input-group-text bg-white border-end-0 text-primary">
+            <div class="mb-3">
+                <label for="kuwetaInput" class="form-label app-section-label">Zeskanuj Kuwetę</label>
+                <div class="app-scan scanner-input-group @(_scanShake ? "app-anim-shake" : null)">
+                    <span class="app-scan__icon" aria-hidden="true">
                         <i class="bi bi-upc-scan"></i>
                     </span>
                     <input type="text"
+                           id="kuwetaInput"
                            @bind="Kuweta"
                            @bind:event="oninput"
                            @ref="InputRef"
                            @onkeydown="HandleKeyDown"
-                           class="form-control border-start-0 ps-0"
+                           class="app-scan__input"
+                           autocomplete="off"
                            placeholder="Kod kreskowy..." />
                 </div>
             </div>
 
-            <button class="btn btn-primary btn-lg w-100 shadow-sm mb-4 d-flex align-items-center justify-content-center gap-2"
+            <button class="btn btn-primary w-100 mb-3 d-flex align-items-center justify-content-center gap-2"
                     @onclick="RefreshData"
                     disabled="@IsLoading">
                 @if (IsLoading)
@@ -144,22 +146,28 @@
                 else
                 {
                     <i class="bi bi-arrow-clockwise"></i>
-                    <span>Odśwież Listę</span>
+                    <span>Odśwież</span>
                 }
             </button>
 
-            <div class="stats-panel p-3 rounded mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="text-muted small d-flex align-items-center gap-2">
+            <div class="stats-panel p-3 rounded mb-3">
+                <div class="stats-panel__row">
+                    <span class="stats-panel__label">
                         <i class="bi bi-person-badge"></i> Operator
                     </span>
-                    <span class="fw-bold text-dark">@UserSession.Username</span>
+                    <span class="stats-panel__value text-truncate" title="@UserSession.Username">@UserSession.Username</span>
                 </div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted small d-flex align-items-center gap-2">
-                        <i class="bi bi-boxes"></i> Kuwety (Adresy)
+                <div class="stats-panel__row">
+                    <span class="stats-panel__label">
+                        <i class="bi bi-boxes"></i> Kuwety
                     </span>
-                    <span class="badge bg-primary rounded-pill fs-6">@JlReadyToPackCount (@AddressesCount)</span>
+                    <span class="badge bg-primary rounded-pill">@JlReadyToPackCount</span>
+                </div>
+                <div class="stats-panel__row">
+                    <span class="stats-panel__label">
+                        <i class="bi bi-geo-alt"></i> Adresy
+                    </span>
+                    <span class="badge bg-primary rounded-pill">@AddressesCount</span>
                 </div>
             </div>
 
@@ -170,8 +178,8 @@
 
             <hr class="text-muted opacity-25" />
 
-            <div class="mb-4">
-                <h6 class="fw-bold text-dark small text-uppercase tracking-wide mb-3">Podsumowanie kurierów</h6>
+            <div class="mb-3">
+                <h6 class="app-section-label mb-2">Podsumowanie kurierów</h6>
                 <div class="d-flex flex-column gap-2 summary-container">
                     @foreach (var group in JlList.GroupBy(x => x.Courier).OrderByDescending(g => g.Count()))
                     {
@@ -179,22 +187,23 @@
                         var count = group.Count();
                         var firstItem = group.FirstOrDefault();
                         var logoUrl = CourierHelper.GetCourierLogo(firstItem?.ShipmentServices, courierType);
+                        var courierName = courierType.GetDescription() ?? "Nieznany";
 
-                        <div class="summary-row d-flex align-items-center justify-content-between bg-white rounded shadow-sm border border-light">
-                            <div class="d-flex align-items-center summary-logo-section">
+                        <div class="summary-row" title="@courierName">
+                            <div class="summary-logo-section">
                                 @if (!string.IsNullOrWhiteSpace(logoUrl))
                                 {
-                                    <div class="summary-logo-wrapper me-3">
-                                        <img src="@logoUrl" alt="@courierType" class="summary-logo-img" />
+                                    <div class="summary-logo-wrapper">
+                                        <img src="@logoUrl" alt="@courierName" class="summary-logo-img" />
                                     </div>
                                 }
                                 else
                                 {
-                                    <div class="summary-icon-fallback me-3 text-primary bg-primary-subtle">
+                                    <div class="summary-icon-fallback text-primary bg-primary-subtle">
                                         <i class="bi bi-truck"></i>
                                     </div>
                                 }
-                                <span class="summary-courier-name fw-medium">@(courierType.GetDescription() ?? "Nieznany")</span>
+                                <span class="summary-courier-name">@courierName</span>
                             </div>
                             <span class="badge bg-secondary rounded-pill">@count</span>
                         </div>
@@ -205,7 +214,7 @@
             <hr class="text-muted opacity-25" />
 
             <div>
-                <h6 class="fw-bold text-dark small text-uppercase tracking-wide mb-3">Legenda statusów</h6>
+                <h6 class="app-section-label mb-2">Legenda statusów</h6>
                 <div class="d-flex flex-column gap-2 legend-container">
                     <div class="d-flex align-items-center p-2 rounded status-legend-item status-ready">
                         <div class="legend-square bg-success-soft border-success"></div>
@@ -245,6 +254,7 @@
     private System.Threading.Timer? RefreshListTimer;
     private System.Threading.Timer? AfkTimer;
     private ElementReference InputRef;
+    private string? _scanGuardId;
     private Toast Toast = new();
     private WorkstationSettings Settings = new();
     private AppSettings AppSettings => AppOptions.Value;
@@ -263,8 +273,9 @@
 
     private int JlReadyToPackCount { get; set; } = 0;
     private int AddressesCount { get; set; } = 0;
-    private bool CanPackNotReady = false;
     private bool IsLoading { get; set; } = true;
+    private bool _scanShake;
+    private bool _animateRows = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -279,9 +290,11 @@
 
         await LoadData();
 
-        // Auto-refresh every 1 minute
+        // Auto-refresh every 1 minute. Silent by design: the reveal animation is
+        // suppressed so the list never twitches under the operator's hands.
         RefreshListTimer = new System.Threading.Timer(async _ =>
         {
+            _animateRows = false;
             await InvokeAsync(LoadData);
         }, null, TimeSpan.FromSeconds(AppSettings.Intervals.RefreshPackingList), TimeSpan.FromSeconds(AppSettings.Intervals.RefreshPackingList));
 
@@ -292,7 +305,10 @@
     {
         if (firstRender)
         {
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
+            // Keeps the scanner field focused for the lifetime of the page, so
+            // clicking buttons or dismissing modals never leaves the scanner
+            // typing into nowhere.
+            _scanGuardId = await JSRuntime.InvokeAsync<string>("scanFocus.register", InputRef);
         }
     }
 
@@ -326,6 +342,8 @@
 
     private async Task RefreshData()
     {
+        // Operator-initiated refresh: replaying the reveal is wanted feedback.
+        _animateRows = true;
         await LoadData();
         await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
     }
@@ -352,6 +370,20 @@
         }
     }
 
+    // Brief shake on the scan field to signal a rejected code. Fire-and-forget;
+    // restarts cleanly if triggered again mid-shake.
+    private async Task ShakeScanAsync()
+    {
+        _scanShake = false;
+        StateHasChanged();
+        await Task.Delay(20);
+        _scanShake = true;
+        StateHasChanged();
+        await Task.Delay(400);
+        _scanShake = false;
+        StateHasChanged();
+    }
+
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
         if (e.Key != "Enter")
@@ -370,6 +402,7 @@
         {
             Toast.Show("Nie znaleziono", $"Nie znaleziono kuwet o kodzie '{Kuweta}'");
             Kuweta = string.Empty;
+            _ = ShakeScanAsync();
             await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
             return;
         }
@@ -712,5 +745,29 @@
     {
         RefreshListTimer?.Dispose();
         AfkTimer?.Dispose();
+
+        if (_scanGuardId is not null)
+        {
+            // The circuit is often already gone by the time Dispose runs, and an
+            // unobserved JSDisconnectedException from a fire-and-forget interop
+            // call surfaces as an unhandled circuit error. Swallow it explicitly.
+            _ = UnregisterScanGuardAsync(_scanGuardId);
+            _scanGuardId = null;
+        }
+    }
+
+    private async Task UnregisterScanGuardAsync(string guardId)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("scanFocus.unregister", guardId);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Browser already went away — nothing to clean up on that side.
+        }
+        catch (ObjectDisposedException)
+        {
+        }
     }
 }

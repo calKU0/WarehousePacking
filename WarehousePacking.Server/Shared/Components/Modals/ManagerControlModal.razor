@@ -1,96 +1,67 @@
-﻿@using Microsoft.AspNetCore.Components
+@*
+    Supervisor action panel, unlocked by password. The action ids are a
+    contract with the host page's HandleManagerClick switch — do not renumber.
+*@
 
-<div>
-    <!-- Lock button (always visible) -->
-    <button class="btn btn-secondary" @onclick="OnLockClick">
-        <i class="bi bi-lock"></i>
-    </button>
+<button type="button" class="btn btn-secondary manager-lock" @onclick="OnLockClick" title="Funkcje kierownika">
+    <i class="bi bi-lock"></i>
+</button>
 
-    <!-- Manager Modal -->
-    @if (IsOpen)
-    {
-        <div class="modal fade show d-block" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Przyciski Kierownika</h5>
-                        <button type="button" class="btn-close" aria-label="Close" @onclick="CloseModal"></button>
-                    </div>
-                    <div class="modal-body position-relative">
-                        @if (IsLoading)
-                        {
-                            <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index: 10;">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Ładowanie...</span>
-                                </div>
-                            </div>
-                        }
-                        <div class="container">
-                            <div class="row g-3">
-                                @if (ShowPackingButtons)
-                                {
-                                    @* <div class="col-4">
-                                        <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(1)">Etykiety</button>
-                                    </div> *@
-
-                                    <div class="col-4">
-                                        <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(2)" disabled="@IsLoading">Spakuj</button>
-                                    </div>
- 
-                                    @* <div class="col-4">
-                                        <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(3)">Zawartość</button>
-                                    </div> *@
-
-                                    <div class="col-4">
-                                        <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(4)" disabled="@IsLoading">Kurier</button>
-                                    </div>
-                                }
-                                <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(5)" disabled="@IsLoading">Zalogowani</button>
-                                </div>
-                                <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(6)" disabled="@IsLoading">Kuwety podjęte</button>
-                                </div>
-                                <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(7)" disabled="@IsLoading">Zamknij paczke</button>
-                                </div>
-                                <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(8)" disabled="@IsLoading">Zm. magazyn</button>
-                                </div>
-                                <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(9)" disabled="@IsLoading">Połącz paczki</button>
-                                </div>
-                                @* <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3 px-0" @onclick="() => HandleClick(10)">Zabuforuj paczke</button>
-                                </div> *@
-                                <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(11)" disabled="@IsLoading">Konf. kurierów</button>
-                                </div>
-                                <div class="col-4">
-                                    <button class="btn btn-primary w-100 py-3" @onclick="() => HandleClick(12)" disabled="@IsLoading">Zmień hasło</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" @onclick="CloseModal" id="zamknijBtn" disabled="@IsLoading">Zamknij</button>
-                    </div>
-                </div>
-            </div>
+<AppModal IsVisible="IsOpen" Title="Przyciski kierownika" Icon="bi bi-sliders" Size="lg" OnClose="CloseModal">
+    <ChildContent>
+        <div class="manager-grid">
+            @foreach (var action in VisibleActions)
+            {
+                <button type="button"
+                        class="btn btn-primary manager-grid__btn"
+                        disabled="@IsLoading"
+                        @onclick="() => HandleClick(action.Id)">
+                    <i class="@action.Icon"></i>
+                    <span>@action.Label</span>
+                </button>
+            }
         </div>
+    </ChildContent>
 
-        <div class="modal-backdrop fade show"></div>
-    }
-</div>
+    <Footer>
+        <button type="button" class="btn btn-secondary" id="zamknijBtn" disabled="@IsLoading" @onclick="CloseModal">
+            Zamknij
+        </button>
+    </Footer>
+</AppModal>
 
 @code {
-    private bool IsOpen = false;
-    private bool IsLoading = false;
+    /// <summary>
+    /// A supervisor action. <paramref name="Id"/> is dispatched to the host page.
+    /// </summary>
+    private sealed record ManagerAction(int Id, string Label, string Icon, bool PackingOnly = false);
+
+    // Ids 1 (Etykiety), 3 (Zawartość) and 10 (Zabuforuj paczkę) were previously
+    // commented out in the markup; they stay retired but the numbering is kept
+    // so the host switch statement remains valid.
+    private static readonly ManagerAction[] Actions =
+    {
+        new(2,  "Spakuj",          "bi bi-box-seam",        PackingOnly: true),
+        new(4,  "Kurier",          "bi bi-truck",           PackingOnly: true),
+        new(5,  "Zalogowani",      "bi bi-people"),
+        new(6,  "Kuwety podjęte",  "bi bi-hand-index"),
+        new(7,  "Zamknij paczkę",  "bi bi-door-closed"),
+        new(8,  "Zm. magazyn",     "bi bi-building"),
+        new(9,  "Połącz paczki",   "bi bi-union"),
+        new(11, "Konf. kurierów",  "bi bi-gear"),
+        new(12, "Zmień hasło",     "bi bi-key")
+    };
 
     [Parameter] public EventCallback<int> OnButtonClick { get; set; }
     [Parameter] public EventCallback OnRequestPassword { get; set; }
-    [Parameter] public bool ShowPackingButtons { get; set; } = false;
-    private ScanInput? ScanInput = null;
+    [Parameter] public bool ShowPackingButtons { get; set; }
+
+    private bool IsOpen;
+    private bool IsLoading;
+    private ScanInput? ScanInput;
+
+    private IEnumerable<ManagerAction> VisibleActions =>
+        Actions.Where(a => ShowPackingButtons || !a.PackingOnly);
 
     private async Task OnLockClick()
     {
@@ -100,15 +71,17 @@
         }
     }
 
-    public async void OpenModal(ScanInput scanInput = null)
+    public void OpenModal(ScanInput? scanInput = null)
     {
         IsOpen = true;
         ScanInput = scanInput;
-        await InvokeAsync(StateHasChanged);
+        _ = InvokeAsync(StateHasChanged);
     }
+
     private async Task CloseModal()
     {
         IsOpen = false;
+
         if (ScanInput != null)
         {
             await ScanInput.FocusAsync();
@@ -120,8 +93,13 @@
         if (IsLoading)
             return;
 
+        // Stay open beneath the action's own modal. The action's modal is a
+        // top-layer <dialog> that stacks on top of this panel, so:
+        //   - closing it returns straight here (no re-entering the password),
+        //     which is the "back" the operator wants, and
+        //   - this panel's backdrop never goes away, so there's no jarring
+        //     flash-to-bright between one dialog closing and the next opening.
         IsLoading = true;
-        IsOpen = false;
         await InvokeAsync(StateHasChanged);
 
         try

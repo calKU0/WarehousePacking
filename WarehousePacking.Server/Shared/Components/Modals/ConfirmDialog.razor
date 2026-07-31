@@ -1,37 +1,32 @@
-﻿@if (IsVisible)
-{
-    <div class="modal show d-block" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">@Title</h5>
-                </div>
-                <div class="modal-body">
-                    <p>@Message</p>
-                </div>
-                <div class="modal-footer d-flex gap-2 w-100">
-                    <button class="btn btn-danger btn-lg tall-btn"
-                            style="flex: 7;"
-                            disabled="@IsProcessing"
-                            @onclick="OnConfirm">
+@*
+    Generic confirm/cancel prompt driven by callbacks supplied at Show() time.
+*@
 
-                        @if (IsProcessing)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2"></span>
-                            <span>Przetwarzanie...</span>
-                        }
-                        else
-                        {
-                            <span>Potwierdź</span>
-                        }
-                    </button>
-                    <button class="btn btn-secondary btn-lg tall-btn" style="flex: 3;" @onclick="OnCancel">Anuluj</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="modal-backdrop fade show"></div>
-}
+<AppModal IsVisible="IsVisible" Title="@Title" Icon="bi bi-question-circle" Size="sm" ShowClose="false">
+    <ChildContent>
+        <p class="mb-0">@Message</p>
+    </ChildContent>
+
+
+    <Footer>
+        <button type="button"
+                class="btn btn-danger"
+                style="flex: 7;"
+                disabled="@IsProcessing"
+                @onclick="OnConfirm">
+            @if (IsProcessing)
+            {
+                <span class="app-spinner app-spinner--sm me-2"></span>
+                <span>Przetwarzanie...</span>
+            }
+            else
+            {
+                <span>Potwierdź</span>
+            }
+        </button>
+        <button type="button" class="btn btn-secondary" style="flex: 3;" @onclick="OnCancel">Anuluj</button>
+    </Footer>
+</AppModal>
 
 @code {
     private string Title { get; set; } = string.Empty;
@@ -40,7 +35,6 @@
 
     private bool IsProcessing;
 
-    // Dynamic action for confirm
     private Func<Task> ConfirmAction { get; set; } = () => Task.CompletedTask;
     private Func<Task> CancelAction { get; set; } = () => Task.CompletedTask;
 

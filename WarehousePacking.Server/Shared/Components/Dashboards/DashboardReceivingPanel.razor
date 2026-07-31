@@ -99,7 +99,7 @@
             <div class="card shadow-sm h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><i class="bi bi-person-workspace me-2"></i>Aktywne operacje</span>
-                    <span class="small text-muted dashboard-time-text">Najdłużej: <DashboardAnimatedValue Text="@LongestActiveElapsed" CssClass="dashboard-time-text" /></span>
+                    <span class="small text-muted dashboard-time-text">Najdłużej: <DashboardAnimatedValue Text="@LongestActiveElapsed" CssClass="dashboard-time-text" Animate="false" /></span>
                 </div>
                 <div class="card-body p-0 mb-0 dashboard-scroll-host">
                     <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
@@ -137,7 +137,7 @@
                                             <td>@GetOperationOperator(row)</td>
                                             <td class="dashboard-elapsed-cell">
                                                 <span class="badge @GetElapsedBadgeClass(row.Date) dashboard-elapsed-badge dashboard-time-text">
-                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Date)" CssClass="dashboard-time-text" />
+                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Date)" CssClass="dashboard-time-text" Animate="false" />
                                                 </span>
                                             </td>
                                         </tr>
@@ -157,8 +157,6 @@
     private const int RowAnimationDelayMs = 280;
     private readonly CancellationTokenSource _clockCts = new();
     private DateTime _now = DateTime.UtcNow;
-    private bool _clockStarted;
-
     private sealed record ReceivingDocumentSummary(
         string Key,
         string Code,
@@ -288,7 +286,7 @@
             _ = RemoveDocumentRowAsync(row);
         }
 
-        var orderedActive = latest.Select(x => DocumentRows.First(r => string.Equals(r.Key, x.Key, StringComparison.OrdinalIgnoreCase))).ToList();
+        var orderedActive = latest.Select(x => DocumentRows.FirstOrDefault(r => string.Equals(r.Key, x.Key, StringComparison.OrdinalIgnoreCase))).Where(r => r is not null)!.ToList();
         var leaving = DocumentRows.Where(x => x.IsLeaving).ToList();
         DocumentRows = orderedActive.Concat(leaving).ToList();
     }
@@ -338,7 +336,7 @@
             _ = RemoveOperationRowAsync(row);
         }
 
-        var orderedActive = latest.Select(x => RecentOperationRows.First(r => string.Equals(r.Key, GetOperationKey(x), StringComparison.OrdinalIgnoreCase))).ToList();
+        var orderedActive = latest.Select(x => RecentOperationRows.FirstOrDefault(r => string.Equals(r.Key, GetOperationKey(x), StringComparison.OrdinalIgnoreCase))).Where(r => r is not null)!.ToList();
         var leaving = RecentOperationRows.Where(x => x.IsLeaving).ToList();
         RecentOperationRows = orderedActive.Concat(leaving).ToList();
     }

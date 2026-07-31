@@ -1,0 +1,16 @@
+@*
+    Full-screen blocking busy indicator. Renders nothing when not visible.
+*@
+
+@if (IsVisible)
+{
+    <div class="app-overlay" role="status" aria-live="polite">
+        <div class="app-spinner"></div>
+        <span class="app-overlay__text">@Text</span>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string Text { get; set; } = "Ładowanie...";
+}

@@ -7,9 +7,10 @@ namespace WarehousePacking.Server.Services
     {
         private readonly HttpClient _dbClient;
 
-        public AuthService(IHttpClientFactory httpFactory)
+        public AuthService(IHttpClientFactory httpFactory, ClientContext clientContext)
         {
             _dbClient = httpFactory.CreateClient("Database");
+            clientContext.Attach(_dbClient);
         }
 
         public async Task<string?> Login(LoginDto login)
@@ -57,7 +58,7 @@ namespace WarehousePacking.Server.Services
 
         public async Task<bool> ValidatePasswordAsync(string password)
         {
-            var response = await _dbClient.GetAsync($"api/auth/validate-password?password={password}");
+            var response = await _dbClient.GetAsync($"api/auth/validate-password?password={Uri.EscapeDataString(password)}");
             response.EnsureSuccessStatusCode();
 
             bool isValid = await response.Content.ReadFromJsonAsync<bool>();

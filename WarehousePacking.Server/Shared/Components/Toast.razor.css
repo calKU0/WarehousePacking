@@ -1,24 +1,35 @@
-﻿.toast-backdrop {
+﻿/* The toast is a <dialog>. Override the UA dialog styles (fit-content, auto
+   margins, a border, centered box) so it is our familiar full-screen dim
+   layer; opening it with showModal() puts it in the top layer, above modals. */
+dialog.toast-backdrop {
     position: fixed;
-    top: 0;
-    left: 0;
+    inset: 0;
     width: 100%;
     height: 100%;
-    display: flex;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    overflow: visible;
     justify-content: center;
     align-items: center;
-    background: rgba(0,0,0,0.3);
-    z-index: 200000 !important;
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.3s;
-    pointer-events: none; /* <- ignore clicks on backdrop */
+    /* Transparent element; the dim comes from ::backdrop, which the browser
+       always paints across the whole viewport regardless of this element's
+       exact box. That avoids scrollbar/edge gaps in the dim. */
+    background: transparent;
+    color: inherit;
 }
 
-    .toast-backdrop.show {
-        visibility: visible;
-        opacity: 1;
-        pointer-events: auto; /* <- allow pointer events for children */
+    /* Closed dialogs are display:none via the UA sheet; when open, lay out. */
+    dialog.toast-backdrop[open] {
+        display: flex;
+        animation: toast-in 0.2s ease;
+    }
+
+    /* Full-viewport dim, guaranteed by the top-layer backdrop. */
+    dialog.toast-backdrop::backdrop {
+        background: rgba(0, 0, 0, 0.3);
     }
 
 .toast-container {
@@ -30,8 +41,19 @@
     color: white;
     text-align: center;
     position: relative;
-    z-index: 200001 !important;
     pointer-events: auto; /* <- allow clicks on container and button */
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .toast-header-wrapper {

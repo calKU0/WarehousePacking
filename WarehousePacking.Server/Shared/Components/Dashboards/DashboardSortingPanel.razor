@@ -108,7 +108,7 @@
                                             <td>@row.Data.Couriers</td>
                                             <td><DashboardAnimatedValue Text="@($"{FormatHelper.FormatQuantity(row.Data.ProductsCount)} ({FormatHelper.FormatQuantity(row.Data.ProductsSum, format: "F0")})")" /></td>
                                             <td><DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.Data.Weight, "kg", "F0")" /></td>
-                                            <td>@(row.Data.LastPickingDate == null || row.Data.LastPickingDate == DateTime.MinValue ? "-" : row.Data.LastPickingDate.Value.ToString("yyyy-MM-dd HH:mm"))</td>
+                                            <td>@(row.Data.LastPickingDate == null || row.Data.LastPickingDate == DateTime.MinValue ? "-" : FormatHelper.ToLocalTime(row.Data.LastPickingDate.Value).ToString("yyyy-MM-dd HH:mm"))</td>
                                             <td>@row.Data.LastPickingOperator</td>
                                             <td class="dashboard-operators-cell" title="@row.Data.OperatorsList">@row.Data.OperatorsList</td>
                                         </tr>
@@ -125,7 +125,7 @@
             <div class="card shadow-sm h-100 w-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><i class="bi bi-person-workspace me-2"></i>Aktywne operacje</span>
-                    <span class="small text-muted dashboard-time-text">Najdłużej: <DashboardAnimatedValue Text="@LongestActiveElapsed" CssClass="dashboard-time-text" /></span>
+                    <span class="small text-muted dashboard-time-text">Najdłużej: <DashboardAnimatedValue Text="@LongestActiveElapsed" CssClass="dashboard-time-text" Animate="false" /></span>
                 </div>
                 <div class="card-body p-0 mb-0 dashboard-scroll-host">
                     <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
@@ -161,7 +161,7 @@
                                             <td>@GetOperationOperator(row)</td>
                                             <td class="dashboard-elapsed-cell">
                                                 <span class="badge @GetElapsedBadgeClass(row.Date) dashboard-elapsed-badge dashboard-time-text">
-                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Date)" CssClass="dashboard-time-text" />
+                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Date)" CssClass="dashboard-time-text" Animate="false" />
                                                 </span>
                                             </td>
                                         </tr>
@@ -368,7 +368,7 @@
             _ = RemoveLuRowAsync(row);
         }
 
-        var orderedActive = latest.Select(x => LuRows.First(r => string.Equals(r.Key, x.Key, StringComparison.OrdinalIgnoreCase))).ToList();
+        var orderedActive = latest.Select(x => LuRows.FirstOrDefault(r => string.Equals(r.Key, x.Key, StringComparison.OrdinalIgnoreCase))).Where(r => r is not null)!.ToList();
         var leaving = LuRows.Where(x => x.IsLeaving).ToList();
         LuRows = orderedActive.Concat(leaving).ToList();
     }
@@ -446,7 +446,7 @@
             _ = RemoveOperationRowAsync(row);
         }
 
-        var orderedActive = latest.Select(x => RecentOperationRows.First(r => string.Equals(r.Key, x.Operator, StringComparison.OrdinalIgnoreCase))).ToList();
+        var orderedActive = latest.Select(x => RecentOperationRows.FirstOrDefault(r => string.Equals(r.Key, x.Operator, StringComparison.OrdinalIgnoreCase))).Where(r => r is not null)!.ToList();
         var leaving = RecentOperationRows.Where(x => x.IsLeaving).ToList();
         RecentOperationRows = orderedActive.Concat(leaving).ToList();
     }

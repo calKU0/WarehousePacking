@@ -1,31 +1,42 @@
-﻿@using WarehousePacking.Contracts.DTOs.Requests
+@using WarehousePacking.Contracts.DTOs.Requests
 @using WarehousePacking.Contracts.Data.Enums
-@using Microsoft.AspNetCore.Components
 @inject EmailService EmailService
 
-<div class="modal fade @(IsVisable ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" @onclick="CloseOnBackdropClick">
-    <div class="modal-dialog modal-lg" @onclick:stopPropagation>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">@Title</h5>
-                <button type="button" class="btn-close" @onclick="Hide"></button>
-            </div>
-            <div class="modal-body">
-                <p><strong>Klient:</strong> @ClientName</p>
-                <p><strong>Dokument handlowy:</strong> @InvoiceNumber</p>
-                <p><strong>Paczka:</strong> @PackageName</p>
-                <p><strong>Opiekun:</strong> @Representative</p>
+@*
+    Notifies a client's representative that a package shipment failed, with a
+    free-text note from the operator.
+*@
 
-                <label>Wiadomość użytkownika:</label>
-                <textarea class="form-control" @bind="UserMessage" rows="5" placeholder="Wpisz swoją wiadomość..."></textarea>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" @onclick="Hide">Anuluj</button>
-                <button class="btn btn-primary" @onclick="SendEmailAsync" disabled="@string.IsNullOrWhiteSpace(UserMessage)">Wyślij</button>
-            </div>
-        </div>
-    </div>
-</div>
+<AppModal IsVisible="IsVisable" Title="@Title" Icon="bi bi-envelope" Size="lg" OnClose="Hide">
+    <ChildContent>
+        <dl class="email-modal__facts">
+            <dt>Klient</dt>
+            <dd>@ClientName</dd>
+            <dt>Dokument handlowy</dt>
+            <dd>@InvoiceNumber</dd>
+            <dt>Paczka</dt>
+            <dd>@PackageName</dd>
+            <dt>Opiekun</dt>
+            <dd>@Representative</dd>
+        </dl>
+
+        <label class="form-label app-section-label" for="emailMessage">Wiadomość użytkownika</label>
+        <textarea id="emailMessage"
+                  class="form-control"
+                  @bind="UserMessage"
+                  rows="5"
+                  placeholder="Wpisz swoją wiadomość..."
+                  autofocus></textarea>
+    </ChildContent>
+
+    <Footer>
+        <button type="button" class="btn btn-secondary" @onclick="Hide">Anuluj</button>
+        <button type="button" class="btn btn-primary" @onclick="SendEmailAsync" disabled="@string.IsNullOrWhiteSpace(UserMessage)">
+            <i class="bi bi-send me-1"></i>Wyślij
+        </button>
+    </Footer>
+</AppModal>
+
 <Toast @ref="Toast" />
 
 @code {
@@ -33,7 +44,7 @@
     [Parameter] public EventCallback OnEmailSent { get; set; }
     private Toast Toast = new();
 
-    private bool IsVisable { get; set; } = false;
+    private bool IsVisable { get; set; }
     private string UserMessage { get; set; } = string.Empty;
     private string PackageName { get; set; } = string.Empty;
     private string InvoiceNumber { get; set; } = string.Empty;
@@ -48,6 +59,7 @@
         InvoiceNumber = invoiceNumber;
         Representative = representative;
         RepresentativeEmail = representativeEmail;
+        UserMessage = string.Empty;
         IsVisable = true;
         StateHasChanged();
     }
@@ -100,10 +112,5 @@
         {
             Toast.Show("Błąd", $"Wystąpił błąd podczas wysyłania emaila: {ex.Message}", ToastType.Error);
         }
-    }
-
-    private void CloseOnBackdropClick()
-    {
-        Hide();
     }
 }

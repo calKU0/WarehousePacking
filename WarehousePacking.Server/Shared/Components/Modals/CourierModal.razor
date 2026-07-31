@@ -1,67 +1,67 @@
-﻿@using WarehousePacking.Contracts.Data.Enums
+@using WarehousePacking.Contracts.Data.Enums
+@using WarehousePacking.Server.Helpers
 
-@if (Show)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow-lg rounded-3">
-                <div class="modal-header">
-                    <h5 class="modal-title">Wybierz kuriera</h5>
-                    <button type="button" class="btn-close" @onclick="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <select class="form-select" @bind="SelectedCourier">
-                        <option value="">-- wybierz --</option>
-                        @foreach (var courier in Couriers)
-                        {
-                            <option value="@courier">@courier</option>
-                        }
-                    </select>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="Close">Anuluj</button>
-                    <button class="btn btn-primary" @onclick="Confirm" disabled="@(!SelectedCourier.HasValue)">
-                        Zatwierdź
-                    </button>
-                </div>
-            </div>
+@*
+    Courier picker used when a route is closed and the shipment must be moved
+    to a different carrier. Resolves to the chosen courier, or null if the
+    operator backs out.
+*@
+
+<AppModal IsVisible="IsVisible" Title="Wybierz kuriera" Icon="bi bi-truck" Size="sm" OnClose="Cancel">
+    <ChildContent>
+        <div class="d-flex flex-column gap-2">
+            @foreach (var courier in Couriers)
+            {
+                <button type="button"
+                        class="btn @(SelectedCourier == courier ? "btn-primary" : "btn-outline-secondary") text-start"
+                        style="min-height: var(--touch);"
+                        @onclick="() => SelectedCourier = courier">
+                    <i class="bi bi-box-seam me-2"></i>@courier.GetDescription()
+                </button>
+            }
         </div>
-    </div>
-}
+    </ChildContent>
+
+
+    <Footer>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Anuluj</button>
+        <button type="button" class="btn btn-primary" @onclick="Confirm" disabled="@(!SelectedCourier.HasValue)">
+            Zatwierdź
+        </button>
+    </Footer>
+</AppModal>
 
 @code {
-    private bool Show { get; set; }
-    private Courier? SelectedCourier { get; set; } = null;
-    private List<Courier> Couriers { get; set; } = new() { Courier.DPD, Courier.GLS, Courier.Fedex };
+    private static readonly Courier[] Couriers = { Courier.DPD, Courier.GLS, Courier.Fedex };
 
-    private TaskCompletionSource<Courier?> _tcs;
+    private bool IsVisible { get; set; }
+    private Courier? SelectedCourier { get; set; }
+
+    private TaskCompletionSource<Courier?>? _tcs;
 
     public Task<Courier?> ShowModal(Courier? defaultCourier = null)
     {
         SelectedCourier = defaultCourier;
-        Show = true;
+        IsVisible = true;
         StateHasChanged();
 
         _tcs = new TaskCompletionSource<Courier?>();
         return _tcs.Task;
     }
 
-    private void Confirm()
-    {
-        _tcs?.SetResult(SelectedCourier);
-        Close();
-    }
+    private void Confirm() => Close(SelectedCourier);
 
-    private void Cancel()
-    {
-        _tcs?.SetResult(null);
-        Close();
-    }
+    private void Cancel() => Close(null);
 
-    private void Close()
+    /// <summary>
+    /// Always completes the pending task. Previously the cancel/close path left
+    /// it unresolved, so an awaiting caller hung forever.
+    /// </summary>
+    private void Close(Courier? result)
     {
-        Show = false;
+        _tcs?.TrySetResult(result);
+
+        IsVisible = false;
         SelectedCourier = null;
         StateHasChanged();
     }

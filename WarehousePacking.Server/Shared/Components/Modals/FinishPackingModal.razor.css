@@ -1,0 +1,44 @@
+/* Fixed height reserves the logo's space, so the dialog does not resize when
+   the courier image finishes loading. */
+.finish-packing__identity {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: 96px;
+    margin-bottom: var(--space-3);
+}
+
+.finish-packing__courier {
+    max-height: 96px;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.finish-packing__export {
+    max-height: 40px;
+    object-fit: contain;
+}
+
+/* Options stack vertically: at 1024x768 four side-by-side buttons force text
+   to wrap awkwardly, and a vertical list is easier to hit accurately. */
+.finish-packing__actions {
+    display: grid;
+    gap: var(--space-2);
+    width: 100%;
+}
+
+    .finish-packing__actions ::deep .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: var(--space-3);
+        min-height: var(--touch);
+        font-size: var(--fs-base);
+    }
+
+    .finish-packing__actions ::deep .btn i {
+        font-size: 1.25em;
+        flex-shrink: 0;
+    }

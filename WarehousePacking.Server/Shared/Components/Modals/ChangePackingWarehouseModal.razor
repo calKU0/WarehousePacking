@@ -1,66 +1,64 @@
-﻿@using System.ComponentModel
 @using WarehousePacking.Server.Helpers
 @using WarehousePacking.Server.Services
 @using WarehousePacking.Contracts.Data.Enums
- 
+
 @inject PackingService PackingService
 @inject IJSRuntime JSRuntime
 
-@if (IsVisible)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
-        <div class="modal-dialog">
-            <div class="modal-content p-3">
-                <div class="modal-header">
-                    <h5 class="modal-title">Zmień magazyn składowania</h5>
-                    <button type="button" class="btn-close" @onclick="Close" disabled="@IsLoading"></button>
-                </div>
+@*
+    Reassigns the storage warehouse of an already-closed package. The operator
+    scans the internal barcode; the current warehouse is then loaded and can be
+    changed.
+*@
 
-                <div class="modal-body position-relative">
-                    @if (IsLoading)
-                    {
-                        <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index: 10;">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Ładowanie...</span>
-                            </div>
-                        </div>
-                    }
-                    <!-- Textbox -->
-                    <div class="mb-3">
-                        <label class="form-label">Kod wewnętrzny:</label>
-                        <input class="form-control"
-                               @bind="InputText"
-                               @ref="InputRef"
-                               @onkeydown="OnEnterKey"
-                               disabled="@IsLoading" />
-                    </div>
+<AppModal IsVisible="IsVisible" Title="Zmień magazyn składowania" Icon="bi bi-building" OnClose="Close">
+    <ChildContent>
+        @if (IsLoading)
+        {
+            <div class="app-overlay app-overlay--local">
+                <div class="app-spinner"></div>
+            </div>
+        }
 
-                    @if (ShowSelect)
-                    {
-                        <!-- Enum select -->
-                        <div class="mb-3">
-                            <label class="form-label">Magazyn składowania:</label>
-                            <select class="form-select" @bind="SelectedWarehouse" disabled="@IsLoading">
-                                @foreach (var warehouse in Enum.GetValues(typeof(PackingWarehouse)).Cast<PackingWarehouse>())
-                                {
-                                    <option value="@warehouse">@warehouse.GetDescription()</option>
-                                }
-                            </select>
-                        </div>
-                    }
-                </div>
-
-                <div class="modal-footer d-flex flex-column gap-2">
-                    @if (ShowSelect)
-                    {
-                        <button class="btn btn-primary tall-btn w-100" @onclick="Save" disabled="@IsLoading">Zapisz</button>
-                    }
-                    <button class="btn btn-secondary tall-btn w-100" @onclick="Close" disabled="@IsLoading">Wyjdź</button>
-                </div>
+        <div class="mb-3">
+            <label class="form-label app-section-label" for="warehouseBarcode">Kod wewnętrzny</label>
+            <div class="app-scan" id="warehouseBarcode">
+                <span class="app-scan__icon" aria-hidden="true"><i class="bi bi-upc-scan"></i></span>
+                <input class="app-scan__input"
+                       @bind="InputText"
+                       @ref="InputRef"
+                       @onkeydown="OnEnterKey"
+                       disabled="@IsLoading"
+                       autocomplete="off"
+                       autofocus />
             </div>
         </div>
-    </div>
-}
+
+        @if (ShowSelect)
+        {
+            <div class="app-fade-in">
+                <label class="form-label app-section-label" for="warehouseSelect">Magazyn składowania</label>
+                <select id="warehouseSelect" class="form-select form-select-lg" @bind="SelectedWarehouse" disabled="@IsLoading">
+                    @foreach (var warehouse in Enum.GetValues<PackingWarehouse>())
+                    {
+                        <option value="@warehouse">@warehouse.GetDescription()</option>
+                    }
+                </select>
+            </div>
+        }
+    </ChildContent>
+
+    <Footer>
+        @if (ShowSelect)
+        {
+            <button type="button" class="btn btn-primary" @onclick="Save" disabled="@IsLoading">
+                <i class="bi bi-save me-1"></i>Zapisz
+            </button>
+        }
+        <button type="button" class="btn btn-secondary" @onclick="Close" disabled="@IsLoading">Wyjdź</button>
+    </Footer>
+</AppModal>
+
 <Toast @ref="Toast" />
 
 @code {
@@ -93,18 +91,16 @@
 
     private async Task OnEnterKey(KeyboardEventArgs e)
     {
+        if (e.Key != "Enter")
+            return;
+
         try
         {
-            if (e.Key == "Enter")
-            {
-                IsLoading = true;
-                await InvokeAsync(StateHasChanged);
+            IsLoading = true;
+            await InvokeAsync(StateHasChanged);
 
-                var inputValue = await JSRuntime.InvokeAsync<string>("blazorFocus.getValue", InputRef);
-                PackingWarehouse warehouse = await PackingService.GetPackageWarehouse(InputText);
-                SelectedWarehouse = warehouse;
-                ShowSelect = true;
-            }
+            SelectedWarehouse = await PackingService.GetPackageWarehouse(InputText);
+            ShowSelect = true;
         }
         catch (Exception ex)
         {
@@ -123,6 +119,7 @@
         {
             IsLoading = true;
             await InvokeAsync(StateHasChanged);
+
             await PackingService.UpdatePackageWarehouse(InputText, SelectedWarehouse);
             Close();
         }

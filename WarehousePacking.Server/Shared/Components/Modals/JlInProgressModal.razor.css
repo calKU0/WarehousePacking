@@ -1,0 +1,19 @@
+.jl-preview {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-3);
+}
+
+.jl-preview__scroll {
+    max-height: 46dvh;
+}
+
+@media (max-width: 991.98px) {
+    .jl-preview {
+        grid-template-columns: 1fr;
+    }
+
+    .jl-preview__scroll {
+        max-height: 30dvh;
+    }
+}

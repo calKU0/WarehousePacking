@@ -1,25 +1,12 @@
-using Microsoft.AspNetCore.HttpOverrides;
-
 namespace WarehousePacking.API.Logging;
 
 public static class ClientRequestLoggingExtensions
 {
-    public static IServiceCollection AddClientRequestLogging(this IServiceCollection services)
-    {
-        services.Configure<ForwardedHeadersOptions>(options =>
-        {
-            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost;
-            options.KnownIPNetworks.Clear();
-            options.KnownProxies.Clear();
-        });
-
-        return services;
-    }
-
-    public static IApplicationBuilder UseClientRequestLogging(this IApplicationBuilder app)
-    {
-        app.UseForwardedHeaders();
-        app.UseMiddleware<ClientRequestLogContextMiddleware>();
-        return app;
-    }
+    /// <summary>
+    /// Tags every request with the calling station and operator, read from
+    /// optional headers. No service registration is needed — the identity comes
+    /// from the request itself, not from network inspection.
+    /// </summary>
+    public static IApplicationBuilder UseClientIdentityLogging(this IApplicationBuilder app)
+        => app.UseMiddleware<ClientIdentityMiddleware>();
 }

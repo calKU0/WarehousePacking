@@ -1,0 +1,115 @@
+@*
+    On-screen numeric keypad for touch stations.
+
+    Operators often wear gloves, so numeric entry is done here rather than on a
+    hardware/OS keyboard. Owns no value of its own — the parent keeps the string
+    and receives every edit through ValueChanged.
+
+    Usage:
+        <NumericKeypad @bind-Value="Quantity" AllowDecimal="true" OnEnter="Confirm" />
+*@
+
+<div class="numpad @(ShowEnter ? "numpad--with-enter" : null)">
+    <div class="numpad__keys">
+        @foreach (var key in Keys)
+        {
+            <button type="button"
+                    class="btn btn-secondary numpad__key @(key.Wide ? "numpad__key--wide" : null)"
+                    disabled="@Disabled"
+                    @onclick="() => PressAsync(key.Value)">
+                @key.Label
+            </button>
+        }
+    </div>
+
+    @if (ShowEnter)
+    {
+        <button type="button"
+                class="btn btn-success numpad__enter"
+                disabled="@(Disabled || EnterDisabled)"
+                @onclick="OnEnter">
+            @if (IsBusy)
+            {
+                <span class="app-spinner app-spinner--sm"></span>
+            }
+            else
+            {
+                <span>@EnterLabel</span>
+            }
+        </button>
+    }
+</div>
+
+@code {
+    private const string Backspace = "⌫";
+    private const string DecimalSeparator = ",";
+
+    private sealed record Key(string Value, string Label, bool Wide = false);
+
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>Shows a decimal separator key and allows one in the value.</summary>
+    [Parameter] public bool AllowDecimal { get; set; } = true;
+
+    /// <summary>Optional confirm key filling the full height beside the digits.</summary>
+    [Parameter] public bool ShowEnter { get; set; } = true;
+
+    [Parameter] public string EnterLabel { get; set; } = "Enter";
+    [Parameter] public EventCallback OnEnter { get; set; }
+    [Parameter] public bool EnterDisabled { get; set; }
+    [Parameter] public bool IsBusy { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Maximum characters accepted; 0 means unlimited.</summary>
+    [Parameter] public int MaxLength { get; set; }
+
+    private IEnumerable<Key> Keys
+    {
+        get
+        {
+            for (var i = 1; i <= 9; i++)
+            {
+                yield return new Key(i.ToString(), i.ToString());
+            }
+
+            if (AllowDecimal)
+            {
+                yield return new Key(DecimalSeparator, DecimalSeparator);
+                yield return new Key("0", "0");
+            }
+            else
+            {
+                // No separator key, so 0 takes its place and stays easy to hit.
+                yield return new Key("0", "0", Wide: true);
+            }
+
+            yield return new Key(Backspace, Backspace);
+        }
+    }
+
+    private Task PressAsync(string key)
+    {
+        var current = Value ?? string.Empty;
+
+        if (key == Backspace)
+        {
+            return current.Length == 0
+                ? Task.CompletedTask
+                : ValueChanged.InvokeAsync(current[..^1]);
+        }
+
+        // Only one decimal separator is meaningful.
+        if (key == DecimalSeparator && current.Contains(DecimalSeparator))
+        {
+            return Task.CompletedTask;
+        }
+
+        if (MaxLength > 0 && current.Length >= MaxLength)
+        {
+            return Task.CompletedTask;
+        }
+
+        return ValueChanged.InvokeAsync(current + key);
+    }
+}

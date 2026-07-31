@@ -1,7 +1,18 @@
-﻿@using WarehousePacking.Contracts.Data.Enums
+@using WarehousePacking.Contracts.Data.Enums
+@implements IDisposable
 @inject IJSRuntime JSRuntime
 
-<div class="toast-backdrop @( _isVisible ? "show" : "" )" @onclick="Hide">
+@*
+    Centred notification.
+
+    Rendered as a <dialog> opened with showModal() so it lives in the browser's
+    top layer and therefore paints above any open modal (which is also a
+    top-layer <dialog>). A plain high z-index is not enough: the top layer
+    always sits above normal content, and a modal dialog outranks a popover, so
+    a *later* modal dialog is the only reliable way to appear above one.
+*@
+
+<dialog class="toast-backdrop" @ref="_dialogRef" @onclick="Hide">
     <div class="toast-container @ToastClass" @onclick:stopPropagation="true">
         <div class="toast-header-wrapper">
             <strong class="toast-title">@Title</strong>
@@ -9,13 +20,17 @@
         </div>
         <div class="toast-body">@((MarkupString)Message)</div>
     </div>
-</div>
-
-
+</dialog>
 
 @code {
-    private bool _isVisible;
+    private ElementReference _dialogRef;
+    private DotNetObjectReference<Toast>? _selfRef;
     private System.Timers.Timer? _timer;
+
+    // Desired vs. last-applied visibility, reconciled in OnAfterRenderAsync so
+    // showModal()/close() runs only after the new content has rendered.
+    private bool _visible;
+    private bool _syncedVisible;
 
     public string Title { get; private set; } = string.Empty;
     public string Message { get; private set; } = string.Empty;
@@ -35,15 +50,13 @@
         Title = title;
         Message = message;
         Type = type;
-        _isVisible = true;
+        _visible = true;
 
         StateHasChanged();
 
-        // Stop any existing timer
         _timer?.Stop();
         _timer = null;
 
-        // Only start timer if autoHideMs is provided
         if (autoHideMs.HasValue)
         {
             _timer = new System.Timers.Timer(autoHideMs.Value);
@@ -53,18 +66,47 @@
         }
     }
 
-    public async void Hide()
+    public void Hide() => _ = HideAsync();
+
+    /// <summary>Also the Esc-dismiss path (invoked from JS via NotifyDismissed).</summary>
+    private async Task HideAsync()
     {
         _timer?.Stop();
-        _isVisible = false;
+        _visible = false;
 
         if (FocusAfterCloseInput is ElementReference elRef)
             await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", elRef);
-
         else if (FocusAfterCloseInput is ScanInput scanInput)
             await scanInput.FocusAsync();
 
         StateHasChanged();
     }
 
+    [JSInvokable]
+    public Task NotifyDismissed() => HideAsync();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_syncedVisible == _visible)
+            return;
+
+        _syncedVisible = _visible;
+        _selfRef ??= DotNetObjectReference.Create(this);
+
+        try
+        {
+            // Reuses the modal shell's open/close + Esc plumbing. Passing the
+            // ref lets Esc route back through HideAsync (timer stop + refocus).
+            await JSRuntime.InvokeVoidAsync("appDialog.sync", _dialogRef, _visible, _selfRef);
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+        _selfRef?.Dispose();
+    }
 }

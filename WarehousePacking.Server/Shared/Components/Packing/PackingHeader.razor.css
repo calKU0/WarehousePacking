@@ -1,28 +1,65 @@
-﻿.scan-blink {
-    color: red;
-    font-weight: bold;
-    animation: blink 1s step-start infinite;
-}
-
-.header-row {
-    height: auto;
+/* Two-track grid: identity on the left, actions pinned right.
+   Grid (not flex) because the earlier flex version had competing `auto`
+   margins, so free space was split between children and nothing landed
+   where it belonged. */
+.pack-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
     align-items: center;
+    column-gap: var(--space-3);
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
 }
 
-.header-image-placeholder {
+.pack-header__identity {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: var(--space-2);
+    min-width: 0;
 }
 
-    .header-image-placeholder img {
-        height: calc(1.5em * 2.5);
-        width: auto;
-        object-fit: contain;
+.pack-header__badges {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-shrink: 0;
+}
+
+.pack-header__info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    overflow: hidden;
+}
+
+    /* Chips truncate rather than push the actions off the row. */
+    .pack-header__info > * {
+        min-width: 0;
     }
 
-@keyframes blink {
-    50% {
-        opacity: 0;
+.pack-header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    justify-self: end;
+}
+
+@media (max-width: 575.98px) {
+    .pack-header {
+        grid-template-columns: 1fr;
+        row-gap: var(--space-2);
+    }
+
+    .pack-header__identity {
+        flex-wrap: wrap;
+    }
+
+    .pack-header__actions {
+        justify-self: stretch;
     }
 }

@@ -1,48 +1,69 @@
-﻿table.custom-striped > tbody > tr:not(.table-warning):not(.table-danger):not(.table-active):nth-child(odd) > td,
-table.custom-striped > tbody > tr:not(.table-warning):not(.table-danger):not(.table-active):nth-child(odd) > th {
-    background-color: #bcbcbc;
+/* Two-column working area. Grid (rather than the Bootstrap row/col it
+   replaced) so both cards share one row height and scroll independently
+   instead of the page growing. */
+.pack-tables {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-3);
+    flex: 1;
+    min-height: 0;
 }
 
-table.custom-striped > tbody > tr:not(.table-warning):not(.table-danger):not(.table-active):nth-child(even) > td,
-table.custom-striped > tbody > tr:not(.table-warning):not(.table-danger):not(.table-active):nth-child(even) > th {
-    background-color: #ffffff;
+.pack-tables__pending,
+.pack-tables__packed {
+    min-height: 0;
 }
 
-/* Keep hover visible and slightly stronger than striping */
-table.custom-striped > tbody > tr:hover > td,
-table.custom-striped > tbody > tr:hover > th {
-    background-color: #f1f1f1;
+.pack-tables__filter {
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    font-size: var(--fs-sm);
 }
 
-.jl-item-img {
-    height: 50px;
-    width: auto;
-    object-fit: contain;
+/* Product name is the flexible column; everything else stays compact.
+   No min-width here on purpose — it would beat the truncate helper's
+   `max-width: 0` (min-width always wins) and force the table wider instead of
+   letting a long name shorten to an ellipsis. */
+.pack-tables__pending ::deep .app-table th:nth-child(3),
+.pack-tables__pending ::deep .app-table td:nth-child(3) {
+    width: 100%;
 }
 
-.disabled-table {
-    opacity: 0.5;
-    pointer-events: none;
+.pack-tables__pending ::deep .app-table th:nth-child(4),
+.pack-tables__pending ::deep .app-table td:nth-child(4) {
+    width: 5.5rem;
 }
 
-.table-tall {
-    border-collapse: separate;
-    border-spacing: 0;
+/* Product photos are the fastest way to confirm the right item was picked,
+   so give them more room than a generic list thumbnail. */
+.pack-tables__pending ::deep .app-thumb {
+    width: 68px;
+    height: 68px;
 }
 
-    .table-tall thead th {
-        position: sticky;
-        top: 0;
-        background: #343a40;
-        z-index: 3;
+/* Keep the two lists side by side on every real workstation.
+   A 1024x768 touch panel running at 125% Windows scaling reports only ~819
+   CSS px, so the breakpoint has to sit well below 992px or those panels would
+   stack — which is exactly what we do not want here. Stacking is reserved for
+   genuinely narrow (phone) widths. */
+@media (max-width: 575.98px) {
+    .pack-tables {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr auto;
     }
 
-.table-container {
-    height: 55vh; /* 80% of viewport height */
-    overflow-y: auto; /* enable vertical scrolling */
+        .pack-tables .pack-tables__packed {
+            max-height: 40dvh;
+        }
 }
 
-    .table-container table {
-        width: 100%;
-        table-layout: fixed; /* optional, keeps columns consistent */
+/* Tight-but-wide panels: give the packed list a little less room so the
+   product names in the main list stay readable. */
+@media (min-width: 576px) and (max-width: 900px) {
+    .pack-tables {
+        grid-template-columns: 5fr 3fr;
+        gap: var(--space-2);
     }
+}

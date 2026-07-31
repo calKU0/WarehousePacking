@@ -16,24 +16,32 @@
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 
-<div class="container-fluid package-send position-relative">
-    <!-- Barcode Input Full Width -->
-    <div class="mb-3 row">
-        <div class="col-12">
-            <label class="form-label">Kod kreskowy</label>
-            <input @bind="Barcode"
+<div class="package-send position-relative">
+    <div class="app-page-header mb-4">
+        <span class="app-page-header__icon"><i class="bi bi-send"></i></span>
+        <h1 class="app-page-header__title">Wysyłka paczek</h1>
+    </div>
+
+    <div class="mb-4">
+        <label class="form-label app-section-label" for="psBarcode">Kod kreskowy</label>
+        <div class="app-scan">
+            <span class="app-scan__icon" aria-hidden="true"><i class="bi bi-upc-scan"></i></span>
+            <input id="psBarcode"
+                   class="app-scan__input"
+                   @bind="Barcode"
                    @bind:event="oninput"
                    @ref="InputRef"
+                   @onkeydown="HandleKeyDown"
                    placeholder="Zeskanuj kod kreskowy..."
-                   class="form-control"
-                   @onkeydown="HandleKeyDown" />
+                   autocomplete="off" />
         </div>
     </div>
 
     <!-- Two Column Layout -->
-    <div class="row mt-5">
+    <div class="row g-4">
         <!-- Left Column: Shipment Data -->
         <div class="col-md-9">
+            <div class="app-card p-4">
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Akronim</label>
@@ -98,14 +106,16 @@
                     </InputSelect>
                 </div>
 
-                <div class="col-md-3 d-flex justify-content-center align-items-center">
-                    @if (Package.Courier != Courier.Unknown)
-                    {
-                        <img src="@CourierHelper.GetCourierLogo(Package.ShipmentServices, Package.Courier)"
-                             alt="Courier Logo"
-                             class="img-fluid"
-                             style="max-height:120px;" />
-                    }        
+                @* Fixed-size slot: the logo box reserves its space up front so
+                   the form does not jump when the image finishes loading. *@
+                <div class="col-md-3">
+                    <div class="package-send__courier-slot">
+                        @if (Package.Courier != Courier.Unknown)
+                        {
+                            <img src="@CourierHelper.GetCourierLogo(Package.ShipmentServices, Package.Courier)"
+                                 alt="@Package.Courier.GetDescription()" />
+                        }
+                    </div>
                 </div>
 
                 <div class="col-md-6">
@@ -120,8 +130,8 @@
             </div>
 
             <!-- Buttons Full Width Row -->
-            <div class="row g-2 mb-4">
-                <button class="btn btn-success tall-btn"
+            <div class="app-actionbar mt-4">
+                <button class="btn btn-primary"
                         disabled="@((Package.Id == 0 && Package.ManualSend == false) || IsSendingPackage)"
                         @onclick="SendPackage">
 
@@ -135,7 +145,7 @@
                         <span>Wyślij paczkę</span>
                     }
                 </button>
-                <button class="btn btn-danger tall-btn"
+                <button class="btn btn-danger"
                         disabled="@((Package.Id == 0 && Package.ManualSend == false) || IsSendingPackage)"
                         @onclick="ClearData">
 
@@ -150,13 +160,14 @@
                     }
                 </button>
             </div>
+            </div>
         </div>
 
         <!-- Right Column: Services + Additional Options -->
         <div class="col-md-3">
             <!-- Services Card -->
-            <div class="card shadow-sm p-3 mb-4">
-                <h5 class="card-title">Usługi dodatkowe</h5>
+            <div class="app-card p-4 mb-4">
+                <h6 class="app-section-label mb-3">Usługi dodatkowe</h6>
                 <div class="row row-cols-2 row-cols-md-2 g-2">
                     <div class="form-check">
                         <InputCheckbox @bind-Value="Package.ShipmentServices.POD"
@@ -210,8 +221,8 @@
             </div>
 
             <!-- Additional Options Card -->
-            <div class="card shadow-sm p-3 mb-4">
-                <h5 class="card-title">Opcje dodatkowe</h5>
+            <div class="app-card p-4 mb-4">
+                <h6 class="app-section-label mb-3">Opcje dodatkowe</h6>
                 <div class="form-check mb-4">
                     <InputCheckbox @bind-Value="Package.ManualEdit" class="form-check-input" />
                     <label class="form-check-label text-danger fw-bold">Modyfikuj dane ręcznie</label>
@@ -223,7 +234,7 @@
                 </div>
 
                 <div class="d-flex flex-column gap-2 mb-4">
-                    <button class="btn @(!RoutesStatus.DPDClosed ? "btn-success" : "btn-outline-success")"
+                    <button class="btn @(!RoutesStatus.DPDClosed ? "btn-dpd" : "btn-outline-dpd")"
                             @onclick="() => CloseRoute(Courier.DPD)"
                             disabled="@(RoutesStatus.DPDClosed || ClosingRoutes.Contains(Courier.DPD))">
                         @if (ClosingRoutes.Contains(Courier.DPD))
@@ -233,7 +244,7 @@
                         Zamknij Trasę DPD
                     </button>
 
-                    <button class="btn @(!RoutesStatus.GLSClosed ? "btn-warning" : "btn-outline-warning")"
+                    <button class="btn @(!RoutesStatus.GLSClosed ? "btn-gls" : "btn-outline-gls")"
                             @onclick="() => CloseRoute(Courier.GLS)"
                             disabled="@(RoutesStatus.GLSClosed || ClosingRoutes.Contains(Courier.GLS))">
                         @if (ClosingRoutes.Contains(Courier.GLS))
@@ -243,7 +254,7 @@
                         Zamknij Trasę GLS
                     </button>
 
-                    <button class="btn @(!RoutesStatus.FedexClosed ? "btn-primary" : "btn-outline-primary")"
+                    <button class="btn @(!RoutesStatus.FedexClosed ? "btn-fedex" : "btn-outline-fedex")"
                             @onclick="() => CloseRoute(Courier.Fedex)"
                             disabled="@(RoutesStatus.FedexClosed || ClosingRoutes.Contains(Courier.Fedex))">
                         @if (ClosingRoutes.Contains(Courier.Fedex))
@@ -278,6 +289,7 @@
     private WorkstationSettings WorkstationSettings = new();
     private AppSettings AppSettings => AppOptions.Value;
     private ElementReference InputRef;
+    private string? _scanGuardId;
     private RoutesStatus RoutesStatus = new();
     private HashSet<Courier> ClosingRoutes = new();
 
@@ -323,7 +335,10 @@
     {
         if (firstRender)
         {
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
+            // Keeps the scanner field focused for the lifetime of the page, so
+            // clicking buttons or dismissing modals never leaves the scanner
+            // typing into nowhere.
+            _scanGuardId = await JSRuntime.InvokeAsync<string>("scanFocus.register", InputRef);
         }
     }
 
@@ -790,5 +805,29 @@
     public void Dispose()
     {
         Timer?.Dispose();
+
+        if (_scanGuardId is not null)
+        {
+            // The circuit is often already gone by the time Dispose runs, and an
+            // unobserved JSDisconnectedException from a fire-and-forget interop
+            // call surfaces as an unhandled circuit error. Swallow it explicitly.
+            _ = UnregisterScanGuardAsync(_scanGuardId);
+            _scanGuardId = null;
+        }
+    }
+
+    private async Task UnregisterScanGuardAsync(string guardId)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("scanFocus.unregister", guardId);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Browser already went away — nothing to clean up on that side.
+        }
+        catch (ObjectDisposedException)
+        {
+        }
     }
 }

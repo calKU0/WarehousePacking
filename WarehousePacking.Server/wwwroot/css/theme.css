@@ -1,0 +1,484 @@
+/* ==========================================================================
+   theme.css — design tokens + Bootstrap bridge
+   --------------------------------------------------------------------------
+   Single source of truth for brand, surfaces, spacing, touch sizing and
+   motion. Everything else in the app (app.css, components.css, scoped
+   .razor.css) should consume these variables instead of hard-coded values,
+   so a new page inherits the design system for free.
+
+   Brand colours come from the company logo (wwwroot/images/logo.png):
+     primary   #f9c211   secondary #646363
+
+   Accessibility note: #f9c211 only reaches ~1.7:1 against white, so it is
+   used exclusively as a *fill* with dark text on top. For text and icons on
+   light surfaces use --brand-ink, which is contrast-safe (>= 6:1).
+   ========================================================================== */
+
+:root {
+    /* --- Brand ---------------------------------------------------------- */
+    --brand: #f9c211; /* fills: buttons, accents, highlights   */
+    --brand-strong: #e3ad07; /* hover fill                            */
+    --brand-deep: #c2940a; /* active/pressed fill                   */
+    --brand-ink: #6f5300; /* brand-coloured TEXT on light surfaces */
+    --brand-soft: #fef6d9; /* tinted background                     */
+    --brand-softer: #fffcf0; /* barely-there background               */
+    --brand-contrast: #241f10; /* text placed ON a brand fill           */
+    --brand-rgb: 249, 194, 17;
+
+    /* --- Secondary ------------------------------------------------------ */
+    --secondary: #646363;
+    --secondary-strong: #4f4e4e;
+    --secondary-soft: #f1f0f0;
+    --secondary-rgb: 100, 99, 99;
+
+    /* --- Surfaces & text ------------------------------------------------ */
+    --surface: #ffffff;
+    --surface-sunken: #f6f7f8;
+    --surface-raised: #ffffff;
+    --border: #e6e8ea;
+    --border-strong: #d3d7db;
+    --text: #22262a;
+    --text-muted: #6b7280;
+    --text-subtle: #99a1ab;
+
+    /* --- Status (semantic — deliberately NOT brand coloured) ------------ */
+    --success: #17864a;
+    --success-soft: #dcfce7;
+    --success-border: #86efac;
+    --danger: #c62828;
+    --danger-soft: #fee2e2;
+    --danger-border: #fca5a5;
+    --warning: #b26a00;
+    --warning-soft: #fef3c7;
+    --warning-border: #fcd34d;
+    --info: #0b6f8a;
+    --info-soft: #e0f4fa;
+
+    /* Table row-state fills — deliberately more vivid/saturated than the
+       "-soft" status tints, so status rows read clearly across a busy list. */
+    --row-ready: #bbf7d0;
+    --row-ready-strong: #86efac;
+    --row-error: #fecaca;
+    --row-error-strong: #fca5a5;
+    --row-warning: #fde68a;
+    --row-warning-strong: #fcd34d;
+
+    /* --- Courier brand colours ------------------------------------------
+       Used for carrier-specific actions so an operator can identify the
+       target carrier by colour alone. Taken from each carrier's own brand. */
+    --courier-dpd: #dc0032;
+    --courier-dpd-strong: #b60029;
+    --courier-gls: #0b2a8a;
+    --courier-gls-strong: #081f66;
+    --courier-fedex: #4d148c;
+    --courier-fedex-strong: #3c0f6d;
+
+    /* --- Radius --------------------------------------------------------- */
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --radius-pill: 999px;
+
+    /* --- Elevation ------------------------------------------------------ */
+    --shadow-sm: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+    --shadow: 0 2px 4px rgba(16, 24, 40, .06), 0 4px 12px rgba(16, 24, 40, .08);
+    --shadow-lg: 0 8px 24px rgba(16, 24, 40, .12), 0 2px 6px rgba(16, 24, 40, .08);
+    --focus-ring: 0 0 0 3px rgba(var(--brand-rgb), .45);
+
+    /* --- Spacing scale -------------------------------------------------- */
+    --space-1: .25rem;
+    --space-2: .5rem;
+    --space-3: .75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+
+    /* --- Touch sizing ---------------------------------------------------
+       Tuned for 1024x768 touch panels: comfortably above the 44px
+       accessibility minimum while still fitting the whole packing screen
+       without page scroll. Scales up slightly on larger displays below.   */
+    --touch-min: 44px; /* hard accessibility floor        */
+    --touch: 56px; /* standard control / table row    */
+    --touch-lg: 72px; /* primary action bar buttons      */
+    --row-height: 56px;
+
+    /* The scan field is driven by a hardware scanner, not by tapping, so it
+       does not need a finger-sized target — keeping it slim buys vertical
+       room for the item lists, which is what operators actually read. */
+    --scan-height: 44px;
+
+    /* Thumbnails in list views. */
+    --thumb: 56px;
+    --thumb-wide-w: 76px;
+    --thumb-wide-h: 48px;
+
+    /* --- Typography ----------------------------------------------------- */
+    /* Exactly two typefaces app-wide, for consistency:
+         --font-sans : Inter (loaded in App.razor) for all UI text
+         --font-mono : a clean monospace for scanned codes / barcodes
+       Both degrade to native fonts if the web font can't load (offline). */
+    --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'Cascadia Mono', Consolas, ui-monospace, SFMono-Regular, monospace;
+    --fs-xs: .75rem;
+    --fs-sm: .875rem;
+    --fs-base: 1rem;
+    --fs-lg: 1.125rem;
+    --fs-xl: 1.375rem;
+
+    /* --- Motion ---------------------------------------------------------
+       Subtle by design: this is an operational screen, not a marketing site. */
+    --dur-fast: 120ms;
+    --dur: 180ms;
+    --dur-slow: 280ms;
+    --ease: cubic-bezier(.22, .61, .36, 1); /* default: decelerate (ease-out) */
+    --ease-in: cubic-bezier(.55, .06, .68, .19); /* accelerate — for exits    */
+    --ease-spring: cubic-bezier(.34, 1.4, .64, 1); /* gentle overshoot         */
+}
+
+/* Larger desktop / wallboard: give controls a little more room. */
+@media (min-width: 1400px) {
+    :root {
+        --touch: 60px;
+        --touch-lg: 80px;
+        --row-height: 60px;
+    }
+}
+
+/* Phones: keep targets generous, tighten rows so lists stay scannable. */
+@media (max-width: 575.98px) {
+    :root {
+        --touch-lg: 60px;
+        --row-height: 52px;
+    }
+}
+
+/* Motion is intentionally always on for this kiosk app (per product decision),
+   so the OS "reduce motion" setting is deliberately not honoured here. */
+
+/* ==========================================================================
+   Bootstrap bridge
+   --------------------------------------------------------------------------
+   Bootstrap 5.3 bakes literal colour values into each component's local
+   custom properties (e.g. `.btn-primary { --bs-btn-bg: #0d6efd }`), so
+   overriding `--bs-primary` alone is not enough. We remap the component-level
+   variables instead, which keeps every Bootstrap behaviour (disabled, active,
+   focus) intact while adopting the brand.
+   ========================================================================== */
+
+:root {
+    --bs-primary: var(--brand);
+    --bs-primary-rgb: var(--brand-rgb);
+    --bs-secondary: var(--secondary);
+    --bs-secondary-rgb: var(--secondary-rgb);
+    --bs-body-color: var(--text);
+    --bs-body-font-family: var(--font-sans);
+    --bs-border-color: var(--border);
+    --bs-border-radius: var(--radius);
+    --bs-link-color: var(--brand-ink);
+    --bs-link-hover-color: var(--brand-deep);
+    --bs-focus-ring-color: rgba(var(--brand-rgb), .45);
+}
+
+/* --- Buttons ------------------------------------------------------------ */
+.btn {
+    --bs-btn-border-radius: var(--radius);
+    font-weight: 600;
+    transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+
+    /* Tactile press feedback — a clear scale-down that reads under a finger
+       on a touch panel (not just a 1px nudge). */
+    .btn:active:not(:disabled) {
+        transform: scale(.95);
+    }
+
+    .btn:focus-visible {
+        box-shadow: var(--focus-ring);
+    }
+
+.btn-primary {
+    --bs-btn-color: var(--brand-contrast);
+    --bs-btn-bg: var(--brand);
+    --bs-btn-border-color: var(--brand);
+    --bs-btn-hover-color: var(--brand-contrast);
+    --bs-btn-hover-bg: var(--brand-strong);
+    --bs-btn-hover-border-color: var(--brand-strong);
+    --bs-btn-active-color: var(--brand-contrast);
+    --bs-btn-active-bg: var(--brand-deep);
+    --bs-btn-active-border-color: var(--brand-deep);
+    --bs-btn-disabled-color: var(--brand-contrast);
+    --bs-btn-disabled-bg: var(--brand);
+    --bs-btn-disabled-border-color: var(--brand);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--brand-ink);
+    --bs-btn-border-color: var(--brand-strong);
+    --bs-btn-hover-color: var(--brand-contrast);
+    --bs-btn-hover-bg: var(--brand);
+    --bs-btn-hover-border-color: var(--brand);
+    --bs-btn-active-color: var(--brand-contrast);
+    --bs-btn-active-bg: var(--brand-deep);
+    --bs-btn-active-border-color: var(--brand-deep);
+    --bs-btn-disabled-color: var(--text-subtle);
+    --bs-btn-disabled-border-color: var(--border-strong);
+}
+
+.btn-secondary {
+    --bs-btn-bg: var(--secondary);
+    --bs-btn-border-color: var(--secondary);
+    --bs-btn-hover-bg: var(--secondary-strong);
+    --bs-btn-hover-border-color: var(--secondary-strong);
+    --bs-btn-active-bg: var(--secondary-strong);
+    --bs-btn-active-border-color: var(--secondary-strong);
+    --bs-btn-disabled-bg: var(--secondary);
+    --bs-btn-disabled-border-color: var(--secondary);
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: var(--secondary-strong);
+    --bs-btn-border-color: var(--border-strong);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--secondary);
+    --bs-btn-hover-border-color: var(--secondary);
+    --bs-btn-active-bg: var(--secondary-strong);
+    --bs-btn-active-border-color: var(--secondary-strong);
+}
+
+/* Semantic actions keep their conventional meaning — operators rely on
+   red = destructive and green = confirm far more than on brand colour. */
+.btn-success {
+    --bs-btn-bg: var(--success);
+    --bs-btn-border-color: var(--success);
+    --bs-btn-hover-bg: #12703c;
+    --bs-btn-hover-border-color: #12703c;
+    --bs-btn-active-bg: #0f5f33;
+    --bs-btn-active-border-color: #0f5f33;
+    --bs-btn-disabled-bg: var(--success);
+    --bs-btn-disabled-border-color: var(--success);
+}
+
+.btn-danger {
+    --bs-btn-bg: var(--danger);
+    --bs-btn-border-color: var(--danger);
+    --bs-btn-hover-bg: #a92020;
+    --bs-btn-hover-border-color: #a92020;
+    --bs-btn-active-bg: #911c1c;
+    --bs-btn-active-border-color: #911c1c;
+    --bs-btn-disabled-bg: var(--danger);
+    --bs-btn-disabled-border-color: var(--danger);
+}
+
+.btn-warning {
+    --bs-btn-color: var(--brand-contrast);
+    --bs-btn-bg: #f0a92b;
+    --bs-btn-border-color: #f0a92b;
+    --bs-btn-hover-color: var(--brand-contrast);
+    --bs-btn-hover-bg: #dd9a1f;
+    --bs-btn-hover-border-color: #dd9a1f;
+    --bs-btn-active-bg: #c9891a;
+    --bs-btn-active-border-color: #c9891a;
+    --bs-btn-disabled-color: var(--brand-contrast);
+    --bs-btn-disabled-bg: #f0a92b;
+    --bs-btn-disabled-border-color: #f0a92b;
+}
+
+/* --- Courier buttons -----------------------------------------------------
+   Carrier-specific actions cannot use .btn-primary (now brand yellow) or the
+   semantic variants, because the colour itself identifies the carrier.
+   Built on Bootstrap's own button variables so every state behaves normally.
+   Each has a matching -outline variant for the "already done" state.        */
+.btn-dpd {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--courier-dpd);
+    --bs-btn-border-color: var(--courier-dpd);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--courier-dpd-strong);
+    --bs-btn-hover-border-color: var(--courier-dpd-strong);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--courier-dpd-strong);
+    --bs-btn-active-border-color: var(--courier-dpd-strong);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: var(--courier-dpd);
+    --bs-btn-disabled-border-color: var(--courier-dpd);
+}
+
+.btn-outline-dpd {
+    --bs-btn-color: var(--courier-dpd);
+    --bs-btn-border-color: var(--courier-dpd);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--courier-dpd);
+    --bs-btn-hover-border-color: var(--courier-dpd);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--courier-dpd-strong);
+    --bs-btn-active-border-color: var(--courier-dpd-strong);
+    --bs-btn-disabled-color: var(--courier-dpd);
+    --bs-btn-disabled-border-color: var(--courier-dpd);
+}
+
+.btn-gls {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--courier-gls);
+    --bs-btn-border-color: var(--courier-gls);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--courier-gls-strong);
+    --bs-btn-hover-border-color: var(--courier-gls-strong);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--courier-gls-strong);
+    --bs-btn-active-border-color: var(--courier-gls-strong);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: var(--courier-gls);
+    --bs-btn-disabled-border-color: var(--courier-gls);
+}
+
+.btn-outline-gls {
+    --bs-btn-color: var(--courier-gls);
+    --bs-btn-border-color: var(--courier-gls);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--courier-gls);
+    --bs-btn-hover-border-color: var(--courier-gls);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--courier-gls-strong);
+    --bs-btn-active-border-color: var(--courier-gls-strong);
+    --bs-btn-disabled-color: var(--courier-gls);
+    --bs-btn-disabled-border-color: var(--courier-gls);
+}
+
+.btn-fedex {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--courier-fedex);
+    --bs-btn-border-color: var(--courier-fedex);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--courier-fedex-strong);
+    --bs-btn-hover-border-color: var(--courier-fedex-strong);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--courier-fedex-strong);
+    --bs-btn-active-border-color: var(--courier-fedex-strong);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: var(--courier-fedex);
+    --bs-btn-disabled-border-color: var(--courier-fedex);
+}
+
+.btn-outline-fedex {
+    --bs-btn-color: var(--courier-fedex);
+    --bs-btn-border-color: var(--courier-fedex);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--courier-fedex);
+    --bs-btn-hover-border-color: var(--courier-fedex);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--courier-fedex-strong);
+    --bs-btn-active-border-color: var(--courier-fedex-strong);
+    --bs-btn-disabled-color: var(--courier-fedex);
+    --bs-btn-disabled-border-color: var(--courier-fedex);
+}
+
+/* --- Utility colour remaps ---------------------------------------------- */
+.text-primary {
+    color: var(--brand-ink) !important; /* readable, unlike raw #f9c211 */
+}
+
+.bg-primary {
+    background-color: var(--brand) !important;
+    color: var(--brand-contrast) !important;
+}
+
+    .bg-primary.text-white,
+    .bg-primary .text-white {
+        color: var(--brand-contrast) !important; /* white on yellow is unreadable */
+    }
+
+.border-primary {
+    border-color: var(--brand) !important;
+}
+
+.bg-primary-subtle {
+    background-color: var(--brand-soft) !important;
+}
+
+.text-primary-emphasis {
+    color: var(--brand-ink) !important;
+}
+
+.badge.bg-primary {
+    background-color: var(--brand) !important;
+    color: var(--brand-contrast) !important;
+}
+
+.badge.bg-secondary {
+    background-color: var(--secondary) !important;
+}
+
+.spinner-border.text-primary,
+.spinner-grow.text-primary {
+    color: var(--brand-strong) !important;
+}
+
+.form-check-input:checked {
+    background-color: var(--brand-strong);
+    border-color: var(--brand-strong);
+}
+
+.form-check-input:focus {
+    border-color: var(--brand-strong);
+    box-shadow: var(--focus-ring);
+}
+
+.progress-bar {
+    background-color: var(--brand-strong);
+}
+
+/* --- Form controls ------------------------------------------------------ */
+.form-control,
+.form-select {
+    border-radius: var(--radius);
+    border-color: var(--border-strong);
+    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--brand-strong);
+        box-shadow: var(--focus-ring);
+    }
+
+/* Replaces the old global blue focus ring from app.css. */
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+    box-shadow: var(--focus-ring);
+}
+
+/* --- Base document ------------------------------------------------------ */
+
+/* Fluid root font size: everything sized in rem (font tokens --fs-*, spacing
+   --space-*) scales DOWN on compact touch panels so more fits without
+   overflow. Capped at the normal 16px browser default — desktop/FullHD keeps
+   the standard size, it is never scaled up.
+   Touch targets stay usable because --touch* are in px, not rem. */
+html {
+    font-size: clamp(13.5px, 0.35vw + 12px, 16px);
+}
+
+html,
+body {
+    font-family: var(--font-sans);
+    color: var(--text);
+}
+
+/* Touch panels: never show a text caret/selection where it isn't useful,
+   and kill the 300ms tap delay + tap highlight. */
+body {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+a,
+.btn-link {
+    color: var(--brand-ink);
+}
+
+    a:hover,
+    .btn-link:hover {
+        color: var(--brand-deep);
+    }

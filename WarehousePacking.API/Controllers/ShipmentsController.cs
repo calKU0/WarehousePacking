@@ -15,13 +15,15 @@ namespace WarehousePacking.API.Controllers
         private readonly CourierFactory _courierFactory;
         private readonly IShipmentService _shipmentService;
         private readonly IEmailService _emailService;
+        private readonly IConfiguration _configuration;
         private readonly ILogger<ShipmentsController> _logger;
 
-        public ShipmentsController(CourierFactory courierFactory, IShipmentService shipmentService, IEmailService emailService, ILogger<ShipmentsController> logger)
+        public ShipmentsController(CourierFactory courierFactory, IShipmentService shipmentService, IEmailService emailService, IConfiguration configuration, ILogger<ShipmentsController> logger)
         {
             _courierFactory = courierFactory;
             _shipmentService = shipmentService;
             _emailService = emailService;
+            _configuration = configuration;
             _logger = logger;
         }
 
@@ -261,19 +263,7 @@ namespace WarehousePacking.API.Controllers
 
                     if (result.Success && result.DataBase64.Any())
                     {
-                        foreach (var data in result.DataBase64)
-                        {
-                            // Save file to disk
-                            var fileBytes = Convert.FromBase64String(data);
-                            var filePath = Path.Combine(AppContext.BaseDirectory, "Protocols", courier.ToString(), $"{Guid.NewGuid()}.pdf");
-
-                            // Ensure directory exists
-                            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-
-                            await System.IO.File.WriteAllBytesAsync(filePath, fileBytes);
-
-                            _logger.LogInformation("Protocol saved to {FilePath}", filePath);
-                        }
+                        await SaveProtocolsAsync(result.DataBase64, courier);
                     }
                 }
                 else
@@ -316,6 +306,75 @@ namespace WarehousePacking.API.Controllers
             {
                 _logger.LogError(ex, "Error in IsPackageReadyToShip for barcode {Barcode}", barcode);
                 return HandleException(ex);
+            }
+        }
+
+        /// <summary>
+        /// Persists generated courier protocols to disk. Best-effort: a failure
+        /// to write a protocol must never fail the route-closing request, so all
+        /// errors are logged and swallowed.
+        ///
+        /// Primary location is the configured <c>Protocols:Path</c> joined with the
+        /// courier name. If that path is not configured, or writing there fails,
+        /// the protocol is written to the local fallback
+        /// <c>{BaseDirectory}/Protocols/{courier}</c> instead.
+        /// </summary>
+        private async Task SaveProtocolsAsync(IEnumerable<string> protocolsBase64, Courier courier)
+        {
+            var configuredPath = _configuration["Protocols:Path"];
+            var courierName = courier.ToString();
+            var defaultDirectory = Path.Combine(AppContext.BaseDirectory, "Protocols", courierName);
+
+            foreach (var data in protocolsBase64)
+            {
+                try
+                {
+                    var fileBytes = Convert.FromBase64String(data);
+
+                    // Try the configured path first (when set); on any failure,
+                    // fall back to the local default directory.
+                    if (!string.IsNullOrWhiteSpace(configuredPath))
+                    {
+                        var configuredDirectory = Path.Combine(configuredPath, courierName);
+                        if (await TryWriteProtocolAsync(configuredDirectory, courier.ToString(), fileBytes))
+                            continue;
+
+                        _logger.LogWarning(
+                            "Falling back to default protocol directory for courier {Courier} after failing to write to {Directory}.",
+                            courierName, configuredDirectory);
+                    }
+
+                    await TryWriteProtocolAsync(defaultDirectory, courier.ToString(), fileBytes);
+                }
+                catch (Exception ex)
+                {
+                    // Includes invalid Base64 — never let it break the response.
+                    _logger.LogError(ex, "Failed to save protocol for courier {Courier}.", courierName);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes a single protocol file into <paramref name="directory"/>.
+        /// Returns false (logging the error) if the write fails.
+        /// </summary>
+        private async Task<bool> TryWriteProtocolAsync(string directory, string courier, byte[] fileBytes)
+        {
+            try
+            {
+                string finalDirectory = Path.Combine(directory, courier);
+                Directory.CreateDirectory(finalDirectory);
+                var filePath = Path.Combine(finalDirectory, $"{Guid.NewGuid()}.pdf");
+
+                await System.IO.File.WriteAllBytesAsync(filePath, fileBytes);
+
+                _logger.LogInformation("Protocol saved to {FilePath}", filePath);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to write protocol to {Directory}.", directory);
+                return false;
             }
         }
 

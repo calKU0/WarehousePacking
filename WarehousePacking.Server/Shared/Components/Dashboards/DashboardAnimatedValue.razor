@@ -18,6 +18,12 @@
     [Parameter] public string Text { get; set; } = string.Empty;
     [Parameter] public string CssClass { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Set false for values that tick continuously (elapsed timers). Animating
+    /// every single second reads as flicker rather than as a change cue.
+    /// </summary>
+    [Parameter] public bool Animate { get; set; } = true;
+
     private string _lastText = string.Empty;
     private int _version;
     private IReadOnlyList<AnimatedPart> _parts = Array.Empty<AnimatedPart>();
@@ -33,6 +39,14 @@
                 _parts = [new AnimatedPart(newText, false, "static")];
             }
 
+            return;
+        }
+
+        if (!Animate)
+        {
+            // Stable key: the text is swapped in place, with no element churn.
+            _parts = [new AnimatedPart(newText, false, "static")];
+            _lastText = newText;
             return;
         }
 
@@ -69,20 +83,24 @@
         var changed = changedLength > 0 ? newValue.Substring(prefixLength, changedLength) : string.Empty;
         var suffix = suffixLength > 0 ? newValue[^suffixLength..] : string.Empty;
 
+        // Only the changed segment carries the version in its key. The stable
+        // prefix/suffix keys let Blazor patch their text in place instead of
+        // tearing the spans down and rebuilding them on every update — that
+        // churn is what made the panels flicker.
         var result = new List<AnimatedPart>(3);
         if (!string.IsNullOrEmpty(prefix))
         {
-            result.Add(new AnimatedPart(prefix, false, $"prefix-{version}"));
+            result.Add(new AnimatedPart(prefix, false, "prefix"));
         }
 
         if (!string.IsNullOrEmpty(changed))
         {
-            result.Add(new AnimatedPart(changed, true, $"changed-{version}-{changed}"));
+            result.Add(new AnimatedPart(changed, true, $"changed-{version}"));
         }
 
         if (!string.IsNullOrEmpty(suffix))
         {
-            result.Add(new AnimatedPart(suffix, false, $"suffix-{version}"));
+            result.Add(new AnimatedPart(suffix, false, "suffix"));
         }
 
         if (result.Count == 0)

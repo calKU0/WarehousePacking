@@ -6,180 +6,168 @@
 @inject PackingService PackingService
 @inject WorkstationService WorkstationService
 
-@if (Show)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content shadow-lg rounded-3">
-                <div class="modal-header">
-                    <h5 class="modal-title">Kuwety podjęte do realizacji</h5>
-                    <button type="button" class="btn-close" @onclick="Close"></button>
-                </div>
+@*
+    Supervisor view of JLs currently taken for packing, with a read-only
+    preview of each one's progress and the ability to release them.
+*@
 
-                <div class="modal-body">
-                    @if (IsLoading)
+<AppModal IsVisible="Show" Title="Kuwety podjęte do realizacji" Icon="bi bi-hand-index"
+          Size="xl" FlushBody="true" FooterAlignEnd="true" OnClose="Close">
+    <ChildContent>
+        @if (IsLoading)
+        {
+            <div class="app-empty">
+                <div class="app-spinner"></div>
+                <p class="app-empty__text">Ładowanie...</p>
+            </div>
+        }
+        else if (JlList.Count == 0)
+        {
+            <div class="app-empty">
+                <i class="bi bi-inbox app-empty__icon"></i>
+                <p class="app-empty__text">Brak kuwet podjętych do realizacji.</p>
+            </div>
+        }
+        else
+        {
+            <table class="app-table app-table--striped">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Nazwa</th>
+                        <th>Użytkownik</th>
+                        <th>Nr. stanowiska</th>
+                        <th>Kurier</th>
+                        <th>Klient</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var jl in JlList)
                     {
-                        <div class="text-center">
-                            <div class="spinner-border text-primary"></div>
-                        </div>
+                        var key = BuildSelectionKey(jl.Name, jl.User);
+                        <tr class="@(SelectedJlKeys.Contains(key) ? "is-highlight" : null)" @key="key">
+                            <td>
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       checked="@SelectedJlKeys.Contains(key)"
+                                       @onchange="e => ToggleSelection(jl.Name, jl.User, e.Value)" />
+                            </td>
+                            <td class="app-table__code">@jl.Name</td>
+                            <td>@jl.User</td>
+                            <td>@jl.StationNumber</td>
+                            <td>@jl.Courier.GetDescription()</td>
+                            <td>@jl.ClientName</td>
+                            <td class="text-end text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary me-1" @onclick="() => ShowPreview(jl)">
+                                    <i class="bi bi-eye me-1"></i>Podgląd
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => ConfirmRemove(jl)">
+                                    <i class="bi bi-trash me-1"></i>Usuń
+                                </button>
+                            </td>
+                        </tr>
                     }
-                    else if (JlList?.Any() == true)
-                    {
-                        <table class="table table-striped table-hover">
+                </tbody>
+            </table>
+        }
+    </ChildContent>
+
+    <Footer>
+        @if (SelectedJlKeys.Any())
+        {
+            <button type="button" class="btn btn-danger" @onclick="ConfirmRemoveSelected">
+                <i class="bi bi-trash me-1"></i>Usuń zaznaczone (@SelectedJlKeys.Count)
+            </button>
+        }
+        <button type="button" class="btn btn-secondary" @onclick="Close">Zamknij</button>
+    </Footer>
+</AppModal>
+
+<AppModal IsVisible="ShowPreviewModal" Title="@($"Podgląd pakowania: {PreviewJlName}")"
+          Icon="bi bi-eye" Size="xl" OnClose="ClosePreview">
+    <ChildContent>
+        @if (PreviewLoading)
+        {
+            <div class="app-empty">
+                <div class="app-spinner"></div>
+                <p class="app-empty__text">Ładowanie...</p>
+            </div>
+        }
+        else
+        {
+            <div class="jl-preview">
+                <section class="app-card">
+                    <div class="app-card__header app-card__header--accent">
+                        <span class="app-card__title"><i class="bi bi-box-seam"></i>Do spakowania</span>
+                    </div>
+                    <div class="app-scroll jl-preview__scroll">
+                        <table class="app-table app-table--striped">
                             <thead>
                                 <tr>
-                                    <th></th>
+                                    <th>Kod</th>
+                                    <th class="app-table__num">Ilość</th>
                                     <th>Nazwa</th>
-                                    <th>Użytkownik</th>
-                                    <th>Nr. stanowiska</th>
-                                    <th>Kurier</th>
-                                    <th>Klient</th>
-                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var jl in JlList)
+                                @if (PreviewNotPackedItems.Count == 0)
                                 {
-                                    <tr>
-                                        <td>
-                                            <input type="checkbox"
-                                                   class="form-check-input"
-                                                   checked="@SelectedJlKeys.Contains(BuildSelectionKey(jl.Name, jl.User))"
-                                                   @onchange="(e) => ToggleSelection(jl.Name, jl.User, e.Value)" />
-                                        </td>
-                                        <td>@jl.Name</td>
-                                        <td>@jl.User</td>
-                                        <td>@jl.StationNumber</td>
-                                        <td>@jl.Courier.GetDescription()</td>
-                                        <td>@jl.ClientName</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-primary me-2" @onclick="() => ShowPreview(jl)">
-                                                Podgląd
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" @onclick="() => ConfirmRemove(jl)">
-                                                Usuń
-                                            </button>
-                                        </td>
-                                    </tr>
+                                    <tr><td colspan="3"><div class="app-empty"><p class="app-empty__text">Brak pozycji</p></div></td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var item in PreviewNotPackedItems)
+                                    {
+                                        <tr>
+                                            <td class="app-table__code">@item.ItemCode</td>
+                                            <td class="app-table__num">@item.JlQuantity</td>
+                                            <td>@item.ItemName</td>
+                                        </tr>
+                                    }
                                 }
                             </tbody>
                         </table>
-                    }
-                    else
-                    {
-                        <p class="text-muted">Brak kuwet podjętych do realizacji.</p>
-                    }
-                </div>
-
-                @if (SelectedJlKeys.Any())
-                {
-                    <div class="modal-footer">
-                        <button class="btn btn-danger" @onclick="ConfirmRemoveSelected">
-                            Usuń zaznaczone (@SelectedJlKeys.Count)
-                        </button>
                     </div>
-                }
+                </section>
+
+                <section class="app-card">
+                    <div class="app-card__header">
+                        <span class="app-card__title"><i class="bi bi-bag-check"></i>Spakowane</span>
+                    </div>
+                    <div class="app-scroll jl-preview__scroll">
+                        <table class="app-table app-table--striped">
+                            <thead>
+                                <tr>
+                                    <th>Kod</th>
+                                    <th class="app-table__num">Ilość</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (PreviewPackedItems.Count == 0)
+                                {
+                                    <tr><td colspan="2"><div class="app-empty"><p class="app-empty__text">Brak pozycji</p></div></td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var item in PreviewPackedItems)
+                                    {
+                                        <tr>
+                                            <td class="app-table__code">@item.ItemCode</td>
+                                            <td class="app-table__num">@item.JlQuantity</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
-        </div>
-    </div>
+        }
+    </ChildContent>
+</AppModal>
 
-    <ConfirmDialog @ref="ConfirmDialog" />
-}
-
-@if (ShowPreviewModal)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content shadow-lg rounded-3">
-                <div class="modal-header">
-                    <h5 class="modal-title">Podgląd pakowania: @PreviewJlName</h5>
-                    <button type="button" class="btn-close" @onclick="ClosePreview"></button>
-                </div>
-
-                <div class="modal-body">
-                    @if (PreviewLoading)
-                    {
-                        <div class="text-center">
-                            <div class="spinner-border text-primary"></div>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="row g-3">
-                            <div class="col-12 col-lg-8">
-                                <div class="card">
-                                    <div class="card-header">Do spakowania</div>
-                                    <div class="table-responsive">
-                                        <table class="table table-striped table-hover mb-0">
-                                            <thead class="table-dark">
-                                                <tr>
-                                                    <th>Kod</th>
-                                                    <th>Ilość</th>
-                                                    <th>Nazwa</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @if (!PreviewNotPackedItems.Any())
-                                                {
-                                                    <tr><td colspan="3" class="text-center text-muted">Brak pozycji</td></tr>
-                                                }
-                                                else
-                                                {
-                                                    @foreach (var item in PreviewNotPackedItems)
-                                                    {
-                                                        <tr>
-                                                            <td>@item.ItemCode</td>
-                                                            <td>@item.JlQuantity</td>
-                                                            <td>@item.ItemName</td>
-                                                        </tr>
-                                                    }
-                                                }
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-12 col-lg-4">
-                                <div class="card">
-                                    <div class="card-header">Spakowane</div>
-                                    <div class="table-responsive">
-                                        <table class="table table-striped table-hover mb-0">
-                                            <thead class="table-dark">
-                                                <tr>
-                                                    <th>Kod</th>
-                                                    <th>Ilość</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @if (!PreviewPackedItems.Any())
-                                                {
-                                                    <tr><td colspan="2" class="text-center text-muted">Brak pozycji</td></tr>
-                                                }
-                                                else
-                                                {
-                                                    @foreach (var item in PreviewPackedItems)
-                                                    {
-                                                        <tr>
-                                                            <td>@item.ItemCode</td>
-                                                            <td>@item.JlQuantity</td>
-                                                        </tr>
-                                                    }
-                                                }
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
-}
+<ConfirmDialog @ref="ConfirmDialog" />
 
 <Toast @ref="Toast"/>
 

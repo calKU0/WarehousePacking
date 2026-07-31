@@ -1,63 +1,67 @@
-@using Microsoft.AspNetCore.Components.Web
 @inject IJSRuntime JSRuntime
 
-@if (IsVisible)
-{
-    <div class="modal-backdrop fade show" @onclick="Cancel"></div>
+@*
+    Disambiguates a scanned product code that exists in more than one JL.
+    The operator can either pick from the list or scan the JL directly.
+*@
 
-    <div class="modal d-block">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">@Title</h5>
-                    <button type="button" class="btn-close" @onclick="Cancel"></button>
-                </div>
-                <div class="modal-body">
-                    <p>@Message</p>
+<AppModal IsVisible="IsVisible" Title="@Title" Icon="bi bi-box-seam" OnClose="Cancel">
+    <ChildContent>
+        <p class="text-muted">@Message</p>
 
-                    <div class="mb-3">
-                        <label class="form-label">Wybierz kuwetê</label>
-                        <select class="form-select" value="@SelectedJl" @onchange="HandleSelectChanged">
-                            <option value="" disabled selected hidden>Wybierz JL</option>
-                            @foreach (var jl in JlCodes)
-                            {
-                                <option value="@jl.JlCode">@jl.JlCode</option>
-                            }
-                        </select>
-                    </div>
+        <div class="mb-3">
+            <label class="form-label app-section-label" for="jlSelect">Wybierz kuwetÄ™</label>
+            <select id="jlSelect" class="form-select form-select-lg" value="@SelectedJl" @onchange="HandleSelectChanged">
+                <option value="" disabled selected hidden>Wybierz JL</option>
+                @foreach (var jl in JlCodes)
+                {
+                    <option value="@jl.JlCode">@jl.JlCode</option>
+                }
+            </select>
+        </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Zeskanuj kuwetê</label>
-                        <input class="form-control"
-                               @bind="ScanValue"
-                               @bind:event="oninput"
-                               @ref="scanInputRef"
-                               @onkeydown="HandleScanKeyDown"
-                               placeholder="Zeskanuj kod JL" />
-                    </div>
-                </div>
-                <div class="modal-footer d-flex gap-2 w-100">
-                    <button class="btn btn-primary btn-lg tall-btn" style="flex: 7;" disabled="@string.IsNullOrWhiteSpace(SelectedJl)" @onclick="Confirm">PotwierdŸ</button>
-                    <button class="btn btn-secondary btn-lg tall-btn" style="flex: 3;" @onclick="Cancel">Anuluj</button>
-                </div>
+        <div>
+            <label class="form-label app-section-label" for="jlScan">Zeskanuj kuwetÄ™</label>
+            <div class="app-scan" id="jlScan">
+                <span class="app-scan__icon" aria-hidden="true"><i class="bi bi-upc-scan"></i></span>
+                <input class="app-scan__input"
+                       @bind="ScanValue"
+                       @bind:event="oninput"
+                       @ref="_scanInputRef"
+                       @onkeydown="HandleScanKeyDown"
+                       placeholder="Zeskanuj kod JL"
+                       autocomplete="off"
+                       autofocus />
             </div>
         </div>
-    </div>
+    </ChildContent>
 
-    <Toast @ref="Toast" />
-}
+
+    <Footer>
+        <button type="button"
+                class="btn btn-primary"
+                style="flex: 7;"
+                disabled="@string.IsNullOrWhiteSpace(SelectedJl)"
+                @onclick="Confirm">
+            PotwierdÅº
+        </button>
+        <button type="button" class="btn btn-secondary" style="flex: 3;" @onclick="Cancel">Anuluj</button>
+    </Footer>
+</AppModal>
+
+<Toast @ref="Toast" />
 
 @code {
-    private ElementReference scanInputRef;
-    private TaskCompletionSource<string?> _tcs;
+    private ElementReference _scanInputRef;
+    private TaskCompletionSource<string?>? _tcs;
     private bool _shouldFocus;
 
     private string SelectedJl { get; set; } = string.Empty;
     private string ScanValue { get; set; } = string.Empty;
     private Toast Toast = new();
 
-    public string Title { get; set; } = "Wybierz kuwetê";
-    public string Message { get; set; } = "Towar znajduje siê w wiêcej ni¿ jednej kuwecie. Wybierz kuwetê.";
+    public string Title { get; set; } = "Wybierz kuwetÄ™";
+    public string Message { get; set; } = "Towar znajduje siÄ™ w wiÄ™cej niÅ¼ jednej kuwecie. Wybierz kuwetÄ™.";
     public bool IsVisible { get; set; }
     public List<(string JlCode, string JlEanCode)> JlCodes { get; set; } = new();
 
@@ -66,7 +70,7 @@
         JlCodes = jlCodes;
         SelectedJl = string.Empty;
         ScanValue = string.Empty;
-        Message = $"Kod {scannedCode} znajduje siê w wiêcej ni¿ jednej kuwecie. Wybierz kuwetê.";
+        Message = $"Kod {scannedCode} znajduje siÄ™ w wiÄ™cej niÅ¼ jednej kuwecie. Wybierz kuwetÄ™.";
         IsVisible = true;
         _shouldFocus = true;
         StateHasChanged();
@@ -80,7 +84,7 @@
         if (_shouldFocus)
         {
             _shouldFocus = false;
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", scanInputRef);
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", _scanInputRef);
         }
     }
 
@@ -90,20 +94,13 @@
         StateHasChanged();
     }
 
-    private void Confirm()
-    {
-        _tcs?.SetResult(SelectedJl);
-        Close();
-    }
+    private void Confirm() => Close(SelectedJl);
 
-    private void Cancel()
-    {
-        _tcs?.SetResult(null);
-        Close();
-    }
+    private void Cancel() => Close(null);
 
-    private void Close()
+    private void Close(string? result)
     {
+        _tcs?.TrySetResult(result);
         IsVisible = false;
         StateHasChanged();
     }
@@ -119,7 +116,7 @@
 
         if (string.IsNullOrWhiteSpace(match.JlCode))
         {
-            Toast.Show("B³¹d!", "Nie znaleziono kuwety o podanym kodzie.");
+            Toast.Show("BÅ‚Ä…d!", "Nie znaleziono kuwety o podanym kodzie.");
             ScanValue = string.Empty;
             return;
         }

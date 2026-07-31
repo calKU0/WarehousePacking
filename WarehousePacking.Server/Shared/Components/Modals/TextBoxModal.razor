@@ -1,34 +1,33 @@
-﻿@using Microsoft.AspNetCore.Components
 @inject IJSRuntime JSRuntime
 
-@if (IsVisible)
-{
-    <div class="modal-backdrop fade show" @onclick="Close"></div>
-    <div class="modal d-block">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">@Title</h5>
-                    <button type="button" class="btn-close" @onclick="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>@Message</p>
-                    <input class="form-control"
-                           type="@InputType"
-                           @bind="InputValue"
-                           @bind:event="oninput"
-                           @ref="inputRef"
-                           @onkeydown="HandleKeyDown"
-                           placeholder="@InputPlaceholder" />
-                </div>
-                <div class="modal-footer d-flex gap-2 w-100">
-                    <button class="btn btn-primary btn-lg tall-btn" style="flex: 7;" @onclick="() => Confirm(InputValue)">Potwierdź</button>
-                    <button class="btn btn-secondary btn-lg tall-btn" style="flex: 3;" @onclick="Close">Anuluj</button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+@*
+    Single-field text prompt. Returns the entered value, or null if dismissed.
+*@
+
+<AppModal IsVisible="IsVisible" Title="@Title" Icon="bi bi-pencil-square" OnClose="Close">
+    <ChildContent>
+        @if (!string.IsNullOrWhiteSpace(Message))
+        {
+            <p class="text-muted">@Message</p>
+        }
+
+        <input class="form-control form-control-lg"
+               type="@InputType"
+               @bind="InputValue"
+               @bind:event="oninput"
+               @ref="_inputRef"
+               @onkeydown="HandleKeyDown"
+               placeholder="@InputPlaceholder"
+               autocomplete="off"
+               autofocus />
+    </ChildContent>
+
+
+    <Footer>
+        <button type="button" class="btn btn-primary" style="flex: 7;" @onclick="Confirm">Potwierdź</button>
+        <button type="button" class="btn btn-secondary" style="flex: 3;" @onclick="Close">Anuluj</button>
+    </Footer>
+</AppModal>
 
 @code {
     [Parameter] public string Title { get; set; } = "Tytuł";
@@ -37,13 +36,14 @@
     [Parameter] public string InputType { get; set; } = "text";
     [Parameter] public EventCallback OnClose { get; set; }
 
-    public bool IsVisible { get; set; } = false;
+    public bool IsVisible { get; set; }
     public string InputValue { get; set; } = string.Empty;
-    private ElementReference inputRef;
-    private TaskCompletionSource<string> _tcs;
+
+    private ElementReference _inputRef;
+    private TaskCompletionSource<string?>? _tcs;
     private bool _shouldFocus;
 
-    public Task<string> Show(string title = null, string message = null, string placeholder = null, string inputType = "text")
+    public Task<string?> Show(string? title = null, string? message = null, string? placeholder = null, string inputType = "text")
     {
         if (!string.IsNullOrEmpty(title)) Title = title;
         if (!string.IsNullOrEmpty(message)) Message = message;
@@ -55,7 +55,7 @@
         _shouldFocus = true;
         StateHasChanged();
 
-        _tcs = new TaskCompletionSource<string>();
+        _tcs = new TaskCompletionSource<string?>();
         return _tcs.Task;
     }
 
@@ -64,28 +64,23 @@
         if (_shouldFocus)
         {
             _shouldFocus = false;
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", inputRef);
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", _inputRef);
         }
     }
 
-    private void Cancel()
+    private void Confirm()
     {
-        _tcs?.SetResult(null);
+        _tcs?.TrySetResult(InputValue);
         Close();
     }
 
-    private void Confirm(string value)
-    {
-        _tcs?.SetResult(InputValue);
-        Close();
-    }
-
+    /// <summary>
+    /// Also the dismiss path: any still-pending caller is completed with null
+    /// so awaiting code never hangs.
+    /// </summary>
     private void Close()
     {
-        if (_tcs is { Task.IsCompleted: false })
-        {
-            _tcs.SetResult(null);
-        }
+        _tcs?.TrySetResult(null);
 
         InputValue = string.Empty;
         IsVisible = false;
@@ -96,7 +91,7 @@
     {
         if (e.Key == "Enter")
         {
-            Confirm(InputValue);
+            Confirm();
         }
     }
 }

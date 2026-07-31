@@ -8,18 +8,10 @@
 @layout NoNavLayout
 @inherits PackingPageBase
 
-<div class="container-fluid d-flex flex-column vh-100 p-3 pack-control">
-    @if (IsPageLoading)
-    {
-        <div class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index: 2000;">
-            <div class="text-center">
-                <div class="spinner-border text-primary mb-2" role="status">
-                    <span class="visually-hidden">Ładowanie...</span>
-                </div>
-                <div class="fw-semibold">@(IsFinishingLoading ? "Finalizowanie paczki..." : "Ładowanie danych pakowania...")</div>
-            </div>
-        </div>
-    }
+<AppBusyOverlay IsVisible="IsPageLoading"
+                Text="@(IsFinishingLoading ? "Finalizowanie paczki..." : "Ładowanie danych pakowania...")" />
+
+<div class="app-page app-page--fill pack-control">
 
     <PackingHeader JlItems="JlItems"
                    CurrentJl="CurrentJl"
@@ -51,6 +43,10 @@
                     PackedItems="PackedItems"
                     Settings="Settings"
                     IsMainOperator="@IsMainOperator" />
+
+    @* ---- Modals --------------------------------------------------------
+       Declared at page level because each @ref binds to a field on
+       PackingPageBase, which the shared packing logic drives directly. *@
 
     <ProductSelectModal @ref=ProductSelectModal FocusOnClose="ScanInputComponent" OnConfirm="PackItem" />
     <JlSelectModal @ref="JlSelectModal" />
@@ -346,7 +342,6 @@
         {
             IsFinishingLoading = true;
             await InvokeAsync(StateHasChanged);
-
             switch (_currentPackingFlow)
             {
                 case PackingFlow.FinishPacking:
@@ -365,73 +360,10 @@
                 foreach (var jl in MergeJls)
                 {
                     await PackingService.RemoveJlRealization(jl.jlName, UserSession.Username, false);
+                    await PackingService.RemoveJlFromPackingList(jl.jlName);
                 }
                 await PackingService.RemoveJlRealization(Jl, UserSession.Username, false);
-            }
-            else
-            {
-                await ScanInputComponent.FocusAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            Toast.Show("Błąd!", $"Błąd przy próbie finalizacji pakowania: {ex.Message}");
-            await ScanInputComponent.FocusAsync();
-        }
-        finally
-        {
-            IsFinishingLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-
-    protected override async Task HandleInternalBarcode()
-    {
-        if (IsFinishingLoading)
-            return;
-
-        try
-        {
-            FinishPackingModal.Hide();
-
-            string internalBarcode = await TextBoxModal.Show("Numer wewnętrzny", "Wprowadź numer wewnętrzny", "Kod kreskowy");
-            if (string.IsNullOrEmpty(internalBarcode)) return;
-
-            Dimensions dimensions = new();
-            if (Settings.PackingLevel == PackingLevel.Bottom && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
-            {
-                dimensions = await DimensionsModal.Show();
-            }
-
-            IsFinishingLoading = true;
-            await InvokeAsync(StateHasChanged);
-
-            await CloseJlInWMS(CurrentJl.CourierName, internalBarcode, internalBarcode, DocumentStatus.Ready);
-            await ClosePackage(internalBarcode, dimensions);
-            if (Settings.PackingLevel == PackingLevel.Bottom && !CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
-            {
-                await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", internalBarcode } });
-            }
-
-            switch (_currentPackingFlow)
-            {
-                case PackingFlow.FinishPacking:
-                    PackedItems.Clear();
-                    MovedProduct = false;
-                    ClearJlData();
-                    CourierConfiguration = new();
-                    CurrentJl.InternalBarcode = string.Empty;
-                    break;
-            }
-
-            if (!JlItems.Any())
-            {
-                Navigation.NavigateTo("/kontrola-pakowania");
-                foreach (var jl in MergeJls)
-                {
-                    await PackingService.RemoveJlRealization(jl.jlName, UserSession.Username, false);
-                }
-                await PackingService.RemoveJlRealization(Jl, UserSession.Username, false);
+                await PackingService.RemoveJlFromPackingList(Jl);
             }
             else
             {

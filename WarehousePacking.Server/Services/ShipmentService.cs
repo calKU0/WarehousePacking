@@ -9,14 +9,18 @@ namespace WarehousePacking.Server.Services
     {
         private readonly HttpClient _dbClient;
 
-        public ShipmentService(IHttpClientFactory httpFactory)
+        public ShipmentService(IHttpClientFactory httpFactory, ClientContext clientContext)
         {
             _dbClient = httpFactory.CreateClient("Database");
+            clientContext.Attach(_dbClient);
         }
 
         public async Task<PackageData?> GetShipmentDataByBarcode(string barcode)
         {
-            var response = await _dbClient.GetAsync($"api/shipments/shipment-data?barcode={barcode}");
+            // Escape the barcode: values like "%10..." are otherwise treated as
+            // percent-encoding in the query string and decoded to control chars,
+            // silently corrupting the code the API/DB receives.
+            var response = await _dbClient.GetAsync($"api/shipments/shipment-data?barcode={Uri.EscapeDataString(barcode)}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -46,7 +50,7 @@ namespace WarehousePacking.Server.Services
 
         public async Task<List<Recipient>?> SearchAddress(string code)
         {
-            var response = await _dbClient.GetAsync($"api/shipments/search-address?code={code}");
+            var response = await _dbClient.GetAsync($"api/shipments/search-address?code={Uri.EscapeDataString(code)}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -71,7 +75,7 @@ namespace WarehousePacking.Server.Services
 
         public async Task<List<SearchInvoiceResult>?> SearchInvoice(string code)
         {
-            var response = await _dbClient.GetAsync($"api/shipments/search-invoice?code={code}");
+            var response = await _dbClient.GetAsync($"api/shipments/search-invoice?code={Uri.EscapeDataString(code)}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -215,7 +219,7 @@ namespace WarehousePacking.Server.Services
 
         public async Task<bool> IsPackageReadyToShip(string barcode)
         {
-            var response = await _dbClient.GetAsync($"api/shipments/is-package-ready-to-ship?barcode={barcode}");
+            var response = await _dbClient.GetAsync($"api/shipments/is-package-ready-to-ship?barcode={Uri.EscapeDataString(barcode)}");
 
             if (response.IsSuccessStatusCode)
             {

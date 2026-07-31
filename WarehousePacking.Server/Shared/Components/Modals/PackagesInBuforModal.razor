@@ -1,62 +1,73 @@
-﻿@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs
 @inject IJSRuntime JSRuntime
 
-@if (IsVisible)
-{
-    <div class="modal-backdrop @(IsVisible ? "show" : "")">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h5 class="modal-title">Dopakuj towary do paczki</h5>
-                <button type="button" class="btn-close" @onclick="Cancel" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Klient posiada zabuforowane paczki/palety. Zeskanuj lub wybierz paczkę:</p>
+@*
+    Offers buffered packages already open for this client so the new items can
+    be added to one instead of creating another package. Resolves to the chosen
+    package, or null to start a fresh one.
+*@
 
-                <input class="form-control mb-3"
-                       @bind="ScanInput"
-                       @bind:event="oninput"
-                       @onkeydown="OnScanKeyDown"
-                       @ref="InputRef"
-                       placeholder="Zeskanuj kod kreskowy..." />
+<AppModal IsVisible="IsVisible" Title="Dopakuj towary do paczki" Icon="bi bi-inboxes" Size="lg" OnClose="Cancel">
+    <ChildContent>
+        <p class="text-muted">Klient posiada zabuforowane paczki/palety. Zeskanuj lub wybierz paczkę:</p>
 
-                <table class="table table-hover table-tall">
-                    <thead>
-                        <tr>
-                            <th>Paczka</th>
-                            <th>Kurier</th>
-                            <th>Kod kreskowy wewnętrzny</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var package in AvaliablePackages)
-                        {
-                            <tr class="@(package.Id == SelectedPackage ? "table-primary" : "")"
-                                @ondblclick="() => OnRowDoubleClick(package)">
-                                <td>@package.PackageName</td>
-                                <td>@package.CourierName</td>
-                                <td>@package.InternalBarcode</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-            <div class="modal-footer d-flex w-100">
-                <button class="btn btn-secondary btn-lg tall-btn" style="flex: 3;" @onclick="SkipBuforing">Utwórz nową paczkę (bez dopakowania)</button>
-            </div>
+        <div class="app-scan mb-3">
+            <span class="app-scan__icon" aria-hidden="true"><i class="bi bi-upc-scan"></i></span>
+            <input class="app-scan__input"
+                   @bind="ScanInput"
+                   @bind:event="oninput"
+                   @onkeydown="OnScanKeyDown"
+                   @ref="InputRef"
+                   placeholder="Zeskanuj kod kreskowy..."
+                   autocomplete="off"
+                   autofocus />
         </div>
-    </div>
-}
+
+        <table class="app-table app-table--striped app-table--interactive">
+            <thead>
+                <tr>
+                    <th>Paczka</th>
+                    <th>Kurier</th>
+                    <th>Kod kreskowy wewnętrzny</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var package in AvaliablePackages)
+                {
+                    <tr class="@(package.Id == SelectedPackage ? "is-selected" : null)"
+                        @key="package.Id"
+                        @ondblclick="() => OnRowDoubleClick(package)">
+                        <td class="fw-semibold">@package.PackageName</td>
+                        <td>@package.CourierName</td>
+                        <td class="app-table__code">@package.InternalBarcode</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </ChildContent>
+
+    <Footer>
+        <button type="button" class="btn btn-secondary" @onclick="SkipBuforing">
+            Utwórz nową paczkę (bez dopakowania)
+        </button>
+    </Footer>
+</AppModal>
 
 @code {
     private TaskCompletionSource<PackageSelectionResult?>? _tcs;
 
-    private bool IsVisible = false;
+    private bool IsVisible;
     private List<PackageData> AvaliablePackages = new();
     private int? SelectedPackage;
     private string ScanInput = string.Empty;
     private ElementReference InputRef;
     private bool PendingFocus;
 
+    /// <summary>
+    /// True when the operator dismissed the dialog outright (as opposed to
+    /// deliberately choosing to create a new package). Callers use this to
+    /// abort the whole flow.
+    /// </summary>
     public bool WasCancelled { get; private set; }
 
     public async Task<PackageSelectionResult?> Show(List<PackageData> avaliablePackages)
@@ -94,6 +105,7 @@
         var pkg = AvaliablePackages.FirstOrDefault(p =>
             string.Equals(p.InternalBarcode?.Trim(), input, StringComparison.OrdinalIgnoreCase));
 
+        // Unknown code: leave the dialog open so the operator can rescan.
         if (pkg is null)
             return;
 
@@ -110,17 +122,10 @@
     private void Cancel()
     {
         WasCancelled = true;
-        IsVisible = false;
-        _tcs?.TrySetResult(null);
-        StateHasChanged();
+        Complete(null);
     }
 
-    private void SkipBuforing()
-    {
-        IsVisible = false;
-        _tcs?.TrySetResult(null);
-        StateHasChanged();
-    }
+    private void SkipBuforing() => Complete(null);
 
     private void Confirm()
     {
@@ -133,6 +138,11 @@
             })
             .FirstOrDefault();
 
+        Complete(result);
+    }
+
+    private void Complete(PackageSelectionResult? result)
+    {
         IsVisible = false;
         _tcs?.TrySetResult(result);
         StateHasChanged();

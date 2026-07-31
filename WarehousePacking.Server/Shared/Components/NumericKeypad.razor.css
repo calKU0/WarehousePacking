@@ -1,0 +1,50 @@
+/* Capped and centred: stretched across a wide dialog the keys became long
+   letterboxes that were awkward to hit accurately. */
+.numpad {
+    display: flex;
+    gap: var(--space-2);
+    width: 100%;
+    max-width: 340px;
+    margin-inline: auto;
+}
+
+.numpad--with-enter {
+    max-width: 440px;
+}
+
+.numpad__keys {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2);
+    flex: 1;
+    min-width: 0;
+}
+
+/* A fixed ratio keeps keys close to square whatever the dialog width, instead
+   of only pinning a minimum height and letting width run away. */
+.numpad__key {
+    aspect-ratio: 3 / 2;
+    min-height: var(--touch-min);
+    padding: 0;
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    line-height: 1;
+}
+
+.numpad__key--wide {
+    grid-column: span 2;
+    aspect-ratio: 3 / 1;
+}
+
+/* Enter spans the full height of the digit grid — the largest, easiest target. */
+.numpad__enter {
+    flex: 0 0 104px;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+}
+
+@media (max-width: 575.98px) {
+    .numpad__enter {
+        flex-basis: 84px;
+    }
+}

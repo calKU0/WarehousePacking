@@ -10,9 +10,10 @@ namespace WarehousePacking.Server.Services
     {
         private readonly HttpClient _dbClient;
 
-        public PackingService(IHttpClientFactory httpFactory)
+        public PackingService(IHttpClientFactory httpFactory, ClientContext clientContext)
         {
             _dbClient = httpFactory.CreateClient("Database");
+            clientContext.Attach(_dbClient);
         }
 
         public async Task<List<JlData>> GetJlList(GetJlListRequest request)
@@ -51,7 +52,7 @@ namespace WarehousePacking.Server.Services
 
         public async Task<JlData> GetJlInfoByCode(string jlCode)
         {
-            var response = await _dbClient.GetAsync($"api/packing/jl-info?jl={jlCode}");
+            var response = await _dbClient.GetAsync($"api/packing/jl-info?jl={Uri.EscapeDataString(jlCode)}");
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<JlData>();
@@ -69,7 +70,7 @@ namespace WarehousePacking.Server.Services
 
         public async Task<List<JlItemDto>> GetJlItems(string jlCode)
         {
-            var response = await _dbClient.GetAsync($"api/packing/jl-items?jl={jlCode}");
+            var response = await _dbClient.GetAsync($"api/packing/jl-items?jl={Uri.EscapeDataString(jlCode)}");
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<List<JlItemDto>>();
@@ -105,7 +106,7 @@ namespace WarehousePacking.Server.Services
 
         public async Task<bool> IsJlInProgress(string jlCode)
         {
-            var response = await _dbClient.GetAsync($"api/packing/is-jl-in-progress?jl={jlCode}");
+            var response = await _dbClient.GetAsync($"api/packing/is-jl-in-progress?jl={Uri.EscapeDataString(jlCode)}");
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<bool>();
@@ -482,7 +483,7 @@ namespace WarehousePacking.Server.Services
 
         public async Task<PackingWarehouse> GetPackageWarehouse(string barcode)
         {
-            var response = await _dbClient.GetAsync($"api/packing/get-package-warehouse?barcode={barcode}");
+            var response = await _dbClient.GetAsync($"api/packing/get-package-warehouse?barcode={Uri.EscapeDataString(barcode)}");
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<PackingWarehouse>();

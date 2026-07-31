@@ -1,0 +1,973 @@
+/* ==========================================================================
+   components.css — reusable UI primitives
+   --------------------------------------------------------------------------
+   Global, page-agnostic building blocks built on the tokens in theme.css.
+   Prefix: .app-*   BEM-ish: .app-block__element  .app-block--modifier
+
+   Adding a new page should mean composing these classes, not writing new CSS.
+   ========================================================================== */
+
+/* ==========================================================================
+   1. Page shell
+   ========================================================================== */
+
+/* Full-viewport page that never scrolls as a whole; inner regions scroll. */
+.app-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    gap: var(--space-3);
+    padding: var(--space-3);
+}
+
+.app-page--fill {
+    height: 100dvh;
+}
+
+/* Page title row: coloured icon tile + heading (+ optional right-side slot). */
+.app-page-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-shrink: 0;
+}
+
+.app-page-header__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex-shrink: 0;
+    border-radius: var(--radius);
+    background: var(--brand);
+    color: var(--brand-contrast);
+    font-size: var(--fs-xl);
+    box-shadow: var(--shadow-sm);
+}
+
+.app-page-header__title {
+    margin: 0;
+    font-weight: 700;
+    font-size: var(--fs-xl);
+    color: var(--text);
+    line-height: 1.2;
+}
+
+.app-page-header__subtitle {
+    margin: 0;
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+}
+
+.app-page-header__actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* ==========================================================================
+   2. Card
+   ========================================================================== */
+
+.app-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.app-card--flush {
+    border-radius: var(--radius);
+}
+
+.app-card--fill {
+    flex: 1;
+}
+
+.app-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    flex-shrink: 0;
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface-sunken);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: var(--fs-sm);
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    color: var(--secondary-strong);
+}
+
+/* Brand-accented header for the primary card on a screen. */
+.app-card__header--accent {
+    background: var(--brand-soft);
+    border-bottom-color: var(--brand-strong);
+    color: var(--brand-contrast);
+}
+
+.app-card__title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.app-card__meta {
+    font-variant-numeric: tabular-nums;
+    text-transform: none;
+    letter-spacing: 0;
+    white-space: nowrap;
+}
+
+.app-card__body {
+    flex: 1;
+    min-height: 0;
+    padding: var(--space-4);
+}
+
+.app-card__body--flush {
+    padding: 0;
+}
+
+.app-card__footer {
+    flex-shrink: 0;
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--border);
+    background: var(--surface-sunken);
+}
+
+/* ==========================================================================
+   3. Scroll region
+   ========================================================================== */
+
+.app-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+}
+
+    .app-scroll::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+
+    .app-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .app-scroll::-webkit-scrollbar-thumb {
+        background: var(--border-strong);
+        border-radius: var(--radius-pill);
+        border: 2px solid var(--surface);
+    }
+
+        .app-scroll::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+
+/* ==========================================================================
+   4. Table
+   ========================================================================== */
+
+.app-table {
+    width: 100%;
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--surface);
+}
+
+    .app-table thead th {
+        position: sticky;
+        top: 0;
+        /* Just above the rows; deliberately low so a sticky header can never
+           compete with overlays or modals. */
+        z-index: 2;
+        padding: var(--space-3);
+        background: var(--surface-sunken);
+        background-clip: padding-box;
+        border-bottom: 2px solid var(--border-strong);
+        font-size: var(--fs-xs);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: var(--secondary-strong);
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    .app-table tbody td {
+        height: var(--row-height);
+        padding: var(--space-2) var(--space-3);
+        vertical-align: middle;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+    }
+
+    .app-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    /* Tighten cells further on compact touch panels so more columns fit
+       before the table has to scroll horizontally. */
+    @media (max-width: 991.98px) {
+        .app-table thead th,
+        .app-table tbody td {
+            padding: var(--space-2) var(--space-2);
+        }
+    }
+
+    /* Zebra striping stays subtle so status colours remain legible. */
+    .app-table--striped tbody tr:nth-child(even) td {
+        background: var(--surface-sunken);
+    }
+
+.app-table--center thead th,
+.app-table--center tbody td {
+    text-align: center;
+}
+
+/* Numeric column: header and cells must align together.
+   Qualified with the element so it outranks the base `.app-table thead th`
+   (and `.app-table--center …`) alignment rules — without that the header
+   stayed left/centre while only the cells moved right. */
+.app-table th.app-table__num,
+.app-table td.app-table__num {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+/* Truncate with an ellipsis instead of wrapping or forcing the table wider.
+   `max-width: 0` lets the cell shrink below its content in an auto-layout
+   table; the column still gets its share of the available width. */
+.app-table__truncate {
+    max-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Denser variant for compact panels: tighter cells so every column stays
+   visible instead of being dropped or forcing a scrollbar. Type stays at the
+   normal body size — only the spacing is reduced. */
+.app-table--compact {
+    font-size: var(--fs-base);
+}
+
+    .app-table--compact thead th,
+    .app-table--compact tbody td {
+        padding: var(--space-1) var(--space-2);
+    }
+
+    .app-table--compact tbody td {
+        height: auto;
+        min-height: var(--touch-min);
+    }
+
+    /* Multi-word headings may wrap onto a second line — a slightly taller
+       header costs nothing, whereas `nowrap` forces the whole column wider. */
+    .app-table--compact thead th {
+        white-space: normal;
+        line-height: 1.15;
+        hyphens: auto;
+    }
+
+    /* Monospace runs wide; one step down keeps long codes readable while
+       reclaiming meaningful horizontal space. */
+    .app-table--compact .app-table__code {
+        font-size: var(--fs-sm);
+    }
+
+.app-table__code {
+    font-family: var(--font-mono);
+    font-weight: 700;
+}
+
+/* --- Interactive rows --------------------------------------------------- */
+.app-table--interactive tbody tr {
+    cursor: pointer;
+    transition: background-color var(--dur) var(--ease);
+}
+
+    .app-table--interactive tbody tr:hover td {
+        background: var(--brand-softer);
+    }
+
+    .app-table--interactive tbody tr:active td {
+        background: var(--brand-soft);
+    }
+
+/* --- Row states (semantic, override striping and hover) ----------------- */
+.app-table tbody tr.is-ready td {
+    background: var(--row-ready);
+}
+
+.app-table tbody tr.is-error td {
+    background: var(--row-error);
+}
+
+.app-table tbody tr.is-warning td {
+    background: var(--row-warning);
+}
+
+.app-table tbody tr.is-highlight td {
+    background: var(--brand-soft);
+}
+
+.app-table--interactive tbody tr.is-ready:hover td {
+    background: var(--row-ready-strong);
+}
+
+.app-table--interactive tbody tr.is-error:hover td {
+    background: var(--row-error-strong);
+}
+
+.app-table--interactive tbody tr.is-warning:hover td {
+    background: var(--row-warning-strong);
+}
+
+/* Selected wins over every other row state. */
+.app-table tbody tr.is-selected td,
+.app-table--interactive tbody tr.is-selected:hover td {
+    background: var(--brand);
+    color: var(--brand-contrast);
+    font-weight: 600;
+}
+
+.app-table tbody.is-disabled {
+    opacity: .5;
+    pointer-events: none;
+}
+
+/* --- Thumbnail cell ----------------------------------------------------- */
+.app-thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--thumb);
+    height: var(--thumb);
+    padding: 2px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+    .app-thumb img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+/* Landscape variant for courier logos, which are wider than they are tall. */
+.app-thumb--wide {
+    width: var(--thumb-wide-w);
+    height: var(--thumb-wide-h);
+}
+
+/* ==========================================================================
+   5. Scan input
+   ========================================================================== */
+
+.app-scan {
+    display: flex;
+    align-items: stretch;
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 2px solid var(--border-strong);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+    .app-scan:focus-within {
+        border-color: var(--brand);
+        box-shadow: var(--focus-ring);
+    }
+
+.app-scan__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--scan-height);
+    flex-shrink: 0;
+    background: var(--brand-soft);
+    color: var(--brand-ink);
+    font-size: var(--fs-lg);
+    border-right: 1px solid var(--border);
+}
+
+.app-scan__input {
+    flex: 1;
+    min-width: 0;
+    height: var(--scan-height);
+    padding: 0 var(--space-3);
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: var(--fs-base);
+    font-family: var(--font-mono);
+    color: var(--text);
+}
+
+    .app-scan__input::placeholder {
+        font-family: var(--font-sans);
+        color: var(--text-subtle);
+    }
+
+    .app-scan__input:disabled {
+        background: var(--surface-sunken);
+        color: var(--text-subtle);
+    }
+
+.app-scan.is-disabled {
+    opacity: .6;
+}
+
+/* ==========================================================================
+   6. Action bar
+   ========================================================================== */
+
+.app-actionbar {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: var(--space-2);
+    flex-shrink: 0;
+}
+
+    .app-actionbar > .btn {
+        min-height: var(--touch-lg);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        font-size: var(--fs-lg);
+        line-height: 1.15;
+        text-align: center;
+    }
+
+    .app-actionbar > .btn i {
+        font-size: 1.2em;
+    }
+
+/* Stack into a 2-column grid on narrow/phone screens. */
+@media (max-width: 767.98px) {
+    .app-actionbar {
+        grid-auto-flow: row;
+        grid-template-columns: 1fr 1fr;
+    }
+
+        .app-actionbar > .btn {
+            font-size: var(--fs-base);
+        }
+}
+
+/* ==========================================================================
+   7. Modal
+   ========================================================================== */
+
+/* Opened with showModal(), so the dialog lives in the browser's top layer and
+   its ::backdrop always covers the full viewport. Nothing on the page can show
+   through or paint over it — not sticky table headers, not toast overlays, and
+   no z-index on any ancestor. That is why this is a <dialog> and not a div. */
+.app-dialog {
+    display: flex;
+    flex-direction: column;
+    width: calc(100% - 2 * var(--space-4));
+    max-width: 560px;
+    max-height: calc(100dvh - 2 * var(--space-4));
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+    .app-dialog[open] {
+        animation: app-modal-in var(--dur-slow) var(--ease);
+    }
+
+    .app-dialog::backdrop {
+        background: rgba(17, 20, 24, .6);
+        animation: app-fade-in var(--dur) var(--ease);
+    }
+
+.app-dialog--sm {
+    max-width: 420px;
+}
+
+.app-dialog--lg {
+    max-width: 760px;
+}
+
+.app-dialog--xl {
+    max-width: 1000px;
+}
+
+.app-dialog--full {
+    max-width: none;
+    width: calc(100vw - 2 * var(--space-4));
+    height: calc(100dvh - 2 * var(--space-4));
+}
+
+.app-modal__header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-shrink: 0;
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-sunken);
+}
+
+.app-modal__header--accent {
+    background: var(--brand);
+    border-bottom-color: var(--brand-deep);
+    color: var(--brand-contrast);
+}
+
+.app-modal__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    background: var(--brand-soft);
+    color: var(--brand-ink);
+    font-size: var(--fs-lg);
+}
+
+.app-modal__header--accent .app-modal__icon {
+    background: rgba(255, 255, 255, .35);
+    color: var(--brand-contrast);
+}
+
+.app-modal__title {
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.app-modal__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--touch-min);
+    height: var(--touch-min);
+    flex-shrink: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: inherit;
+    opacity: .6;
+    font-size: var(--fs-lg);
+    cursor: pointer;
+    transition: opacity var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+
+    .app-modal__close:hover {
+        opacity: 1;
+        background: rgba(0, 0, 0, .08);
+    }
+
+.app-modal__body {
+    position: relative; /* anchor for .app-overlay--local */
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: var(--space-4);
+}
+
+.app-modal__body--flush {
+    padding: 0;
+}
+
+.app-modal__footer {
+    display: flex;
+    gap: var(--space-2);
+    flex-shrink: 0;
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--border);
+    background: var(--surface-sunken);
+}
+
+    .app-modal__footer > .btn {
+        flex: 1;
+        min-height: var(--touch);
+        font-size: var(--fs-base);
+    }
+
+.app-modal__footer--end {
+    justify-content: flex-end;
+}
+
+    .app-modal__footer--end > .btn {
+        flex: 0 0 auto;
+        min-width: 8rem;
+    }
+
+/* Phones: modals become bottom sheets — easier to reach one-handed. */
+@media (max-width: 575.98px) {
+    .app-dialog {
+        width: 100%;
+        max-width: none;
+        max-height: 92dvh;
+        margin: auto auto 0; /* pin to the bottom edge */
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+        .app-dialog[open] {
+            animation: app-sheet-in var(--dur-slow) var(--ease);
+        }
+
+    .app-modal__footer {
+        flex-wrap: wrap;
+        padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
+    }
+}
+
+/* ==========================================================================
+   8. Feedback states
+   ========================================================================== */
+
+.app-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    height: 100%;
+    padding: var(--space-5);
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.app-empty__icon {
+    font-size: 2.5rem;
+    opacity: .35;
+    line-height: 1;
+}
+
+.app-empty__title {
+    margin: 0;
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    color: var(--secondary-strong);
+}
+
+.app-empty__text {
+    margin: 0;
+    font-size: var(--fs-sm);
+}
+
+/* Full-screen blocking overlay (page-level busy state). */
+.app-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    background: rgba(255, 255, 255, .86);
+    animation: app-fade-in var(--dur) var(--ease);
+}
+
+/* Scoped busy state: covers only its positioned parent (e.g. a modal body)
+   instead of the whole viewport. */
+.app-overlay--local {
+    position: absolute;
+    z-index: 10;
+}
+
+.app-overlay__text {
+    font-weight: 600;
+    color: var(--secondary-strong);
+}
+
+.app-spinner {
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 4px solid var(--brand-soft);
+    border-top-color: var(--brand-strong);
+    border-radius: 50%;
+    animation: app-spin 700ms linear infinite;
+}
+
+.app-spinner--sm {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-width: 2px;
+}
+
+/* ==========================================================================
+   9. Small pieces
+   ========================================================================== */
+
+/* Label/value pill used in headers and summaries. */
+.app-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    font-size: var(--fs-sm);
+    white-space: nowrap;
+}
+
+.app-chip__label {
+    color: var(--text-muted);
+}
+
+.app-chip__value {
+    font-weight: 700;
+    color: var(--text);
+}
+
+.app-chip--brand {
+    background: var(--brand-soft);
+    border-color: var(--brand-strong);
+}
+
+.app-chip--danger {
+    background: var(--danger-soft);
+    border-color: var(--danger-border);
+    color: var(--danger);
+}
+
+.app-section-label {
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-muted);
+}
+
+/* Company logo lockup. */
+.app-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-shrink: 0;
+}
+
+    .app-logo img {
+        height: 2rem;
+        width: auto;
+        object-fit: contain;
+    }
+
+.app-logo--sm img {
+    height: 1.5rem;
+}
+
+.app-logo--lg img {
+    height: 3rem;
+}
+
+/* ==========================================================================
+   10. Animations
+   --------------------------------------------------------------------------
+   Two things live here:
+     a) keyframes + opt-in utility classes  (.app-anim-*, .app-stagger, …)
+     b) automatic micro-interactions on the shared primitives, so the whole
+        app feels alive without per-page work.
+
+   Rules of the house:
+     - Animate only transform / opacity (compositor-friendly on kiosk GPUs).
+     - Durations/easings come from tokens, so timing is tuned in one place.
+     - Hover effects are gated behind `@media (hover: hover)` — the 1024x768
+       touch panels report no hover, so a tap must never leave a stuck state.
+     - Motion is always on (kiosk product decision): the OS "reduce motion"
+       setting is intentionally NOT honoured.
+   ========================================================================== */
+
+/* --- Keyframes ---------------------------------------------------------- */
+@keyframes app-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes app-fade-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes app-scale-in {
+    from { opacity: 0; transform: scale(.96); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes app-slide-right {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes app-modal-in {
+    from { opacity: 0; transform: translateY(12px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes app-sheet-in {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+@keyframes app-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes app-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .45; }
+}
+
+/* A quick emphasis "pop" — good for a value that just changed. */
+@keyframes app-pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+}
+
+/* An error nudge for rejected input. */
+@keyframes app-shake {
+    10%, 90% { transform: translateX(-1px); }
+    20%, 80% { transform: translateX(2px); }
+    30%, 50%, 70% { transform: translateX(-4px); }
+    40%, 60% { transform: translateX(4px); }
+}
+
+/* Loading-placeholder sheen. */
+@keyframes app-shimmer {
+    to { background-position: -200% 0; }
+}
+
+/* --- Opt-in utilities --------------------------------------------------- */
+.app-fade-in { animation: app-fade-in var(--dur-slow) var(--ease) both; }
+.app-anim-fade-up { animation: app-fade-up var(--dur-slow) var(--ease) both; }
+.app-anim-scale-in { animation: app-scale-in var(--dur-slow) var(--ease-spring) both; }
+.app-anim-slide-right { animation: app-slide-right var(--dur-slow) var(--ease) both; }
+.app-anim-pop { animation: app-pop var(--dur-slow) var(--ease-spring); }
+.app-anim-shake { animation: app-shake 400ms var(--ease); }
+
+/* Draws the eye to the "scan now" prompt without being obnoxious. */
+.app-pulse { animation: app-pulse 1.8s var(--ease) infinite; }
+
+/* Stagger direct children of a container as they enter. Each item starts a
+   beat after the last, up to a sensible cap, for a cascading list reveal.
+   Usage: <div class="app-stagger">…rows/cards…</div> */
+.app-stagger > * {
+    animation: app-fade-up var(--dur-slow) var(--ease) both;
+}
+
+    .app-stagger > *:nth-child(1) { animation-delay: 0ms; }
+    .app-stagger > *:nth-child(2) { animation-delay: 40ms; }
+    .app-stagger > *:nth-child(3) { animation-delay: 80ms; }
+    .app-stagger > *:nth-child(4) { animation-delay: 120ms; }
+    .app-stagger > *:nth-child(5) { animation-delay: 160ms; }
+    .app-stagger > *:nth-child(6) { animation-delay: 200ms; }
+    .app-stagger > *:nth-child(7) { animation-delay: 240ms; }
+    .app-stagger > *:nth-child(8) { animation-delay: 280ms; }
+    .app-stagger > *:nth-child(n+9) { animation-delay: 320ms; }
+
+/* Reusable skeleton block for loading states. */
+.app-skeleton {
+    background: linear-gradient(100deg, var(--surface-sunken) 30%, var(--border) 50%, var(--surface-sunken) 70%);
+    background-size: 200% 100%;
+    animation: app-shimmer 1.2s linear infinite;
+    border-radius: var(--radius-sm);
+}
+
+/* --- Automatic micro-interactions --------------------------------------- */
+
+/* Pages arrive on mount (Blazor keeps the element across renders, so it reads
+   as "the screen arrived", not churn). Full-viewport, overflow-hidden screens
+   fade only — a translate would clip against their clipped edges — while the
+   scrolling page and headers get a soft rise. */
+.app-page,
+.dashboard-page {
+    animation: app-fade-in var(--dur-slow) var(--ease) both;
+}
+
+.package-send,
+.app-page-header {
+    animation: app-fade-up 360ms var(--ease-spring) both;
+}
+
+/* Empty/feedback states ease in rather than snapping. */
+.app-empty {
+    animation: app-scale-in var(--dur-slow) var(--ease-spring) both;
+}
+
+/* Cards flagged interactive lift toward the pointer. */
+.app-card--interactive {
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+    cursor: pointer;
+}
+
+/* Icons inside buttons transition smoothly for the hover nudge below. */
+.btn i {
+    transition: transform var(--dur) var(--ease);
+}
+
+/* Selected/active table row settles in. */
+.app-table tbody tr.is-selected td {
+    transition: background-color var(--dur) var(--ease);
+}
+
+/* Hover flourishes: desktop/mouse only. Touch panels (hover: none) skip these
+   entirely so a tap never sticks in a hovered state. */
+@media (hover: hover) {
+    .btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+    }
+
+        .btn:hover:not(:disabled) i {
+            transform: scale(1.08);
+        }
+
+    .app-card--interactive:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    /* Product/courier thumbnails gently zoom on row hover. */
+    .app-table--interactive tbody tr:hover .app-thumb img {
+        transform: scale(1.06);
+    }
+
+    .app-thumb img {
+        transition: transform var(--dur) var(--ease);
+    }
+}
+
+/* Note: motion is intentionally always on here (kiosk product decision), so
+   there is deliberately no prefers-reduced-motion override. */

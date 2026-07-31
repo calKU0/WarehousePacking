@@ -56,7 +56,7 @@
             <div class="card shadow-sm h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><i class="bi bi-person-workspace me-2"></i>Pakowane</span>
-                    <span class="small text-muted dashboard-time-text">Najdłużej: <DashboardAnimatedValue Text="@LongestActiveElapsed" CssClass="dashboard-time-text" /></span>
+                    <span class="small text-muted dashboard-time-text">Najdłużej: <DashboardAnimatedValue Text="@LongestActiveElapsed" CssClass="dashboard-time-text" Animate="false" /></span>
                 </div>
                 <div class="card-body p-0 mb-0 dashboard-scroll-host">
                     <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
@@ -143,12 +143,12 @@
                                             <td>@row.StationNumber</td>
                                             <td class="dashboard-elapsed-cell">
                                                 <span class="badge @ElapsedClassHelper.GetBadgeClass(row.Date, packingTimeRedThreshold, packingTimeYellowThreshold) dashboard-elapsed-badge dashboard-time-text">
-                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Date)" CssClass="dashboard-time-text" />
+                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Date)" CssClass="dashboard-time-text" Animate="false" />
                                                 </span>
                                             </td>
                                             <td class="dashboard-elapsed-cell">
                                                 <span class="badge @ElapsedClassHelper.GetBadgeClass(row.LastScanDate, ColorConfig.OperatorLastActivityRedThresholdMinutes, ColorConfig.OperatorLastActivityYellowThresholdMinutes) dashboard-elapsed-badge dashboard-time-text">
-                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.LastScanDate)" CssClass="dashboard-time-text" />
+                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.LastScanDate)" CssClass="dashboard-time-text" Animate="false" />
                                                 </span>
                                             </td>
                                         </tr>
@@ -293,7 +293,7 @@
             _ = RemoveCourierRowAsync(row);
         }
 
-        var orderedActive = latest.Select(x => CourierRows.First(r => string.Equals(r.Key, GetCourierRowKey(x), StringComparison.OrdinalIgnoreCase))).ToList();
+        var orderedActive = latest.Select(x => CourierRows.FirstOrDefault(r => string.Equals(r.Key, GetCourierRowKey(x), StringComparison.OrdinalIgnoreCase))).Where(r => r is not null)!.ToList();
         var leaving = CourierRows.Where(x => x.IsLeaving).ToList();
         CourierRows = orderedActive.Concat(leaving).ToList();
     }
@@ -355,7 +355,7 @@
             _ = RemoveInProgressRowAsync(row);
         }
 
-        var orderedActive = latest.Select(x => InProgressRows.First(r => string.Equals(r.Key, GetInProgressKey(x), StringComparison.OrdinalIgnoreCase))).ToList();
+        var orderedActive = latest.Select(x => InProgressRows.FirstOrDefault(r => string.Equals(r.Key, GetInProgressKey(x), StringComparison.OrdinalIgnoreCase))).Where(r => r is not null)!.ToList();
         var leaving = InProgressRows.Where(x => x.IsLeaving).ToList();
         InProgressRows = orderedActive.Concat(leaving).ToList();
     }

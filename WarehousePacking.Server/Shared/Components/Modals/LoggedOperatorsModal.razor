@@ -1,72 +1,68 @@
-﻿@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs
 @using WarehousePacking.Contracts.Data.Enums
 @inject AuthService AuthService
 
-@if (Show)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content shadow-lg rounded-3">
-                <div class="modal-header">
-                    <h5 class="modal-title">Zalogowani operatorzy</h5>
-                    <button type="button" class="btn-close" @onclick="Close"></button>
-                </div>
+@*
+    Supervisor view of currently logged-in operators, with the ability to force
+    a logout (e.g. a station left signed in at shift end).
+*@
 
-                <div class="modal-body">
-                    @if (IsLoading)
-                    {
-                        <div class="text-center">
-                            <div class="spinner-border text-primary"></div>
-                        </div>
-                    }
-                    else if (Users?.Any() == true)
-                    {
-                        <table class="table table-striped table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Operator</th>
-                                    <th>Stanowisko</th>
-                                    <th>Data zalogowania</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var user in Users)
-                                {
-                                    <tr>
-                                        <td>@user.Username</td>
-                                        <td>@user.StationNumber</td>
-                                        <td>@user.LoginDate</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-danger" @onclick="() => ConfirmRemove(user)">
-                                                Usuń
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    }
-                    else
-                    {
-                        <p class="text-muted">Brak zalogowanych operatorów.</p>
-                    }
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="Close">Zamknij</button>
-                </div>
+<AppModal IsVisible="IsVisible" Title="Zalogowani operatorzy" Icon="bi bi-people" Size="lg" FlushBody="true" OnClose="Close">
+    <ChildContent>
+        @if (IsLoading)
+        {
+            <div class="app-empty">
+                <div class="app-spinner"></div>
+                <p class="app-empty__text">Ładowanie...</p>
             </div>
-        </div>
-    </div>
+        }
+        else if (Users.Count == 0)
+        {
+            <div class="app-empty">
+                <i class="bi bi-person-slash app-empty__icon"></i>
+                <p class="app-empty__text">Brak zalogowanych operatorów.</p>
+            </div>
+        }
+        else
+        {
+            <table class="app-table app-table--striped">
+                <thead>
+                    <tr>
+                        <th>Operator</th>
+                        <th>Stanowisko</th>
+                        <th>Data zalogowania</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Users)
+                    {
+                        <tr @key="user.Username">
+                            <td class="fw-semibold">@user.Username</td>
+                            <td>@user.StationNumber</td>
+                            <td class="text-muted">@user.LoginDate</td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => ConfirmRemove(user)">
+                                    <i class="bi bi-box-arrow-right me-1"></i>Wyloguj
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </ChildContent>
 
-    <ConfirmDialog @ref="ConfirmDialog"/>
-}
-<Toast @ref="Toast"/>
+    <Footer>
+        <button type="button" class="btn btn-secondary" @onclick="Close">Zamknij</button>
+    </Footer>
+</AppModal>
+
+<ConfirmDialog @ref="ConfirmDialog" />
+<Toast @ref="Toast" />
 
 @code {
-    private bool Show { get; set; }
+    private bool IsVisible { get; set; }
     private ConfirmDialog ConfirmDialog = new();
     private List<LoginDto> Users { get; set; } = new();
     private LoginDto? SelectedUser { get; set; }
@@ -75,7 +71,7 @@
 
     public async Task ShowModal()
     {
-        Show = true;
+        IsVisible = true;
         await InvokeAsync(StateHasChanged);
         await LoadData();
     }
@@ -136,7 +132,7 @@
 
     private void Close()
     {
-        Show = false;
+        IsVisible = false;
         SelectedUser = null;
         StateHasChanged();
     }

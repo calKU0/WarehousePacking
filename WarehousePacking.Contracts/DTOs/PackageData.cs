@@ -6,7 +6,6 @@ namespace WarehousePacking.Contracts.DTOs
     {
         public int Id { get; set; }
         public int InvoiceId { get; set; }
-        private Courier courier;
         public Courier Courier { get; set; }
         public string InternalBarcode { get; set; } = string.Empty;
         public string CourierName { get; set; } = string.Empty;

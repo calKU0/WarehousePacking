@@ -1,124 +1,173 @@
-﻿@using WarehousePacking.Contracts.DTOs
-<div class="row g-3 flex-grow-1">
-    <!-- Left table -->
-    <div class="col-12 col-lg-8 d-flex flex-column">
-        <div class="card shadow-sm flex-grow-1 d-flex flex-column">
-            <div class="card-header d-flex justify-content-between">
-                <span>Do spakowania</span>
-                <span>
-                    Waga: @(JlItems != null && JlItems.Any()
-                                        ? JlItems.Sum(w => w.ItemWeight * w.JlQuantity).ToString("F2")
-                                        : "0") kg
-                </span>
-            </div>
-            <div class="table-container flex-grow-1">
-                <table class="table custom-striped table-hover align-middle mb-0 table-tall">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Kod</th>
-                            <th>Ilość</th>
-                            <th>Nazwa</th>
-                            <th>Obraz</th>
-                        </tr>
-                    </thead>
-                    <tbody class="@(Disabled ? "disabled-table" : "")">
-                        @if (JlItems == null)
-                        {
-                            <tr><td colspan="4" class="text-center">Ładowanie...</td></tr>
-                        }
-                        else if (!JlItems.Any())
-                        {
-                            <tr><td colspan="4" class="text-center text-muted">Brak danych</td></tr>
-                        }
-                        else
-                        {
-                            @foreach (var item in JlItems)
-                            {
-                                var rowClass = HighlightedRows.Contains(item.ItemCode) ? "table-warning" : "";
-                                <tr class="@rowClass clickable-row" @ondblclick="() => OnRowDoubleClick.InvokeAsync(item)">
-                                    <td>@item.ItemCode</td>
-                                    <td>@item.JlQuantity</td>
-                                    <td>@item.ItemName</td>
-                                    <td>
-                                        <img src="@(item.ItemImage ?? "images/no-image.png")" class="jl-item-img rounded" />
-                                    </td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+@using WarehousePacking.Contracts.DTOs
 
-    <!-- Right table -->
-    <div class="col-12 col-lg-4 d-flex flex-column">
-        <div class="card shadow-sm flex-grow-1 d-flex flex-column">
-            <div class="card-header d-flex justify-content-between">
-                <span>Spakowane</span>
-                <span>
-                    Waga: @(PackedItems.Any()
-                                        ? PackedItems.Sum(w => w.ItemWeight * w.JlQuantity).ToString("F2")
-                                        : "0") / @(CourierConfiguration.MaxPackageWeight.ToString("F2")) kg
-                </span>
-            </div>
-            @if (IsCollaborativePacking)
-            {
-                <div class="px-3 py-2 border-bottom">
-                    <div class="form-check form-switch m-0">
-                        <input class="form-check-input" type="checkbox" id="showOnlyMinePacked" checked="@ShowOnlyMine" @onchange="OnShowOnlyMineChanged" />
-                        <label class="form-check-label" for="showOnlyMinePacked">Pokaż tylko moje</label>
-                    </div>
-                </div>
-            }
-            <div class="table-container flex-grow-1">
-                <table class="table custom-striped table-hover align-middle mb-0 table-tall">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Kod</th>
-                            <th>Ilość</th>
-                            @if (IsCollaborativePacking)
-                            {
-                                <th>Operator</th>
-                            }
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (!VisiblePackedItems.Any())
-                        {
-                            <tr><td colspan="@(IsCollaborativePacking ? 3 : 2)" class="text-center text-muted">Jeszcze nic nie spakowano</td></tr>
-                        }
-                        else
-                        {
-                            @foreach (var packed in VisiblePackedItems)
-                            {
-                                var isSelected = packed == SelectedPackedItem ? "table-danger" : "";
-                                <tr class="@isSelected" @onclick="() => OnPackedItemSelect.InvokeAsync(packed)">
-                                    <td>@packed.ItemCode</td>
-                                    <td>@packed.JlQuantity</td>
-                                    @if (IsCollaborativePacking)
-                                    {
-                                        <td>@packed.PackingUser</td>
-                                    }
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
+@*
+    The two working lists of the packing screen: what is left to pack (left,
+    wide) and what has already been packed (right, narrow). Both share the
+    .app-card / .app-table primitives so they match the rest of the app.
+*@
+
+<div class="pack-tables">
+
+    @* ----- To pack ----------------------------------------------------- *@
+    <section class="app-card app-card--fill pack-tables__pending">
+        <div class="app-card__header app-card__header--accent">
+            <span class="app-card__title">
+                <i class="bi bi-box-seam"></i>
+                Do spakowania
+                @if (PendingCount > 0)
+                {
+                    <span class="badge bg-secondary rounded-pill">@PendingCount</span>
+                }
+            </span>
+            <span class="app-card__meta">
+                Waga: <strong>@FormatWeight(PendingWeight)</strong> kg
+            </span>
         </div>
-    </div>
+
+        <div class="app-scroll">
+            <table class="app-table app-table--striped app-table--interactive">
+                <thead>
+                    <tr>
+                        <th>Kod</th>
+                        <th class="app-table__num">Ilość</th>
+                        <th>Nazwa</th>
+                        <th>Obraz</th>
+                    </tr>
+                </thead>
+                <tbody class="app-stagger @(Disabled ? "is-disabled" : null)">
+                    @if (JlItems is null)
+                    {
+                        <tr>
+                            <td colspan="4">
+                                <div class="app-empty">
+                                    <div class="app-spinner app-spinner--sm"></div>
+                                    <p class="app-empty__text">Ładowanie...</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else if (JlItems.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="4">
+                                <div class="app-empty">
+                                    <i class="bi bi-check2-all app-empty__icon"></i>
+                                    <p class="app-empty__title">Wszystko spakowane</p>
+                                    <p class="app-empty__text">Brak pozycji do spakowania.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in JlItems)
+                        {
+                            <tr class="@(IsHighlighted(item) ? "is-highlight" : null)"
+                                @key="ItemKey(item)"
+                                @ondblclick="() => OnRowDoubleClick.InvokeAsync(item)">
+                                <td class="app-table__code">@item.ItemCode</td>
+                                <td class="app-table__num">@item.JlQuantity</td>
+                                <td class="app-table__truncate" title="@item.ItemName">@item.ItemName</td>
+                                <td>
+                                    <div class="app-thumb">
+                                        <img src="@(item.ItemImage ?? NoImage)" alt="@item.ItemName" loading="lazy" />
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    @* ----- Packed -------------------------------------------------------- *@
+    <section class="app-card app-card--fill pack-tables__packed">
+        <div class="app-card__header">
+            <span class="app-card__title">
+                <i class="bi bi-bag-check"></i>
+                Spakowane
+                @if (VisiblePackedItems.Count > 0)
+                {
+                    <span class="badge bg-secondary rounded-pill">@VisiblePackedItems.Count</span>
+                }
+            </span>
+            <span class="app-card__meta @(IsOverweight ? "text-danger fw-bold" : null)">
+                @FormatWeight(PackedWeight) / @FormatWeight(MaxWeight) kg
+            </span>
+        </div>
+
+        @if (IsCollaborativePacking)
+        {
+            <div class="pack-tables__filter">
+                <div class="form-check form-switch m-0">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           id="showOnlyMinePacked"
+                           checked="@ShowOnlyMine"
+                           @onchange="OnShowOnlyMineChanged" />
+                    <label class="form-check-label" for="showOnlyMinePacked">Pokaż tylko moje</label>
+                </div>
+            </div>
+        }
+
+        <div class="app-scroll">
+            <table class="app-table app-table--striped app-table--interactive">
+                <thead>
+                    <tr>
+                        <th>Kod</th>
+                        <th class="app-table__num">Ilość</th>
+                        @if (IsCollaborativePacking)
+                        {
+                            <th>Operator</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (VisiblePackedItems.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="@PackedColumnCount">
+                                <div class="app-empty">
+                                    <i class="bi bi-inbox app-empty__icon"></i>
+                                    <p class="app-empty__text">Jeszcze nic nie spakowano</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var packed in VisiblePackedItems)
+                        {
+                            <tr class="app-anim-scale-in @(ReferenceEquals(packed, SelectedPackedItem) ? "is-selected" : null)"
+                                @key="ItemKey(packed)"
+                                @onclick="() => OnPackedItemSelect.InvokeAsync(packed)">
+                                <td class="app-table__code">@packed.ItemCode</td>
+                                <td class="app-table__num">@packed.JlQuantity</td>
+                                @if (IsCollaborativePacking)
+                                {
+                                    <td>@packed.PackingUser</td>
+                                }
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
 
 @code {
-    [Parameter] public List<JlItemDto> JlItems { get; set; }
-    [Parameter] public List<JlItemDto> PackedItems { get; set; }
-    [Parameter] public JlItemDto SelectedPackedItem { get; set; }
-    [Parameter] public HashSet<string> HighlightedRows { get; set; }
+    private const string NoImage = "images/no-image.png";
+
+    [Parameter] public List<JlItemDto>? JlItems { get; set; }
+    [Parameter] public List<JlItemDto> PackedItems { get; set; } = new();
+    [Parameter] public JlItemDto? SelectedPackedItem { get; set; }
+    [Parameter] public HashSet<string> HighlightedRows { get; set; } = new();
     [Parameter] public EventCallback<JlItemDto> OnRowDoubleClick { get; set; }
     [Parameter] public EventCallback<JlItemDto> OnPackedItemSelect { get; set; }
-    [Parameter] public CourierConfiguration CourierConfiguration { get; set; }
-    [Parameter] public bool Disabled { get; set; } = false;
+    [Parameter] public CourierConfiguration CourierConfiguration { get; set; } = new();
+    [Parameter] public bool Disabled { get; set; }
     [Parameter] public string CurrentUsername { get; set; } = string.Empty;
     [Parameter] public bool IsCollaborativePacking { get; set; }
     [Parameter] public EventCallback OnPackedFilterChanged { get; set; }
@@ -129,9 +178,30 @@
         ? PackedItems
         : PackedItems.Where(x => string.Equals(x.PackingUser, CurrentUsername, StringComparison.OrdinalIgnoreCase)).ToList();
 
+    private int PendingCount => JlItems?.Count ?? 0;
+
+    private decimal PendingWeight => JlItems?.Sum(w => w.ItemWeight * w.JlQuantity) ?? 0m;
+
+    private decimal PackedWeight => PackedItems.Sum(w => w.ItemWeight * w.JlQuantity);
+
+    private decimal MaxWeight => CourierConfiguration.MaxPackageWeight;
+
+    private bool IsOverweight => MaxWeight > 0 && PackedWeight > MaxWeight;
+
+    private int PackedColumnCount => IsCollaborativePacking ? 3 : 2;
+
+    private static string FormatWeight(decimal value) => value.ToString("F2");
+
+    // Stable identity so Blazor reuses rows instead of re-rendering the list.
+    private static string ItemKey(JlItemDto item)
+        => $"{item.DocumentId}|{item.ErpPositionNumber}|{item.ItemCode}|{item.JlCode}";
+
     private async Task OnShowOnlyMineChanged(ChangeEventArgs e)
     {
         ShowOnlyMine = e.Value is bool b && b;
         await OnPackedFilterChanged.InvokeAsync();
     }
+
+    private bool IsHighlighted(JlItemDto item)
+        => HighlightedRows?.Contains(item.ItemCode) == true;
 }

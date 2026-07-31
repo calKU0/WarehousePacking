@@ -1,36 +1,110 @@
-﻿@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
 
-<div class="mb-3 flex-shrink-0">
-    <input type="text" @ref="inputRef" @onkeydown="OnKeyDown" class="form-control form-control" placeholder="Skanuj kod..." disabled="@Disabled" />
+@*
+    Barcode scan field. Presentation only — the parent owns the key handling.
+
+    Focus is maintained by the scanFocus guardian rather than by callers
+    remembering to call FocusAsync() after every action: a hardware scanner
+    types into whatever holds the caret, so this field must effectively always
+    own it while no modal is open.
+*@
+
+<div class="app-scan @(Disabled ? "is-disabled" : null) @(_shaking ? "app-anim-shake" : null)">
+    <span class="app-scan__icon" aria-hidden="true">
+        <i class="bi bi-upc-scan"></i>
+    </span>
+    <input type="text"
+           class="app-scan__input"
+           @ref="_inputRef"
+           @onkeydown="OnKeyDown"
+           placeholder="@Placeholder"
+           disabled="@Disabled"
+           autocomplete="off"
+           autocapitalize="off"
+           spellcheck="false"
+           aria-label="@Placeholder" />
 </div>
 
 @code {
-    private ElementReference inputRef;
-    [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
-    [Parameter] public bool Disabled { get; set; } = false;
+    private ElementReference _inputRef;
+    private string? _guardId;
+    private bool _shaking;
 
-    // Focus input
-    public async Task FocusAsync()
+    [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string Placeholder { get; set; } = "Skanuj kod...";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender)
+        {
+            return;
+        }
+
         try
         {
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", inputRef);
+            _guardId = await JSRuntime.InvokeAsync<string>("scanFocus.register", _inputRef);
         }
-        catch (Exception)
+        catch (JSDisconnectedException)
         {
-            // Ignore JS exceptions (e.g., if the element is not yet rendered)
         }
     }
 
-    // Get current value
-    public async Task<string> GetValueAsync()
+    /// <summary>
+    /// Explicit focus request. Rarely needed now that the guardian handles it,
+    /// but kept so existing flows keep working.
+    /// </summary>
+    public async Task FocusAsync()
     {
-        return await JSRuntime.InvokeAsync<string>("blazorFocus.getValue", inputRef);
+        // Best-effort: the element may not be rendered yet (e.g. called from a
+        // modal callback mid-render).
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("scanFocus.refocus");
+            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", _inputRef);
+        }
+        catch
+        {
+        }
     }
 
-    // Clear value
-    public async Task ClearAsync()
+    /// <summary>
+    /// Plays a brief shake to signal a rejected scan. Safe to fire-and-forget;
+    /// it restarts cleanly if called again mid-shake.
+    /// </summary>
+    public async Task Shake()
     {
-        await JSRuntime.InvokeVoidAsync("blazorFocus.clearValue", inputRef);
+        _shaking = false;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(20); // let the class drop so the animation can restart
+        _shaking = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(400); // matches the shake keyframe
+        _shaking = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public ValueTask<string> GetValueAsync()
+        => JSRuntime.InvokeAsync<string>("blazorFocus.getValue", _inputRef);
+
+    public ValueTask ClearAsync()
+        => JSRuntime.InvokeVoidAsync("blazorFocus.clearValue", _inputRef);
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_guardId is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("scanFocus.unregister", _guardId);
+        }
+        catch
+        {
+            // Circuit already torn down.
+        }
     }
 }

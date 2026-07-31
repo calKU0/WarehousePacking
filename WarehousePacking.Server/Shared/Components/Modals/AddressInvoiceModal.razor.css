@@ -1,3 +1,28 @@
-﻿.selectable-row:hover {
-    background-color: #eef6ff !important;
+.address-invoice {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+}
+
+.address-invoice__col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* Cap each result list so the modal never grows past the viewport. */
+.address-invoice__scroll {
+    max-height: 42dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767.98px) {
+    .address-invoice {
+        grid-template-columns: 1fr;
+    }
+
+    .address-invoice__scroll {
+        max-height: 30dvh;
+    }
 }

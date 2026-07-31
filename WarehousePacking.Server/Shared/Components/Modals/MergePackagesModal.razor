@@ -1,108 +1,80 @@
-﻿@using WarehousePacking.Contracts.DTOs
-@if (IsVisible)
-{
-    <div class="modal-backdrop @(IsVisible ? "show" : "")">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h5 class="modal-title">Podaj kody kreskowe i wymiary</h5>
-                <button type="button" class="btn-close" @onclick="Close"></button>
-            </div>
+@using WarehousePacking.Contracts.DTOs
 
-            <div class="modal-body">
+@*
+    Merges two already-closed packages into one. Enter advances through the
+    fields in scan order so the whole form can be completed with a scanner.
+*@
 
-                <!-- InitialBarcode -->
-                <div class="mb-3">
-                    <label class="form-label">Kod kreskowy pierwszej paczki</label>
-                    <input type="text"
-                    class="form-control"
-                    @bind="InitialBarcode"
-                    @ref="initialBarcodeRef"
-                    @onkeydown="(e) => HandleEnter(e, mergingBarcodeRef)" />
-                </div>
-
-                <!-- MergingBarcode -->
-                <div class="mb-3">
-                    <label class="form-label">Kod kreskowy drugiej paczki</label>
-                    <input type="text"
-                    class="form-control"
-                    @bind="MergingBarcode"
-                    @ref="mergingBarcodeRef"
-                    @onkeydown="(e) => HandleEnter(e, lengthRef)" />
-                </div>
-
-                <!-- Length -->
-                <div class="mb-3">
-                    <label class="form-label">Długość (cm)</label>
-                    <input type="number"
-                    class="form-control"
-                    @bind="Length"
-                    @ref="lengthRef"
-                    min="0"
-                    @onkeydown="(e) => HandleEnter(e, widthRef)" />
-                </div>
-
-                <!-- Width -->
-                <div class="mb-3">
-                    <label class="form-label">Szerokość (cm)</label>
-                    <input type="number"
-                    class="form-control"
-                    @bind="Width"
-                    @ref="widthRef"
-                    min="0"
-                    @onkeydown="(e) => HandleEnter(e, heightRef)" />
-                </div>
-
-                <!-- Height -->
-                <div class="mb-3">
-                    <label class="form-label">Wysokość (cm)</label>
-                    <input type="number"
-                    class="form-control"
-                    @bind="Height"
-                    @ref="heightRef"
-                    min="0"
-                    @onkeydown="HandleEnterConfirm" />
-                </div>
-
-            </div>
-
-            <div class="modal-footer d-flex gap-2 w-100">
-                <button class="btn btn-primary btn-lg tall-btn"
-                style="flex:7;"
-                @onclick="Confirm">
-                    Potwierdź
-                </button>
-
-                <button class="btn btn-secondary btn-lg tall-btn"
-                style="flex:3;"
-                @onclick="Close">
-                    Anuluj
-                </button>
-            </div>
-
+<AppModal IsVisible="IsVisible" Title="Podaj kody kreskowe i wymiary" Icon="bi bi-union" OnClose="Close">
+    <ChildContent>
+        <div class="mb-3">
+            <label class="form-label app-section-label" for="mergeInitial">Kod kreskowy pierwszej paczki</label>
+            <input id="mergeInitial"
+                   type="text"
+                   class="form-control form-control-lg"
+                   @bind="InitialBarcode"
+                   @ref="_initialBarcodeRef"
+                   @onkeydown="e => FocusNextOnEnter(e, _mergingBarcodeRef)"
+                   autocomplete="off"
+                   autofocus />
         </div>
-    </div>
-}
+
+        <div class="mb-3">
+            <label class="form-label app-section-label" for="mergeSecond">Kod kreskowy drugiej paczki</label>
+            <input id="mergeSecond"
+                   type="text"
+                   class="form-control form-control-lg"
+                   @bind="MergingBarcode"
+                   @ref="_mergingBarcodeRef"
+                   @onkeydown="e => FocusNextOnEnter(e, _lengthRef)"
+                   autocomplete="off" />
+        </div>
+
+        <div class="merge-packages__dimensions">
+            <div>
+                <label class="form-label app-section-label" for="mergeLength">Długość (cm)</label>
+                <input id="mergeLength" type="number" inputmode="numeric" class="form-control form-control-lg"
+                       @bind="Length" @ref="_lengthRef" min="0"
+                       @onkeydown="e => FocusNextOnEnter(e, _widthRef)" />
+            </div>
+            <div>
+                <label class="form-label app-section-label" for="mergeWidth">Szerokość (cm)</label>
+                <input id="mergeWidth" type="number" inputmode="numeric" class="form-control form-control-lg"
+                       @bind="Width" @ref="_widthRef" min="0"
+                       @onkeydown="e => FocusNextOnEnter(e, _heightRef)" />
+            </div>
+            <div>
+                <label class="form-label app-section-label" for="mergeHeight">Wysokość (cm)</label>
+                <input id="mergeHeight" type="number" inputmode="numeric" class="form-control form-control-lg"
+                       @bind="Height" @ref="_heightRef" min="0"
+                       @onkeydown="ConfirmOnEnter" />
+            </div>
+        </div>
+    </ChildContent>
+
+    <Footer>
+        <button type="button" class="btn btn-primary" style="flex: 7;" @onclick="Confirm">Potwierdź</button>
+        <button type="button" class="btn btn-secondary" style="flex: 3;" @onclick="Close">Anuluj</button>
+    </Footer>
+</AppModal>
 
 @code {
-
-    private TaskCompletionSource<MergePackagesDto>? _tcs;
+    private TaskCompletionSource<MergePackagesDto?>? _tcs;
 
     public bool IsVisible { get; private set; }
 
-    public string InitialBarcode { get; set; } = "";
-    public string MergingBarcode { get; set; } = "";
+    public string InitialBarcode { get; set; } = string.Empty;
+    public string MergingBarcode { get; set; } = string.Empty;
 
     public int Height { get; set; }
     public int Width { get; set; }
     public int Length { get; set; }
 
-    // References
-    private ElementReference initialBarcodeRef;
-    private ElementReference mergingBarcodeRef;
-    private ElementReference lengthRef;
-    private ElementReference widthRef;
-    private ElementReference heightRef;
-
+    private ElementReference _initialBarcodeRef;
+    private ElementReference _mergingBarcodeRef;
+    private ElementReference _lengthRef;
+    private ElementReference _widthRef;
+    private ElementReference _heightRef;
 
     public async Task<MergePackagesDto?> Show(
         string initialBarcode = "",
@@ -119,63 +91,47 @@
         Length = length;
 
         IsVisible = true;
-
         StateHasChanged();
 
         _tcs = new TaskCompletionSource<MergePackagesDto?>();
 
-        // focus first field
+        // Yield once so the dialog is in the DOM before we focus its first field.
         await Task.Delay(1);
-        await initialBarcodeRef.FocusAsync();
+        await _initialBarcodeRef.FocusAsync();
 
         return await _tcs.Task;
     }
 
-
-    private async Task HandleEnter(KeyboardEventArgs e, ElementReference next)
+    private static async Task FocusNextOnEnter(KeyboardEventArgs e, ElementReference next)
     {
         if (e.Key == "Enter")
-        {
             await next.FocusAsync();
-        }
     }
 
-    private async Task HandleEnterConfirm(KeyboardEventArgs e)
+    private void ConfirmOnEnter(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
-        {
             Confirm();
-        }
     }
 
-
-    private void Confirm()
+    private void Confirm() => Complete(new MergePackagesDto
     {
-        IsVisible = false;
-
-        _tcs?.TrySetResult(new MergePackagesDto
+        InitialBarcode = InitialBarcode,
+        MergingBarcode = MergingBarcode,
+        Dimensions = new Dimensions
         {
-            InitialBarcode = InitialBarcode,
-            MergingBarcode = MergingBarcode,
-            Dimensions = new Dimensions
-            {
-                Height = Height,
-                Width = Width,
-                Length = Length
-            }
-        });
+            Height = Height,
+            Width = Width,
+            Length = Length
+        }
+    });
 
-        StateHasChanged();
-    }
+    private void Close() => Complete(null);
 
-
-    private void Close()
+    private void Complete(MergePackagesDto? result)
     {
         IsVisible = false;
-
-        _tcs?.TrySetResult(null);
-
+        _tcs?.TrySetResult(result);
         StateHasChanged();
     }
-
 }

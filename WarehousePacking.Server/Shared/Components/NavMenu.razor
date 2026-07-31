@@ -3,13 +3,14 @@
 @inject NavigationManager Navigation
 @inject UserSessionService UserSession
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">
-            <span class="brand-icon bi bi-box-seam"></span>
-            <span class="brand-text">Kontrola Pakowania</span>
-        </a>
-    </div>
+@* Both marks are rendered and swapped in CSS: the collapsed state lives on an
+   ancestor (.sidebar.collapsed) owned by MainLayout, so this avoids plumbing
+   that state down as a parameter. *@
+<div class="top-row navbar navbar-dark">
+    <a class="navbar-brand" href="" title="Kontrola Pakowania">
+        <img class="brand-logo brand-logo--full" src="images/logo.png" alt="Gąska" />
+        <img class="brand-logo brand-logo--mark" src="images/logo-small.png" alt="Gąska" />
+    </a>
 </div>
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />

@@ -1,88 +1,114 @@
-﻿.modal-backdrop {
-    z-index: 1040;
-}
-
-.modal-header .btn-close {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-}
-
-.modal {
-    z-index: 1050;
-}
-
-.modal-dialog {
-    max-width: 550px;
-}
-
-.modal-header-content {
+.product-select {
     display: flex;
-    align-items: center;
-    width: 100%;
+    flex-direction: column;
+    gap: var(--space-3);
 }
 
-.product-image {
-    height: 175px;
-    width: auto;
-    max-width: 300px;
-    margin-right: 0.5rem;
-}
-
-.product-info h5 {
-    margin: 0;
-}
-
-.top-row {
+/* --- Product summary ---------------------------------------------------- */
+.product-select__summary {
+    position: relative;
     display: flex;
-    align-items: center;
-    justify-content: space-between; /* left input, right image */
-    width: 100%;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--border);
 }
 
-.bottom-row {
-    display: flex;
-    gap: 1rem;
-    width: 100%;
-}
-
-.image-placeholder {
-    width: auto;
-    height: 3.5rem;
-    background-color: #e0e0e0;
+.product-select__thumb {
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px dashed #aaa;
-}
-
-.input-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.quantity-input {
-    max-width: 100px;
-    text-align: center;
-}
-
-.numeric-keyboard {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(4, 1fr); /* 4 rows for 12 keys */
-    gap: 1rem;
-    flex-grow: 1;
-}
-
-.key-btn {
-    width: 100%;
-    height: 100%;
-    font-size: 2rem;
-}
-
-.ok-btn {
-    margin-left: 1rem;
-    width: 150px;
+    width: 160px;
+    height: 160px;
     flex-shrink: 0;
+    padding: var(--space-1);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+    .product-select__thumb img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+.product-select__details {
+    flex: 1;
+    min-width: 0;
+}
+
+.product-select__name {
+    margin: 0 var(--space-5) var(--space-2) 0;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+/* Two-column definition list keeps label/value pairs aligned. */
+.product-select__facts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px var(--space-3);
+    margin: 0 0 var(--space-2);
+    font-size: var(--fs-sm);
+}
+
+    .product-select__facts dt {
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .product-select__facts dd {
+        margin: 0;
+        font-weight: 600;
+    }
+
+.product-select__quantities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.product-select__type {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+}
+
+.product-select__close {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+/* --- Quantity entry ----------------------------------------------------- */
+.product-select__entry {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.product-select__input {
+    height: var(--touch-lg);
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+/* The keypad itself lives in the shared NumericKeypad component. */
+
+@media (max-width: 575.98px) {
+    .product-select__thumb {
+        width: 72px;
+        height: 72px;
+    }
+
+    .product-select__type {
+        display: none;
+    }
 }

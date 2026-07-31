@@ -1,52 +1,57 @@
-﻿.modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: rgba(0,0,0,0.3);
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.3s;
-    z-index: 1050;
-}
-
-    .modal-backdrop.show {
-        visibility: visible;
-        opacity: 1;
-    }
-
-.modal-container {
-    background: white;
-    border-radius: 8px;
-    min-width: 300px;
-    max-width: 400px;
-    padding: 1rem;
-    box-shadow: 0 0 20px rgba(0,0,0,0.3);
-    position: relative;
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
-}
-
-.modal-body {
+.dimensions {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-3);
 }
 
-.modal-footer {
+.dimensions__fields {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2);
+}
+
+/* Each field is a tap target that doubles as the value display. */
+.dimensions__field {
     display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    margin-top: 1rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: var(--touch-lg);
+    padding: var(--space-2);
+    background: var(--surface);
+    border: 2px solid var(--border-strong);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+
+    .dimensions__field:hover {
+        border-color: var(--brand-strong);
+    }
+
+    .dimensions__field.is-active {
+        background: var(--brand-soft);
+        border-color: var(--brand);
+    }
+
+.dimensions__label {
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-muted);
+}
+
+.dimensions__value {
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    color: var(--text);
+}
+
+.dimensions__unit {
+    font-size: var(--fs-xs);
+    color: var(--text-muted);
 }

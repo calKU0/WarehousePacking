@@ -1,79 +1,53 @@
-﻿@using Microsoft.AspNetCore.Components
-@using Microsoft.AspNetCore.Components.Web
 @inject IJSRuntime JSRuntime
 
-@if (IsVisible)
-{
-    <div class="modal-backdrop fade show" @onclick="Cancel"></div>
+@*
+    Generic multi-dropdown prompt. Can be opened in a loading state
+    (ShowLoading) and populated later via SetData once data arrives.
+    Resolves to the selected values in order, or null if cancelled.
+*@
 
-    <div class="modal d-block">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
+<AppModal IsVisible="IsVisible" Title="@Title" Icon="bi bi-list-check" Size="lg" OnClose="Cancel">
+    <ChildContent>
+        @if (!string.IsNullOrWhiteSpace(Message))
+        {
+            <p class="text-muted">@Message</p>
+        }
 
-                <div class="modal-header">
-                    <h5 class="modal-title">@Title</h5>
-                    <button type="button" class="btn-close" @onclick="Cancel"></button>
-                </div>
-
-                <div class="modal-body">
-                    <p>@Message</p>
-
-                    @if (IsLoading)
-                    {
-                        <div class="text-center py-4">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Ładowanie...</span>
-                            </div>
-                            <div class="mt-2">@LoadingMessage</div>
-                        </div>
-                    }
-                    else
-                    {
-                        @for (int i = 0; i < ComboBoxes.Count; i++)
-                        {
-                            var combo = ComboBoxes[i];
-
-                            <div class="mb-3">
-                                <label class="form-label">@combo.Label</label>
-
-                                <select class="form-select"
-                                        value="@combo.SelectedValue"
-                                        @onchange="e => OnValueChanged(combo, e.Value?.ToString())"
-                                        @onkeydown="HandleKeyDown">
-
-                                    <option value="" disabled selected hidden>
-                                        @combo.Placeholder
-                                    </option>
-
-                                    @foreach (var item in combo.Items)
-                                    {
-                                        <option value="@item">@item</option>
-                                    }
-                                </select>
-                            </div>
-                        }
-                    }
-                </div>
-
-                <div class="modal-footer d-flex gap-2 w-100">
-                    <button class="btn btn-primary btn-lg tall-btn"
-                            style="flex:7"
-                            disabled="@(!CanConfirm)"
-                            @onclick="Confirm">
-                        Potwierdź
-                    </button>
-
-                    <button class="btn btn-secondary btn-lg tall-btn"
-                            style="flex:3"
-                            @onclick="Cancel">
-                        Anuluj
-                    </button>
-                </div>
-
+        @if (IsLoading)
+        {
+            <div class="app-empty">
+                <div class="app-spinner"></div>
+                <p class="app-empty__text">@LoadingMessage</p>
             </div>
-        </div>
-    </div>
-}
+        }
+        else
+        {
+            @foreach (var combo in ComboBoxes)
+            {
+                <div class="mb-3">
+                    <label class="form-label app-section-label">@combo.Label</label>
+                    <select class="form-select form-select-lg"
+                            value="@combo.SelectedValue"
+                            @onchange="e => OnValueChanged(combo, e.Value?.ToString())"
+                            @onkeydown="HandleKeyDown">
+                        <option value="" disabled selected hidden>@combo.Placeholder</option>
+                        @foreach (var item in combo.Items)
+                        {
+                            <option value="@item">@item</option>
+                        }
+                    </select>
+                </div>
+            }
+        }
+    </ChildContent>
+
+    <Footer>
+        <button type="button" class="btn btn-primary" style="flex: 7;" disabled="@(!CanConfirm)" @onclick="Confirm">
+            Potwierdź
+        </button>
+        <button type="button" class="btn btn-secondary" style="flex: 3;" @onclick="Cancel">Anuluj</button>
+    </Footer>
+</AppModal>
 
 @code {
     [Parameter] public string Title { get; set; } = "Wybierz wartości";
@@ -83,34 +57,34 @@
     public bool IsVisible { get; set; }
     public bool IsLoading { get; set; }
     public string LoadingMessage { get; set; } = "Ładowanie danych...";
+    public List<ComboBoxDefinition> ComboBoxes { get; set; } = new();
+
+    private TaskCompletionSource<List<string>?>? _tcs;
+
     private bool CanConfirm =>
         !IsLoading &&
         ComboBoxes.Any() &&
         ComboBoxes.All(c => !string.IsNullOrWhiteSpace(c.SelectedValue));
 
-    public List<ComboBoxDefinition> ComboBoxes { get; set; } = new();
-
-    private TaskCompletionSource<List<string>> _tcs;
-
-    public Task<List<string>> Show(string title, string message, List<ComboBoxDefinition> comboBoxes)
+    public Task<List<string>?> Show(string title, string message, List<ComboBoxDefinition> comboBoxes)
     {
         Title = title;
         Message = message;
         IsLoading = false;
 
-        ComboBoxes = comboBoxes;
-
-        foreach (var cb in ComboBoxes)
-            cb.SelectedValue = string.Empty;
+        SetSelections(comboBoxes);
 
         IsVisible = true;
         StateHasChanged();
 
-        _tcs = new TaskCompletionSource<List<string>>();
-        return _tcs.Task;
+        return StartRequest();
     }
 
-    public Task<List<string>> ShowLoading(string title, string message, string loadingMessage = "Ładowanie danych...")
+    /// <summary>
+    /// Opens immediately in a loading state so the operator sees feedback while
+    /// the caller fetches the option lists; finish with <see cref="SetData"/>.
+    /// </summary>
+    public Task<List<string>?> ShowLoading(string title, string message, string loadingMessage = "Ładowanie danych...")
     {
         Title = title;
         Message = message;
@@ -120,57 +94,49 @@
         IsVisible = true;
         StateHasChanged();
 
-        _tcs = new TaskCompletionSource<List<string>>();
-        return _tcs.Task;
+        return StartRequest();
     }
 
     public void SetData(List<ComboBoxDefinition> comboBoxes)
+    {
+        SetSelections(comboBoxes);
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+    public void CloseModal() => Complete(null);
+
+    private Task<List<string>?> StartRequest()
+    {
+        _tcs = new TaskCompletionSource<List<string>?>();
+        return _tcs.Task;
+    }
+
+    private void SetSelections(List<ComboBoxDefinition> comboBoxes)
     {
         ComboBoxes = comboBoxes;
 
         foreach (var cb in ComboBoxes)
             cb.SelectedValue = string.Empty;
-
-        IsLoading = false;
-        StateHasChanged();
     }
 
-    public void CloseModal()
-    {
-        _tcs?.TrySetResult(null);
-        Close();
-    }
+    private static void OnValueChanged(ComboBoxDefinition combo, string? value)
+        => combo.SelectedValue = value ?? string.Empty;
 
-    private void OnValueChanged(ComboBoxDefinition combo, string value)
-    {
-        combo.SelectedValue = value;
-    }
+    private void Confirm() => Complete(ComboBoxes.Select(c => c.SelectedValue).ToList());
 
-    private void Confirm()
-    {
-        var results = ComboBoxes
-            .Select(c => c.SelectedValue)
-            .ToList();
+    private void Cancel() => Complete(null);
 
-        _tcs?.SetResult(results);
-        Close();
-    }
-
-    private void Cancel()
+    private void Complete(List<string>? result)
     {
-        _tcs?.SetResult(null);
-        Close();
-    }
-
-    private void Close()
-    {
+        _tcs?.TrySetResult(result);
         IsVisible = false;
         StateHasChanged();
     }
 
     private void HandleKeyDown(KeyboardEventArgs e)
     {
-        if (!IsLoading && e.Key == "Enter")
+        if (!IsLoading && e.Key == "Enter" && CanConfirm)
         {
             Confirm();
         }

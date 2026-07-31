@@ -11,8 +11,6 @@ namespace WarehousePacking.API.Controllers
     [ApiController]
     public class PackingController : ControllerBase
     {
-        private static readonly ConcurrentDictionary<string, byte> CloseWmsLocks = new(StringComparer.OrdinalIgnoreCase);
-        private static readonly ConcurrentDictionary<string, byte> ClosedWmsPackages = new(StringComparer.OrdinalIgnoreCase);
         private readonly IPackingService _packingService;
         private readonly ILogger<PackingController> _logger;
 

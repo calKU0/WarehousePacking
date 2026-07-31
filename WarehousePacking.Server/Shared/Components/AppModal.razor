@@ -1,0 +1,164 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@*
+    Reusable modal shell.
+
+    Replaces the hand-rolled .modal-backdrop / .modal-container markup that was
+    duplicated (together with ~40 lines of near-identical scoped CSS) across
+    every modal in the app. Callers keep owning their own visibility flag and
+    TaskCompletionSource result plumbing; this component only owns presentation.
+
+    Built on the native <dialog> element and showModal(), which renders in the
+    browser's top layer. That is what guarantees the scrim covers *everything* —
+    sticky table headers, toast overlays and other high z-index layers included.
+
+    Usage:
+        <AppModal IsVisible="_isVisible" Title="Wybierz kuwetę" Icon="bi bi-box-seam"
+                  Size="lg" OnClose="Cancel">
+            <ChildContent>
+                ...body...
+            </ChildContent>
+            <Footer>
+                <button class="btn btn-secondary" @onclick="Cancel">Anuluj</button>
+                <button class="btn btn-primary" @onclick="Confirm">Zatwierdź</button>
+            </Footer>
+        </AppModal>
+*@
+
+<dialog @ref="_dialog" class="app-dialog @DialogSizeClass" aria-label="@Title">
+    @* Content is only built while open, so closed modals cost nothing. *@
+    @if (IsVisible)
+    {
+        @if (ShowHeader)
+        {
+            <div class="app-modal__header @(Accent ? "app-modal__header--accent" : null)">
+                @if (!string.IsNullOrWhiteSpace(Icon))
+                {
+                    <span class="app-modal__icon"><i class="@Icon"></i></span>
+                }
+
+                <h5 class="app-modal__title">@Title</h5>
+
+                @HeaderActions
+
+                @if (ShowClose)
+                {
+                    <button type="button" class="app-modal__close" aria-label="Zamknij" @onclick="InvokeCloseAsync">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                }
+            </div>
+        }
+
+        <div class="app-modal__body @(FlushBody ? "app-modal__body--flush" : null)">
+            @ChildContent
+        </div>
+
+        @if (Footer is not null)
+        {
+            <div class="app-modal__footer @(FooterAlignEnd ? "app-modal__footer--end" : null)">
+                @Footer
+            </div>
+        }
+    }
+</dialog>
+
+@code {
+    private ElementReference _dialog;
+    private DotNetObjectReference<AppModal>? _selfRef;
+    private bool _syncedState;
+    private bool _rendered;
+
+    /// <summary>Controls whether the dialog is open.</summary>
+    [Parameter] public bool IsVisible { get; set; }
+
+    [Parameter] public string Title { get; set; } = string.Empty;
+
+    /// <summary>Bootstrap icon class shown in the header tile, e.g. "bi bi-box-seam".</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>One of: "sm", "" (default), "lg", "xl", "full".</summary>
+    [Parameter] public string Size { get; set; } = string.Empty;
+
+    /// <summary>Paints the header in the brand colour. Use for primary/confirming flows.</summary>
+    [Parameter] public bool Accent { get; set; }
+
+    [Parameter] public bool ShowHeader { get; set; } = true;
+    [Parameter] public bool ShowClose { get; set; } = true;
+
+    /// <summary>Removes body padding — for edge-to-edge tables and lists.</summary>
+    [Parameter] public bool FlushBody { get; set; }
+
+    /// <summary>Right-aligns footer buttons instead of stretching them equally.</summary>
+    [Parameter] public bool FooterAlignEnd { get; set; }
+
+    /// <summary>
+    /// Allows dismissing with the Esc key. Off by default: on a touch screen an
+    /// accidental dismissal must never discard an operator's work.
+    /// </summary>
+    [Parameter] public bool CloseOnBackdrop { get; set; }
+
+    /// <summary>Raised by the close button and, when enabled, by Esc.</summary>
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? Footer { get; set; }
+    [Parameter] public RenderFragment? HeaderActions { get; set; }
+
+    private string? DialogSizeClass => string.IsNullOrWhiteSpace(Size)
+        ? null
+        : $"app-dialog--{Size}";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _rendered = true;
+        }
+
+        if (!_rendered || _syncedState == IsVisible)
+        {
+            return;
+        }
+
+        _syncedState = IsVisible;
+
+        // Only hand a callback reference over when Esc should dismiss.
+        _selfRef ??= DotNetObjectReference.Create(this);
+
+        try
+        {
+            await JS.InvokeVoidAsync("appDialog.sync", _dialog, IsVisible, CloseOnBackdrop ? _selfRef : null);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone; nothing to sync.
+        }
+    }
+
+    /// <summary>Invoked from JS when the user presses Esc.</summary>
+    [JSInvokable]
+    public Task NotifyDismissed() => InvokeCloseAsync();
+
+    private Task InvokeCloseAsync()
+        => OnClose.HasDelegate ? OnClose.InvokeAsync() : Task.CompletedTask;
+
+    public async ValueTask DisposeAsync()
+    {
+        // Leaving a dialog open in the top layer would block the whole page.
+        if (_syncedState)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("appDialog.sync", _dialog, false, null);
+            }
+            catch
+            {
+                // Circuit already torn down.
+            }
+        }
+
+        _selfRef?.Dispose();
+    }
+}

@@ -1,51 +1,59 @@
-﻿@using WarehousePacking.Contracts.Data.Enums
+@using WarehousePacking.Contracts.Data.Enums
 @using WarehousePacking.Server.Helpers
-@inherits ComponentBase
 
-@if (IsVisible)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content rounded-3 shadow-lg">
-                <div class="modal-header border-0 d-flex flex-column align-items-center">
-                    <img src="@CourierSrc" alt="Courier" class="img-fluid mb-3" style="max-height:120px;" />
-                    @if (!string.IsNullOrEmpty(Country) && Country != "PL")
-                    {
-                        <div class="header-image-placeholder mt-1">
-                            <img src="images/exp.jpg"
-                                 alt="Export"
-                                 class="img-fluid"
-                                 style="max-height:40px;" />
-                        </div>
-                    }
-                </div>
-                <div class="modal-body text-center">Wybierz jedną z opcji:</div>
-                <div class="modal-footer d-flex justify-content-around border-0">
-                    @if (CourierHelper.AllowedCouriersForLabel.Contains(Courier))
-                    {
-                        <button class="btn btn-primary btn-lg flex-fill mx-1 tall-btn" @onclick="OnCourierLabel">
-                            Nadaj etykietę kurierską
-                        </button>
-                    }
-                    <button class="btn btn-success btn-lg flex-fill mx-1 tall-btn" @onclick="OnInternalBarcode">
-                        Nadaj kod kreskowy wewnętrzny
-                    </button>
-                    @if (PackingLevel == PackingLevel.Bottom)
-                    {
-                        <button class="btn btn-warning btn-lg flex-fill mx-1 tall-btn" @onclick="OnBufor">
-                            Zabuforuj
-                        </button>
-                    }
-                    <button class="btn btn-secondary btn-lg flex-fill mx-1 tall-btn" @onclick="Hide">
-                        Anuluj
-                    </button>
-                </div>
-            </div>
+@*
+    Terminal step of a package: choose how it leaves the station. Options are
+    conditional on courier capability and packing level.
+*@
+
+<AppModal IsVisible="IsVisible" Title="Zakończ pakowanie" Icon="bi bi-check2-circle" OnClose="Hide">
+    <ChildContent>
+        <div class="finish-packing__identity">
+            @if (!string.IsNullOrWhiteSpace(CourierSrc))
+            {
+                <img src="@CourierSrc" alt="@Courier.GetDescription()" class="finish-packing__courier" />
+            }
+
+            @if (IsExport)
+            {
+                <img src="images/exp.jpg" alt="Eksport" class="finish-packing__export" />
+            }
         </div>
-    </div>
-}
 
+        <p class="text-center text-muted mb-0">Wybierz jedną z opcji:</p>
+    </ChildContent>
+
+
+    <Footer>
+        <div class="finish-packing__actions">
+            @if (CanPrintCourierLabel)
+            {
+                <button type="button" class="btn btn-primary" @onclick="OnCourierLabel">
+                    <i class="bi bi-tags"></i>
+                    <span>Nadaj etykietę kurierską</span>
+                </button>
+            }
+
+            <button type="button" class="btn btn-success" @onclick="OnInternalBarcode">
+                <i class="bi bi-upc"></i>
+                <span>Nadaj kod wewnętrzny</span>
+            </button>
+
+            @if (CanBuffer)
+            {
+                <button type="button" class="btn btn-warning" @onclick="OnBufor">
+                    <i class="bi bi-inboxes"></i>
+                    <span>Zabuforuj</span>
+                </button>
+            }
+
+            <button type="button" class="btn btn-secondary" @onclick="Hide">
+                <i class="bi bi-x-lg"></i>
+                <span>Anuluj</span>
+            </button>
+        </div>
+    </Footer>
+</AppModal>
 
 @code {
     [Parameter] public Courier Courier { get; set; }
@@ -57,6 +65,12 @@
     [Parameter] public EventCallback OnBufor { get; set; }
 
     protected bool IsVisible { get; set; }
+
+    private bool IsExport => !string.IsNullOrEmpty(Country) && Country != "PL";
+
+    private bool CanPrintCourierLabel => CourierHelper.AllowedCouriersForLabel.Contains(Courier);
+
+    private bool CanBuffer => PackingLevel == PackingLevel.Bottom;
 
     public void Show()
     {

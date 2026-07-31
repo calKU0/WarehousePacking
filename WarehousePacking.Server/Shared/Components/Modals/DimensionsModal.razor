@@ -1,44 +1,80 @@
-﻿@using WarehousePacking.Contracts.DTOs
-<div class="modal-backdrop @(IsVisible ? "show" : "")">
-    <div class="modal-container">
-        <div class="modal-header">
-            <h5 class="modal-title">Podaj wymiary</h5>
-            <button type="button" class="btn-close" @onclick="Close" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-            <div class="mb-3">
-                <label class="form-label">Długość (cm)</label>
-                <input type="number" class="form-control" @bind="Length" min="0" />
+@using WarehousePacking.Contracts.DTOs
+
+@*
+    Package dimension entry. Resolves to the entered Dimensions, or null when
+    dismissed.
+
+    Touch-first: tap a field to select it, then type with the on-screen keypad.
+    "Dalej" cycles to the next field so all three can be filled without ever
+    leaving the keypad.
+*@
+
+<AppModal IsVisible="IsVisible" Title="Podaj wymiary" Icon="bi bi-rulers" OnClose="Close">
+    <ChildContent>
+        <div class="dimensions">
+            <div class="dimensions__fields">
+                @foreach (var field in Fields)
+                {
+                    <button type="button"
+                            class="dimensions__field @(field.Index == _active ? "is-active" : null)"
+                            @onclick="() => _active = field.Index">
+                        <span class="dimensions__label">@field.Label</span>
+                        <span class="dimensions__value">@DisplayValue(field.Index)</span>
+                        <span class="dimensions__unit">cm</span>
+                    </button>
+                }
             </div>
-            <div class="mb-3">
-                <label class="form-label">Szerokość (cm)</label>
-                <input type="number" class="form-control" @bind="Width" min="0" />
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Wysokość (cm)</label>
-                <input type="number" class="form-control" @bind="Height" min="0" />
-            </div>
+
+            <NumericKeypad @bind-Value="ActiveValue"
+                           AllowDecimal="false"
+                           EnterLabel="Dalej"
+                           OnEnter="SelectNextField"
+                           MaxLength="4" />
         </div>
-        <div class="modal-footer d-flex gap-2 w-100">
-            <button class="btn btn-primary btn-lg tall-btn" style="flex: 7;" @onclick="Confirm">Potwierdź</button>
-            <button class="btn btn-secondary btn-lg tall-btn" style="flex: 3;" @onclick="Close">Anuluj</button>
-        </div>
-    </div>
-</div>
+    </ChildContent>
+
+    <Footer>
+        <button type="button" class="btn btn-primary" style="flex: 7;" @onclick="Confirm">Potwierdź</button>
+        <button type="button" class="btn btn-secondary" style="flex: 3;" @onclick="Close">Anuluj</button>
+    </Footer>
+</AppModal>
 
 @code {
+    private sealed record Field(int Index, string Label);
+
+    private static readonly Field[] Fields =
+    {
+        new(0, "Długość"),
+        new(1, "Szerokość"),
+        new(2, "Wysokość")
+    };
+
     private TaskCompletionSource<Dimensions>? _tcs;
 
-    public bool IsVisible { get; private set; } = false;
-    public int Height { get; private set; }
-    public int Width { get; private set; }
-    public int Length { get; private set; }
+    // Indexes match Fields: 0 = length, 1 = width, 2 = height.
+    private readonly string[] _values = { string.Empty, string.Empty, string.Empty };
+    private int _active;
+
+    public bool IsVisible { get; private set; }
+
+    public int Length => Parse(_values[0]);
+    public int Width => Parse(_values[1]);
+    public int Height => Parse(_values[2]);
+
+    /// <summary>Bound to the keypad; reads and writes whichever field is selected.</summary>
+    private string ActiveValue
+    {
+        get => _values[_active];
+        set => _values[_active] = value;
+    }
 
     public Task<Dimensions> Show(int height = 0, int width = 0, int length = 0)
     {
-        Height = height;
-        Width = width;
-        Length = length;
+        // A leading 0 would have to be deleted before typing, so start blank.
+        _values[0] = length > 0 ? length.ToString() : string.Empty;
+        _values[1] = width > 0 ? width.ToString() : string.Empty;
+        _values[2] = height > 0 ? height.ToString() : string.Empty;
+        _active = 0;
 
         IsVisible = true;
         StateHasChanged();
@@ -47,22 +83,29 @@
         return _tcs.Task;
     }
 
-    private void Close()
-    {
-        IsVisible = false;
-        _tcs?.TrySetResult(null!);
-        StateHasChanged();
-    }
+    private string DisplayValue(int index)
+        => string.IsNullOrEmpty(_values[index]) ? "0" : _values[index];
 
-    private void Confirm()
+    private void SelectNextField()
+        => _active = (_active + 1) % Fields.Length;
+
+    private static int Parse(string value)
+        => int.TryParse(value, out var parsed) ? parsed : 0;
+
+    private void Confirm() => Complete(new Dimensions
+    {
+        Height = Height,
+        Width = Width,
+        Length = Length
+    });
+
+    // Dismissing yields null — callers check for it before using the result.
+    private void Close() => Complete(null!);
+
+    private void Complete(Dimensions result)
     {
         IsVisible = false;
-        _tcs?.TrySetResult(new Dimensions
-        {
-            Height = Height,
-            Width = Width,
-            Length = Length
-        });
+        _tcs?.TrySetResult(result);
         StateHasChanged();
     }
 }

@@ -12,7 +12,10 @@
 
 <div class="login-container d-flex justify-content-center align-items-center min-vh-100">
     <div class="card shadow-lg p-4 login-card">
-        <h3 class="card-title text-center mb-4">Login</h3>
+        <div class="app-logo app-logo--lg justify-content-center mb-3">
+            <img src="images/logo.png" alt="Gąska" />
+        </div>
+        <h3 class="card-title text-center mb-4">Logowanie</h3>
 
         @if (UserSession.IsLoggedIn)
         {
@@ -82,6 +85,7 @@
     private ElementReference PasswordInput;
     private string scannedUsername = "";
     private bool IsLoading = false;
+    private bool _usernameFocused;
 
 
     protected override async Task OnInitializedAsync()
@@ -100,8 +104,12 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        // Focus once, on the first render where the field actually exists and is
+        // enabled. Doing it only on firstRender missed the case where the input
+        // is still disabled behind the loading spinner at that point.
+        if (!_usernameFocused && !UserSession.IsLoggedIn && !IsLoading)
         {
+            _usernameFocused = true;
             await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", UsernameInput);
         }
     }

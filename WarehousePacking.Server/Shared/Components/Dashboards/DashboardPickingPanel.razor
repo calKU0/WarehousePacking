@@ -37,6 +37,32 @@
         </div>
     </div>
 
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="card shadow-sm dashboard-courier-strip">
+                <div class="card-body py-2 d-flex align-items-center flex-wrap gap-4">
+                    <span class="text-muted small text-uppercase fw-semibold me-2">
+                        <i class="bi bi-clipboard-data me-1"></i>Dokumenty wg statusu
+                    </span>
+                    @if (!DocumentStatusCounts.Any())
+                    {
+                        <span class="text-secondary">Brak dokumentów</span>
+                    }
+                    else
+                    {
+                        @foreach (var item in DocumentStatusCounts)
+                        {
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-secondary">@item.Status.GetDescription()</span>
+                                <span class="badge text-bg-secondary"><DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(item.Count)" /></span>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-3 dashboard-main-row flex-grow-1">
         <div class="col-12 col-xl-8 d-flex">
             <div class="card shadow-sm h-100">
@@ -49,6 +75,7 @@
                             <thead class="table-dark">
                                 <tr>
                                     <th>Strefa</th>
+                                    <th>Il. zadań</th>
                                     <th>
                                         <div class="d-flex align-items-center gap-2">
                                             @if (!string.IsNullOrWhiteSpace(DpdLogo))
@@ -108,7 +135,7 @@
                                 @if (!ZoneRows.Any())
                                 {
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-3">
+                                        <td colspan="9" class="text-center text-muted py-3">
                                             @if (IsLoading)
                                             {
                                                 <span>Ładowanie danych...</span>
@@ -125,7 +152,7 @@
                                     @foreach (var section in GetZoneSections())
                                     {
                                         <tr class="table-secondary">
-                                            <td colspan="8">
+                                            <td colspan="9">
                                                 <div class="d-flex justify-content-between align-items-center">
 
                                                     <div class="fw-semibold">
@@ -151,7 +178,7 @@
                                         @if (!section.Rows.Any())
                                         {
                                             <tr>
-                                                <td colspan="7" class="text-center text-muted py-2">
+                                                <td colspan="9" class="text-center text-muted py-2">
                                                     Brak zadań
                                                 </td>
                                             </tr>
@@ -162,6 +189,9 @@
                                             {
                                                 <tr class="@($"{ElapsedClassHelper.GetRowClass(row.OldestDocumentDate, ColorConfig.ZoneLastActivityThresholdMinutes)} {row.AnimationClass}".Trim())" @key="row.Key">
                                                     <td>@row.ZoneName</td>
+                                                    <td>
+                                                        <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.TaskCount)" />
+                                                    </td>
                                                     <td>
                                                         <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.DpdCount)" />
                                                     </td>
@@ -184,14 +214,14 @@
                                                         }
                                                         else if (row.OldestDocumentDate == row.LatestDocumentDate)
                                                         {
-                                                            @row.OldestDocumentDate.ToString("HH:mm")
+                                                            @FormatHelper.ToLocalTime(row.OldestDocumentDate).ToLocalTime().ToString("HH:mm")
                                                         }
                                                         else
                                                         {
                                                             <span>
-                                                                @row.OldestDocumentDate.ToString("HH:mm")
+                                                                @FormatHelper.ToLocalTime(row.OldestDocumentDate).ToLocalTime().ToString("HH:mm")
                                                                 /
-                                                                @row.LatestDocumentDate.ToString("HH:mm")
+                                                                @FormatHelper.ToLocalTime(row.LatestDocumentDate).ToLocalTime().ToString("HH:mm")
                                                             </span>
                                                         }
                                                         
@@ -213,7 +243,7 @@
             <div class="card shadow-sm h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><i class="bi bi-person-workspace me-2"></i>Aktywni operatorzy</span>
-                    <span class="small text-muted dashboard-time-text">Najdłużej: <DashboardAnimatedValue Text="@LongestActiveElapsed" CssClass="dashboard-time-text" /></span>
+                    <span class="small text-muted dashboard-time-text">Najdłużej: <DashboardAnimatedValue Text="@LongestActiveElapsed" CssClass="dashboard-time-text" Animate="false" /></span>
                 </div>
                 <div class="card-body p-0 mb-0 dashboard-scroll-host">
                     <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
@@ -250,7 +280,7 @@
                                             <td>@row.Data.SourceZone</td>
                                             <td class="dashboard-elapsed-cell">
                                                 <span class="badge @ElapsedClassHelper.GetBadgeClass(row.Data.LastOperationDate, ColorConfig.OperatorLastActivityRedThresholdMinutes, ColorConfig.OperatorLastActivityYellowThresholdMinutes) dashboard-elapsed-badge dashboard-time-text">
-                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Data.LastOperationDate)" CssClass="dashboard-time-text" />
+                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Data.LastOperationDate)" CssClass="dashboard-time-text" Animate="false" />
                                                 </span>
                                             </td>
                                         </tr>
@@ -267,11 +297,10 @@
 
 @code{
     private const int RowAnimationDelayMs = 280;
-    private bool _clockStarted;
-
     private sealed record ZoneTaskSummary(
         int ZoneId,
         string ZoneName,
+        int TaskCount,
         int DpdCount,
         int GlsCount,
         int FedexCount,
@@ -302,6 +331,7 @@
     {
         public string Key { get; set; } = string.Empty;
         public string ZoneName { get; set; } = string.Empty;
+        public int TaskCount { get; set; }
         public int DpdCount { get; set; }
         public int GlsCount { get; set; }
         public int FedexCount { get; set; }
@@ -348,6 +378,12 @@
     private int DocumentsCount => Documents.Count;
     private int ZoneCount => Tasks.Select(x => x.ZoneId).Distinct().Count();
     private int InProgressTasksCount => Tasks.Count(x => x.Status is WarehouseTaskStatus.InExecution or WarehouseTaskStatus.Processing);
+
+    private IEnumerable<(WarehouseTaskStatus Status, int Count)> DocumentStatusCounts => Documents
+        .GroupBy(x => x.Status)
+        .Select(g => (Status: g.Key, Count: g.Count()))
+        .OrderBy(x => (int)x.Status)
+        .ToList();
     private int ActiveOperatorsCount => OperatorRows.Count;
     private string LongestActiveElapsed => OperatorRows.Any() ? FormatHelper.FormatElapsed(OperatorRows.Min(x => x.Data.LastOperationDate)) : "-";
 
@@ -387,8 +423,11 @@
 
     protected override void OnParametersSet()
     {
+        // Documents can come back null from the API (the property initialiser is
+        // bypassed when the JSON carries an explicit null), and SelectMany throws
+        // on a null selector result.
         _taskDocumentsNormalized = Tasks
-            .SelectMany(t => t.Documents)
+            .SelectMany(t => t.Documents ?? new List<WarehouseDocument>())
             .Select(d => (
                 Courier: CourierHelper.GetCourierFromName(d.CourierName),
                 CreatedDate: d.CreatedDate,
@@ -433,6 +472,7 @@
             {
                 Key = x.Key,
                 ZoneName = x.Data.ZoneName,
+                TaskCount = x.Data.TaskCount,
                 DpdCount = x.Data.DpdCount,
                 GlsCount = x.Data.GlsCount,
                 FedexCount = x.Data.FedexCount,
@@ -501,7 +541,7 @@
             _ = RemoveZoneRowAsync(row);
         }
 
-        var orderedActive = latest.Select(x => ZoneRows.First(r => string.Equals(r.Key, x.ZoneId.ToString(), StringComparison.OrdinalIgnoreCase))).ToList();
+        var orderedActive = latest.Select(x => ZoneRows.FirstOrDefault(r => string.Equals(r.Key, x.ZoneId.ToString(), StringComparison.OrdinalIgnoreCase))).Where(r => r is not null)!.ToList();
         var leaving = ZoneRows.Where(x => x.IsLeaving).ToList();
         ZoneRows = orderedActive.Concat(leaving).ToList();
     }
@@ -518,7 +558,9 @@
 
                 var zoneWarehouse = group.Select(x => x.ZoneWarehouse).First();
 
-                var docs = group.SelectMany(t => t.Documents).ToList();
+                var docs = group
+                    .SelectMany(t => t.Documents ?? new List<WarehouseDocument>())
+                    .ToList();
 
                 var couriers = docs
                     .Select(d => CourierHelper.GetCourierFromName(d.CourierName))
@@ -526,12 +568,23 @@
 
                 var operators = GetOperatorsForZone(group.Key);
 
-                var oldestDocumentDate = docs.Min(d => d.CreatedDate);
-                var latestDocumentDate = docs.Max(d => d.CreatedDate);
+                // A zone can legitimately hold tasks with no documents — typically
+                // overnight as the picking queue drains. Min()/Max() throw on an
+                // empty sequence, and an exception here takes down the whole
+                // dashboard render, so fall back to the tasks' own dates.
+                var oldestDocumentDate = docs.Count > 0
+                    ? docs.Min(d => d.CreatedDate)
+                    : group.Min(t => t.Date);
+                var latestDocumentDate = docs.Count > 0
+                    ? docs.Max(d => d.CreatedDate)
+                    : group.Max(t => t.Date);
+
+                var taskCount = group.Select(x => x.Id).Distinct().Count();
 
                 return new ZoneTaskSummary(
                     group.Key,
                     zoneName,
+                    taskCount,
                     couriers.Count(x => x == Courier.DPD),
                     couriers.Count(x => x == Courier.GLS),
                     couriers.Count(x => x == Courier.Fedex),
@@ -587,7 +640,7 @@
             _ = RemoveOperatorRowAsync(row);
         }
 
-        var orderedActive = latest.Select(x => OperatorRows.First(r => string.Equals(r.Key, x.Operator, StringComparison.OrdinalIgnoreCase))).ToList();
+        var orderedActive = latest.Select(x => OperatorRows.FirstOrDefault(r => string.Equals(r.Key, x.Operator, StringComparison.OrdinalIgnoreCase))).Where(r => r is not null)!.ToList();
         var leaving = OperatorRows.Where(x => x.IsLeaving).ToList();
         OperatorRows = orderedActive.Concat(leaving).ToList();
     }

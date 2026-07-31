@@ -6,9 +6,10 @@ namespace WarehousePacking.Server.Services
     {
         private readonly HttpClient _dbClient;
 
-        public EmailService(IHttpClientFactory httpFactory)
+        public EmailService(IHttpClientFactory httpFactory, ClientContext clientContext)
         {
             _dbClient = httpFactory.CreateClient("Database");
+            clientContext.Attach(_dbClient);
         }
 
         public async Task<(bool Success, string? ErrorMessage)> SendEmailAsync(SendEmailRequest email)

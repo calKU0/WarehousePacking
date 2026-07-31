@@ -2,48 +2,66 @@
 @using WarehousePacking.Contracts.Data.Enums
 @using WarehousePacking.Server.Services
 @inject ClientPrinterService ClientPrinterService
-@if (IsVisible)
-{
-    <div class="modal-backdrop @(IsVisible ? "show" : "")">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h5 class="modal-title">Połącz kuwety</h5>
-                <button type="button" class="btn-close" @onclick="Cancel" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Wybierz kuwety do połączenia z wybraną:</p>
-                <table class="table table-hover table-tall">
-                    <thead>
-                        <tr>
-                            <th></th>
-                            <th>Jl</th>
-                            <th>Lokalizacja</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var jl in AvailableJls)
-                        {
-                            <tr>
-                                <td>
-                                    <input type="checkbox" checked="@SelectedJlsNames.Contains((jl.Code, jl.Location))"
-                                           @onchange="e => OnCheckboxChanged(e.Value!, jl.Code, jl.Location)" />
-                                </td>
-                                <td>@jl.Code</td>
-                                <td>@jl.Location</td>
-                            </tr>
-                        }
+@*
+    Offers other JLs going to the same address so they can be packed together.
+    Returns the selected JLs, or an empty list when merging is skipped.
+*@
 
-                    </tbody>
-                </table>
-            </div>
-            <div class="modal-footer d-flex gap-2 w-100">
-                <button class="btn btn-primary btn-lg tall-btn" style="flex: 6;" @onclick="Confirm">Połącz zaznaczone kuwety</button>
-                <button class="btn btn-outline-secondary btn-lg tall-btn" style="flex: 3;" @onclick="PrintList" disabled="@IsPrinting">Drukuj listę</button>
-                <button class="btn btn-secondary btn-lg tall-btn" style="flex: 3;" @onclick="SkipMerge">Nie łącz kuwet</button>
-            </div>
-        </div>
-    </div>
-}
+<AppModal IsVisible="IsVisible" Title="Połącz kuwety" Icon="bi bi-union" Size="lg" OnClose="Cancel">
+    <ChildContent>
+        <p class="text-muted">Wybierz kuwety do połączenia z wybraną:</p>
+
+        <table class="app-table app-table--striped app-table--interactive merge-jls__table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Jl</th>
+                    <th class="app-table__num">Waga</th>
+                    <th>Lokalizacja</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var jl in AvailableJls)
+                {
+                    var isSelected = SelectedJlsNames.Contains((jl.Code, jl.Location));
+                    var rowKey = jl.Code + "|" + jl.Location;
+                    <tr class="@(isSelected ? "is-highlight" : null)"
+                        @key="rowKey"
+                        @onclick="() => ToggleSelection(jl.Code, jl.Location)">
+                        <td>
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   checked="@isSelected"
+                                   @onclick:stopPropagation="true"
+                                   @onchange="e => OnCheckboxChanged(e.Value!, jl.Code, jl.Location)" />
+                        </td>
+                        <td class="app-table__code">@jl.Code</td>
+                        <td class="app-table__num">@jl.Weight.ToString("0.##") kg</td>
+                        <td>@jl.Location</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </ChildContent>
+
+    <Footer>
+        <button type="button" class="btn btn-primary" style="flex: 6;" @onclick="Confirm">
+            Połącz zaznaczone kuwety
+        </button>
+        <button type="button" class="btn btn-outline-secondary" style="flex: 3;" @onclick="PrintList" disabled="@IsPrinting">
+            @if (IsPrinting)
+            {
+                <span class="app-spinner app-spinner--sm me-2"></span>
+            }
+            else
+            {
+                <i class="bi bi-printer me-1"></i>
+            }
+            Drukuj listę
+        </button>
+        <button type="button" class="btn btn-secondary" style="flex: 3;" @onclick="SkipMerge">Nie łącz kuwet</button>
+    </Footer>
+</AppModal>
 
 @code {
     private TaskCompletionSource<List<(string jlName, string locationCode)>>? _tcs;
@@ -72,16 +90,24 @@
     }
 
     private void OnCheckboxChanged(object value, string jlName, string location)
+        => SetSelected(jlName, location, value is bool b && b);
+
+    /// <summary>Tapping anywhere on the row toggles it — a bigger touch target.</summary>
+    private void ToggleSelection(string jlName, string location)
+        => SetSelected(jlName, location, !SelectedJlsNames.Contains((jlName, location)));
+
+    private void SetSelected(string jlName, string location, bool isSelected)
     {
-        bool isChecked = (bool)value;
-        if (isChecked)
+        var key = (jlName, location);
+
+        if (isSelected)
         {
-            if (!SelectedJlsNames.Contains((jlName, location)))
-                SelectedJlsNames.Add((jlName, location));
+            if (!SelectedJlsNames.Contains(key))
+                SelectedJlsNames.Add(key);
         }
         else
         {
-            SelectedJlsNames.Remove((jlName, location));
+            SelectedJlsNames.Remove(key);
         }
     }
 
@@ -128,13 +154,18 @@
 
     private static string BuildListZpl(List<JlData> jls, JlData? baseJl)
     {
-        const int marginX = 0;
-        const int marginTop = 40;
-        const int contentWidth = 740;
-        const int boxSize = 30;
-        const int codeFontSize = 38;
-        const int locationFontSize = 26;
-        const int rowHeight = 80;
+        // Sized to fit a narrow (3") label's printable area; also prints fine on
+        // wider labels (just leaves extra right margin). Everything — the header
+        // rule and the right-aligned weight — is kept within contentWidth so
+        // nothing runs off the edge.
+        const int marginX = 16;
+        const int marginTop = 24;
+        const int contentWidth = 560;
+        const int boxSize = 28;
+        const int codeFontSize = 34;
+        const int locationFontSize = 24;
+        const int rowHeight = 74;
+        const int headerFontSize = 40;
 
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("^XA");
@@ -145,38 +176,46 @@
         sb.AppendLine("^LS0");
 
         // Header
-        sb.AppendLine("^CF0,46");
+        sb.AppendLine($"^CF0,{headerFontSize}");
         sb.AppendLine($"^FO{marginX},{marginTop}^FDLista kuwet do polaczenia^FS");
-        sb.AppendLine($"^FO{marginX},{marginTop + 50}^GB{contentWidth},3,3^FS");
+        sb.AppendLine($"^FO{marginX},{marginTop + 44}^GB{contentWidth},3,3^FS");
 
         // Subheader: print time + item count
         var totalCount = jls.Count + (baseJl is not null ? 1 : 0);
         sb.AppendLine("^CF0,22");
-        sb.AppendLine($"^FO{marginX},{marginTop + 64}^FD{DateTime.Now:dd.MM.yyyy HH:mm}   Pozycji: {totalCount}^FS");
+        sb.AppendLine($"^FO{marginX},{marginTop + 56}^FD{DateTime.Now:dd.MM.yyyy HH:mm}   Pozycji: {totalCount}^FS");
 
-        int y = marginTop + 104;
-        var textX = marginX + boxSize + 16;
+        int y = marginTop + 94;
+        var textX = marginX + boxSize + 14;
+        // Reserve room on the right for the weight so a long code can't run into it.
+        var codeWidth = contentWidth - boxSize - 14 - 140;
 
-        void AppendRow(string code, string location)
+        void AppendRow(string code, decimal weight, string location)
         {
             // checkbox always unchecked (outline only)
             sb.AppendLine($"^FO{marginX},{y}^GB{boxSize},{boxSize},2^FS");
 
+            // Code (clipped to a single line so it never collides with the weight)
             sb.AppendLine($"^CF0,{codeFontSize}");
-            sb.AppendLine($"^FO{textX},{y - 4}^FD{code}^FS");
+            sb.AppendLine($"^FO{textX},{y - 4}^FB{codeWidth},1,0,L,0^FD{code}^FS");
 
+            // Weight as a right-aligned column on the code line, within contentWidth
+            var weightText = $"{weight.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)} kg";
+            sb.AppendLine($"^FO{marginX},{y - 4}^FB{contentWidth},1,0,R,0^FD{weightText}^FS");
+
+            // Location on the second line, kept inside contentWidth
             sb.AppendLine($"^CF0,{locationFontSize}");
-            sb.AppendLine($"^FO{textX},{y + codeFontSize + 2}^FDLokalizacja: {location}^FS");
+            sb.AppendLine($"^FO{textX},{y + codeFontSize + 2}^FB{contentWidth - boxSize - 14},1,0,L,0^FDLokalizacja: {location}^FS");
 
             y += rowHeight;
         }
 
         if (baseJl is not null)
-            AppendRow(baseJl.Code, baseJl.Location);
+            AppendRow(baseJl.Code, baseJl.Weight, baseJl.Location);
 
         foreach (var jl in jls)
         {
-            AppendRow(jl.Code, jl.Location);
+            AppendRow(jl.Code, jl.Weight, jl.Location);
         }
 
         sb.AppendLine("^XZ");

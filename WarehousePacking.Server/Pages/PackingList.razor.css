@@ -1,213 +1,185 @@
-﻿/* --- Global & Typography --- */
+/* Page-specific only. Cards, tables, row states, empty states, scrollbars and
+   thumbnails now come from the shared layer (css/components.css). */
+
 .tracking-wide {
     letter-spacing: 0.05em;
 }
 
-/* --- Table Container & Scrollbar --- */
-.table-card {
-    overflow: hidden;
-    border-radius: 0.5rem;
+/* Fill the viewport minus the page header, so the list scrolls internally
+   rather than growing the page. */
+.packing-list__scroll {
+    max-height: calc(100dvh - 180px);
 }
 
-.pro-table-wrapper {
-    /* Calculates exact screen height minus the header/margins to prevent page scrolling */
-    max-height: calc(100vh - 180px);
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    will-change: scroll-position;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-    scrollbar-width: thin; /* Matches the 8px width */
-    scrollbar-color: #cdd3d8 #f8f9fa; /* Thumb color, then Track color */
+.packing-list__logo-cell {
+    width: 84px;
 }
 
-.pro-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background-color: #fff;
-    background-clip: padding-box;
-    text-align: center;
-    vertical-align: middle;
-    padding: 1rem;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    border-bottom: 2px solid #e9ecef;
+/* All seven columns must stay visible, so on anything below a wide desktop the
+   table switches to its compact form rather than dropping information. */
+@media (max-width: 1399.98px) {
+    .packing-list__logo-cell {
+        width: 64px;
+    }
+
+        .packing-list__logo-cell ::deep .app-thumb--wide {
+            width: 52px;
+            height: 34px;
+        }
 }
 
-.pro-table td {
-    padding: 1.1rem 1rem;
-    vertical-align: middle;
-    text-align: center;
+/* --- Sidebar ------------------------------------------------------------ */
+/* Only sticky while it is an actual side column; when stacked it should
+   scroll away with the rest of the page. */
+@media (min-width: 992px) {
+    .sticky-sidebar {
+        position: sticky;
+        top: 1rem;
+    }
 }
 
-.clickable-row {
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-}
-
-/* Default cell background per status */
-.pro-table tbody tr.row-status-ready > td {
-    background-color: #bbf7d0;
-}
-
-.pro-table tbody tr.row-status-error > td {
-    background-color: #fecaca;
-}
-
-.pro-table tbody tr.row-status-warning > td {
-    background-color: #fde68a;
-}
-
-/* Hover - slightly stronger */
-.pro-table.table-hover tbody tr.row-status-ready:hover > td {
-    background-color: #86efac;
-    --bs-table-bg-state: transparent;
-}
-
-.pro-table.table-hover tbody tr.row-status-error:hover > td {
-    background-color: #fca5a5;
-    --bs-table-bg-state: transparent;
-}
-
-.pro-table.table-hover tbody tr.row-status-warning:hover > td {
-    background-color: #fcd34d;
-    --bs-table-bg-state: transparent;
-}
-
-/* --- Courier Table Logo Alignment (SCALED DOWN) --- */
-.logo-cell {
-    position: relative;
-    padding: 0 !important;
-    width: 60px;
-    height: 40px;
-}
-
-.logo-wrapper, .fallback-icon {
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 4px;
-    right: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #fff;
-    border-radius: 4px;
-    border: 1px solid #f1f3f5;
-}
-
-.courier-logo-img {
-    max-height: 100%;
-    max-width: 100%;
-    object-fit: contain;
-    padding: 4px;
-}
-
-/* --- Sidebar Specifics --- */
-.sticky-sidebar {
-    position: sticky;
-    top: 1.5rem;
+/* Padding scales with the panel: roomy on desktop, tight on 1024 panels. */
+.packing-list__sidebar {
+    padding: clamp(0.75rem, 1.2vw, 1.25rem);
 }
 
 .scanner-input-group:focus-within {
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-.scanner-input-group input:focus {
-    box-shadow: none; /* Handled by wrapper */
+    box-shadow: var(--focus-ring);
 }
 
 .stats-panel {
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
+    background-color: var(--surface-sunken);
+    border: 1px solid var(--border);
 }
 
-/* --- Courier Summary Container (SCALED DOWN) --- */
-.summary-container {
-    background-color: transparent;
+.stats-panel__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    min-width: 0;
 }
 
+    .stats-panel__row + .stats-panel__row {
+        margin-top: var(--space-2);
+    }
+
+.stats-panel__label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-shrink: 0;
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+}
+
+/* Long operator names shorten instead of pushing the row wider. */
+.stats-panel__value {
+    min-width: 0;
+    font-weight: 700;
+    color: var(--text);
+}
+
+/* --- Courier summary ----------------------------------------------------
+   Grid, not flex-between: the name column is the only flexible track, so the
+   badge can never be pushed out of the row — the name ellipsises instead. */
 .summary-row {
-    padding: 0.5rem 0.75rem;
-    transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 
     .summary-row:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+        box-shadow: var(--shadow);
     }
 
-.summary-logo-wrapper, .summary-icon-fallback {
-    width: 36px;
-    height: 24px;
+.summary-logo-section {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0; /* lets the name actually shrink */
+}
+
+.summary-logo-wrapper,
+.summary-icon-fallback {
+    width: 34px;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 .summary-logo-wrapper {
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
+    background-color: var(--surface-sunken);
+    border: 1px solid var(--border);
 }
 
 .summary-logo-img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-    padding: 2px;
+    padding: 1px;
 }
 
 .summary-icon-fallback {
-    font-size: 1rem;
+    font-size: 0.9rem;
 }
 
 .summary-courier-name {
-    font-size: 0.9rem;
-    color: #343a40;
+    min-width: 0;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 130px;
 }
 
-/* --- Status Legend Elements --- */
+/* --- Status legend ------------------------------------------------------ */
 .status-legend-item {
-    background-color: #fff;
-    border: 1px solid #e9ecef;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
 }
 
 .legend-square {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     flex-shrink: 0;
-    border-radius: 4px;
-    margin-right: 0.75rem;
+    border-radius: var(--radius-sm);
+    margin-right: var(--space-2);
     border-width: 1px;
     border-style: solid;
 }
 
-/* Legend Colors matching the row soft colors */
+/* Legend swatches mirror the shared row-state colours. */
 .bg-success-soft {
-    background-color: #dcfce7;
-    border-color: #86efac !important;
+    background-color: var(--row-ready);
+    border-color: var(--row-ready-strong) !important;
 }
 
 .bg-danger-soft {
-    background-color: #fee2e2;
-    border-color: #fca5a5 !important;
+    background-color: var(--row-error);
+    border-color: var(--row-error-strong) !important;
 }
 
 .bg-warning-soft {
-    background-color: #fef3c7;
-    border-color: #fcd34d !important;
+    background-color: var(--row-warning);
+    border-color: var(--row-warning-strong) !important;
 }
 
 .legend-text {
-    font-size: 0.85rem;
+    font-size: var(--fs-sm);
     font-weight: 500;
-    color: #495057;
+    color: var(--secondary-strong);
+    min-width: 0;
 }

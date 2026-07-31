@@ -1,90 +1,86 @@
-﻿@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs
 
-@if (IsVisible)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-            <div class="modal-content shadow-lg">
-                <div class="modal-header bg-light">
-                    <h5 class="modal-title">Konfiguracja Kurierów</h5>
-                    <button type="button" class="btn-close" @onclick="HandleCancel" disabled="@IsLoading"></button>
-                </div>
-                <div class="modal-body position-relative">
-                    @if (IsLoading)
-                    {
-                        <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index: 10;">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Ładowanie...</span>
-                            </div>
-                        </div>
-                    }
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Kurier</th>
-                                    <th>Automatyczne generowanie FV</th>
-                                    <th>Generowanie FV Start/Koniec (HH:mm:ss)</th>
-                                    <th>Waga PL (Dół/Góra)</th>
-                                    <th>Waga Exp (Dół/Góra)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var config in Configurations)
-                                {
-                                    <tr>
-                                        <td class="fw-bold">@config.Courier</td>
-                                        <td>
-                                            <div class="form-check form-switch">
-                                                <input class="form-check-input" type="checkbox" @bind="config.AutomaticFvGeneration" disabled="@IsLoading">
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="input-group input-group-sm">
-                                                <input type="time" step="1" class="form-control"
-                                                       value="@(config.AutomaticFvStart?.ToString(@"hh\:mm\:ss"))"
-                                                       @onchange="@(e => config.AutomaticFvStart = HandleTimeChange(e.Value))"
-                                                       disabled="@IsLoading" />
+@*
+    Per-courier settings: automatic invoice generation window and the weight
+    thresholds that decide bottom/top packing level. Edits mutate the supplied
+    list in place; the host persists them in its OnConfirm callback.
+*@
 
-                                                <input type="time" step="1" class="form-control"
-                                                       value="@(config.AutomaticFvEnd?.ToString(@"hh\:mm\:ss"))"
-                                                       @onchange="@(e => config.AutomaticFvEnd = HandleTimeChange(e.Value))"
-                                                       disabled="@IsLoading" />
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="input-group input-group-sm">
-                                                <input type="number" class="form-control" @bind="config.WeightBottomPL" step="0.01" disabled="@IsLoading" />
-                                                <input type="number" class="form-control" @bind="config.WeightUpPL" step="0.01" disabled="@IsLoading" />
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="input-group input-group-sm">
-                                                <input type="number" class="form-control" @bind="config.WeightBottomExport" step="0.01" disabled="@IsLoading" />
-                                                <input type="number" class="form-control" @bind="config.WeightUpExport" step="0.01" disabled="@IsLoading" />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-outline-secondary" @onclick="HandleCancel" disabled="@IsLoading">Anuluj</button>
-                    <button type="button" class="btn btn-primary" @onclick="HandleConfirm" disabled="@IsLoading">
-                        @if (IsLoading)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        }
-                        <i class="bi bi-save"></i> Zapisz zmiany
-                    </button>
-                </div>
+<AppModal IsVisible="IsVisible" Title="Konfiguracja kurierów" Icon="bi bi-gear" Size="xl"
+          FlushBody="true" FooterAlignEnd="true" OnClose="HandleCancel">
+    <ChildContent>
+        @if (IsLoading)
+        {
+            <div class="app-overlay app-overlay--local">
+                <div class="app-spinner"></div>
             </div>
-        </div>
-    </div>
-}
+        }
+
+        <table class="app-table app-table--striped courier-config__table">
+            <thead>
+                <tr>
+                    <th>Kurier</th>
+                    <th>Auto. FV</th>
+                    <th>Generowanie FV start / koniec</th>
+                    <th>Waga PL (dół / góra)</th>
+                    <th>Waga Exp (dół / góra)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var config in Configurations)
+                {
+                    <tr @key="config.Courier">
+                        <td class="fw-bold">@config.Courier</td>
+                        <td>
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" @bind="config.AutomaticFvGeneration" disabled="@IsLoading" />
+                            </div>
+                        </td>
+                        <td>
+                            <div class="input-group input-group-sm">
+                                <input type="time" step="1" class="form-control"
+                                       value="@(config.AutomaticFvStart?.ToString(@"hh\:mm\:ss"))"
+                                       @onchange="@(e => config.AutomaticFvStart = ParseTime(e.Value))"
+                                       disabled="@IsLoading" />
+                                <input type="time" step="1" class="form-control"
+                                       value="@(config.AutomaticFvEnd?.ToString(@"hh\:mm\:ss"))"
+                                       @onchange="@(e => config.AutomaticFvEnd = ParseTime(e.Value))"
+                                       disabled="@IsLoading" />
+                            </div>
+                        </td>
+                        <td>
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control" @bind="config.WeightBottomPL" step="0.01" disabled="@IsLoading" />
+                                <input type="number" class="form-control" @bind="config.WeightUpPL" step="0.01" disabled="@IsLoading" />
+                            </div>
+                        </td>
+                        <td>
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control" @bind="config.WeightBottomExport" step="0.01" disabled="@IsLoading" />
+                                <input type="number" class="form-control" @bind="config.WeightUpExport" step="0.01" disabled="@IsLoading" />
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </ChildContent>
+
+    <Footer>
+        <button type="button" class="btn btn-outline-secondary" @onclick="HandleCancel" disabled="@IsLoading">Anuluj</button>
+        <button type="button" class="btn btn-primary" @onclick="HandleConfirm" disabled="@IsLoading">
+            @if (IsLoading)
+            {
+                <span class="app-spinner app-spinner--sm me-2"></span>
+            }
+            else
+            {
+                <i class="bi bi-save me-1"></i>
+            }
+            Zapisz zmiany
+        </button>
+    </Footer>
+</AppModal>
 
 @code {
     private bool IsVisible { get; set; }
@@ -109,7 +105,10 @@
         {
             IsLoading = true;
             await InvokeAsync(StateHasChanged);
-            if (OnConfirm != null) await OnConfirm.Invoke();
+
+            if (OnConfirm != null)
+                await OnConfirm.Invoke();
+
             IsVisible = false;
         }
         finally
@@ -124,17 +123,12 @@
         if (IsLoading)
             return;
 
-        if (OnCancel != null) await OnCancel.Invoke();
+        if (OnCancel != null)
+            await OnCancel.Invoke();
+
         IsVisible = false;
     }
 
-    private TimeSpan? HandleTimeChange(object? value)
-    {
-        if (value != null && TimeSpan.TryParse(value.ToString(), out var result))
-        {
-            return result;
-        }
-        return null;
-    }
-
+    private static TimeSpan? ParseTime(object? value)
+        => TimeSpan.TryParse(value?.ToString(), out var result) ? result : null;
 }

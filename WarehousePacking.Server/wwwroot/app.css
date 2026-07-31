@@ -1,41 +1,9 @@
+/* Base typography, brand colours, buttons and focus rings now live in
+   css/theme.css. This file keeps only page-specific and legacy styles. */
+
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     height: 100%;
 }
-
-a, .btn-link {
-    color: #006bb7;
-}
-
-.btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-.tall-btn {
-    height: 100px;
-    font-size: 1.2rem;
-    padding: 0.5rem 1rem;
-}
-
-.table-tall tr {
-    height: 60px;
-    vertical-align: middle;
-    font-size: 1rem;
-}
-
-.clickable-row {
-    cursor: pointer;
-}
-
-    .clickable-row:hover {
-        background-color: #f1f1f1;
-    }
 
 .full-height-page {
     padding: 0 !important;
@@ -289,15 +257,17 @@ h1:focus {
 
 .dashboard-roll-value {
     display: inline-block;
-    animation: dashboard-value-roll-up 220ms cubic-bezier(.22, .61, .36, 1);
+    animation: dashboard-value-roll-up 320ms cubic-bezier(.22, .61, .36, 1);
     animation-fill-mode: both;
     will-change: transform, opacity;
 }
 
+/* Gentle fade-and-rise. The old version snapped in at full opacity, which on a
+   wallboard updating every second read as a twitch rather than a transition. */
 @keyframes dashboard-value-roll-up {
     0% {
-        opacity: 1;
-        transform: translateY(6px);
+        opacity: 0;
+        transform: translateY(4px);
     }
 
     100% {
@@ -308,10 +278,6 @@ h1:focus {
 
 .dashboard-share-bar {
     transition: width 420ms ease;
-}
-
-.dashboard-share-cell {
-    vertical-align: middle;
 }
 
 .dashboard-share-wrap {
@@ -345,12 +311,24 @@ h1:focus {
     white-space: nowrap;
 }
 
+/* Slower and eased so rows glide instead of popping. Row background/colour
+   changes are transitioned too, so a status change fades rather than snaps. */
 .dashboard-row-enter {
-    animation: dashboard-row-enter 320ms ease-out;
+    animation: dashboard-row-enter 420ms cubic-bezier(.22, .61, .36, 1) both;
 }
 
 .dashboard-row-leave {
-    animation: dashboard-row-leave 320ms ease-in forwards;
+    animation: dashboard-row-leave 320ms cubic-bezier(.55, .06, .68, .19) forwards;
+}
+
+.dashboard-table tbody tr {
+    transition: background-color 320ms cubic-bezier(.22, .61, .36, 1);
+}
+
+/* Hint the compositor while a row is actually animating. */
+.dashboard-row-enter,
+.dashboard-row-leave {
+    will-change: transform, opacity;
 }
 
 /* Prevents the refresh button from resizing when the spinner loads */

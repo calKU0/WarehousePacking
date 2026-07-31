@@ -13,6 +13,7 @@
 @inject UserSessionService UserSession
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject ILogger<Dashboard> Logger
 @implements IAsyncDisposable
 
 <div class="dashboard-page" @ref="_dashboardRoot">
@@ -83,6 +84,12 @@
             @foreach (var panel in PanelOrder)
             {
                 <section class="dashboard-slide">
+                    @* Safety net for an unattended 24/7 wallboard: a render fault
+                       in one panel must not tear down the whole circuit and leave
+                       a dead screen until someone notices in the morning. The
+                       boundary is recovered on the next refresh tick. *@
+                    <ErrorBoundary @ref="_panelBoundaries[panel]">
+                        <ChildContent>
                     @switch (panel)
                     {
                         case DashboardPanel.Picking:
@@ -120,6 +127,15 @@
                             <DashboardStockingPanel />
                             break;
                     }
+                        </ChildContent>
+                        <ErrorContent>
+                            <div class="app-empty h-100">
+                                <i class="bi bi-exclamation-triangle app-empty__icon"></i>
+                                <p class="app-empty__title">Chwilowy problem z danymi panelu</p>
+                                <p class="app-empty__text">Panel odbuduje się przy następnym odświeżeniu.</p>
+                            </div>
+                        </ErrorContent>
+                    </ErrorBoundary>
                 </section>
             }
         </div>
@@ -127,6 +143,13 @@
 </div>
 
 @code {
+    /// <summary>
+    /// One error boundary per panel, so a fault is contained to its own slide.
+    /// Recovered on every refresh tick — a transient data glitch must not leave
+    /// the wallboard dead until morning.
+    /// </summary>
+    private readonly Dictionary<DashboardPanel, ErrorBoundary?> _panelBoundaries = new();
+
     private DashboardSettings _settings = new();
     private DashboardColorConfiguration ColorConfig = new();
     private DashboardPanel[] PanelOrder = Array.Empty<DashboardPanel>();
@@ -195,7 +218,18 @@
             return;
         }
 
-        ColorConfig = await DashboardService.GetColorConfiguration();
+        // Colour config is presentation-only. If the API is unavailable (nightly
+        // maintenance is the usual cause) the dashboard must still come up with
+        // defaults rather than failing initialisation and killing the circuit.
+        try
+        {
+            ColorConfig = await DashboardService.GetColorConfiguration();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not load dashboard colour configuration; using defaults.");
+        }
+
         _settings = workstationSettings.DashboardSettings;
 
         PanelOrder = _settings.Panels
@@ -252,7 +286,21 @@
 
     private void HandleClockTick()
     {
-        _ = InvokeAsync(OnTickAsync);
+        // Fire-and-forget from a timer: anything escaping here would surface as
+        // an unhandled error and kill the circuit, leaving the wallboard dead
+        // until someone reloads it. The dashboard is read-only, so a failed
+        // tick is logged and the previous data simply stays on screen.
+        _ = InvokeAsync(async () =>
+        {
+            try
+            {
+                await OnTickAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Dashboard tick failed; keeping the last known data on screen.");
+            }
+        });
     }
 
     private async Task OnTickAsync()
@@ -359,7 +407,7 @@
                 return;
             }
 
-            ColorConfig = await DashboardService.GetColorConfiguration();
+            ColorConfig = await DashboardService.GetColorConfiguration() ?? ColorConfig;
 
             if (ActivePanel == DashboardPanel.Picking)
             {
@@ -385,6 +433,18 @@
             {
                 await LoadReceivingDataAsync(force);
             }
+
+            // Give a panel that previously faulted a chance to render again now
+            // that fresh data has arrived.
+            RecoverPanelBoundary(ActivePanel);
+        }
+        catch (Exception ex)
+        {
+            // The backing API/DB is periodically unavailable (nightly maintenance
+            // windows are the common case). A read-only wallboard should ride
+            // that out showing stale data and retry on the next tick, never take
+            // the whole circuit down.
+            Logger.LogWarning(ex, "Dashboard refresh failed for panel {Panel}; retrying on the next tick.", ActivePanel);
         }
         finally
         {
@@ -434,6 +494,7 @@
                 Types = [WarehouseDocumentType.IssueOrder],
                 Statuses =
                 [
+                    WarehouseTaskStatus.New,
                     WarehouseTaskStatus.InExecution,
                     WarehouseTaskStatus.Processing,
                     WarehouseTaskStatus.ReadyForExecution
@@ -648,6 +709,14 @@
             {
                 await InvokeAsync(StateHasChanged);
             }
+        }
+    }
+
+    private void RecoverPanelBoundary(DashboardPanel panel)
+    {
+        if (_panelBoundaries.TryGetValue(panel, out var boundary))
+        {
+            boundary?.Recover();
         }
     }
 

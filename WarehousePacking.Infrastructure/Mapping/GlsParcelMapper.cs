@@ -36,7 +36,9 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
                     cod_amount = (float)package.ShipmentServices.CODAmount,
                     cod_amountSpecified = package.ShipmentServices.COD,
                     s10Specified = package.ShipmentServices.D10,
+                    s10 = package.ShipmentServices.D10,
                     s12Specified = package.ShipmentServices.D12,
+                    s12 = package.ShipmentServices.D12,
                     satSpecified = package.ShipmentServices.Saturday
                 }
             };

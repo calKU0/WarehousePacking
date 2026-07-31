@@ -10,9 +10,10 @@ namespace WarehousePacking.Server.Services
     {
         private readonly HttpClient _dbClient;
 
-        public DashboardService(IHttpClientFactory httpFactory)
+        public DashboardService(IHttpClientFactory httpFactory, ClientContext clientContext)
         {
             _dbClient = httpFactory.CreateClient("Database");
+            clientContext.Attach(_dbClient);
         }
 
         public async Task<List<JlData>?> GetJlsToPack(GetJlListRequest? request = null)

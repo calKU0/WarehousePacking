@@ -22,7 +22,8 @@ builder.Services.AddBlazoredLocalStorage();
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
 builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("Apis"));
 builder.Services.Configure<CrystalReportsOptions>(builder.Configuration.GetSection("CrystalReports"));
-builder.Services.AddTransient<DatabaseClientHeadersHandler>();
+// Identity (station + operator) attached to every API call, scoped per circuit.
+builder.Services.AddScoped<ClientContext>();
 
 // Database client
 builder.Services.AddHttpClient("Database", (serviceProvider, client) =>
@@ -32,8 +33,7 @@ builder.Services.AddHttpClient("Database", (serviceProvider, client) =>
     client.DefaultRequestHeaders.Add("Accept", "application/json");
     client.DefaultRequestHeaders.Add("X-Api-Key", settings.Database.ApiKey);
     client.Timeout = TimeSpan.FromSeconds(200);
-})
-.AddHttpMessageHandler<DatabaseClientHeadersHandler>();
+});
 
 // Scopes
 builder.Services.AddScoped<PrintAgentStatusService>();

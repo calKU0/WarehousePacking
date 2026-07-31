@@ -282,7 +282,7 @@
             _ = RemoveRowAsync(row);
         }
 
-        var orderedActive = latest.Select(x => CourierRows.First(r => string.Equals(r.Key, GetRowKey(x), StringComparison.OrdinalIgnoreCase))).ToList();
+        var orderedActive = latest.Select(x => CourierRows.FirstOrDefault(r => string.Equals(r.Key, GetRowKey(x), StringComparison.OrdinalIgnoreCase))).Where(r => r is not null)!.ToList();
         var leaving = CourierRows.Where(x => x.IsLeaving).ToList();
         CourierRows = orderedActive.Concat(leaving).ToList();
     }
@@ -397,7 +397,7 @@
             _ = RemoveLuRowAsync(row);
         }
 
-        var orderedActive = latest.Select(x => LuRows.First(r => string.Equals(r.Key, x.Key, StringComparison.OrdinalIgnoreCase))).ToList();
+        var orderedActive = latest.Select(x => LuRows.FirstOrDefault(r => string.Equals(r.Key, x.Key, StringComparison.OrdinalIgnoreCase))).Where(r => r is not null)!.ToList();
         var leaving = LuRows.Where(x => x.IsLeaving).ToList();
         LuRows = orderedActive.Concat(leaving).ToList();
     }

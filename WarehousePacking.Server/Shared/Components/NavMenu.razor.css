@@ -74,6 +74,10 @@ nav.flex-column {
 .top-row {
     height: 3.5rem;
     background-color: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.5rem;
 }
 
 .nav-link {
@@ -128,28 +132,49 @@ nav.flex-column {
     transition: opacity 0.2s ease;
 }
 
-/* Brand styling */
+/* Brand styling. The logo is a transparent PNG and sits directly on the
+   sidebar — no plate behind it. */
 .navbar-brand {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
+    width: 100%;
+    padding: 0;
+    margin: 0;
     color: white;
-    font-size: 1.1rem;
     text-decoration: none;
 }
 
-/* Brand icon */
-.brand-icon {
-    font-size: 1.5rem;
-    flex-shrink: 0;
+.brand-logo {
+    display: block;
+    width: auto;
+    object-fit: contain;
+    background: none;
+}
+
+/* Expanded: full wordmark. */
+.brand-logo--full {
+    height: 1.75rem;
+    max-width: 11rem;
+}
+
+/* Collapsed: just the "G" mark, which stays legible at rail width. */
+.brand-logo--mark {
+    display: none;
+    height: 2rem;
+    max-width: 2.25rem;
+}
+
+.sidebar.collapsed .brand-logo--full {
+    display: none;
+}
+
+.sidebar.collapsed .brand-logo--mark {
+    display: block;
 }
 
 /* Hide text when collapsed */
 .sidebar.collapsed .nav-text {
-    display: none;
-}
-
-.sidebar.collapsed .brand-text {
     display: none;
 }
 
@@ -172,9 +197,6 @@ nav.flex-column {
     cursor: pointer;
 }
 
-.navbar-brand {
-    font-size: 1.1rem;
-}
 
 .bi {
     display: inline-block;

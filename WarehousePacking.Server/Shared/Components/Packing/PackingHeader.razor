@@ -1,59 +1,111 @@
-﻿@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs
 @using WarehousePacking.Server.Helpers
 @using WarehousePacking.Server.Shared.Components.Modals
 @using WarehousePacking.Contracts.Data.Enums
 
-<div class="d-flex align-items-center mb-3 header-row w-100">
-    @if (JlItems != null && JlItems.Any() && CurrentJl.DestinationCountry != "PL" && CurrentJl.Courier != Courier.MIX && CurrentJl.DestinationCountry != string.Empty)
-    {
-        <div class="header-image-placeholder me-2">
-            <img src="images/exp.jpg" alt="Export" />
-        </div>
-    }
+@*
+    Compact identity strip for the packing screen: who is packing, what is being
+    packed, and where it is going. Kept to a single row so the tables below get
+    the maximum possible height on a 1024x768 panel.
+*@
 
-    @if (CurrentJl != null && CurrentJl.Courier != Courier.Unknown)
-    {
-        <div class="header-image-placeholder me-3">
-            <img src="@CourierHelper.GetCourierLogo(CurrentJl.ShipmentServices, CurrentJl.Courier)" alt="@CurrentJl.Courier.GetDescription()" />
-        </div>
-    }
+<header class="pack-header">
+    <div class="pack-header__identity">
+        <div class="pack-header__badges">
+            @if (ShowExportBadge)
+            {
+                <div class="app-thumb app-thumb--wide" title="Wysyłka eksportowa">
+                    <img src="images/exp.jpg" alt="Eksport" />
+                </div>
+            }
 
-    <div class="me-3">
-        @if ((ActiveOperators?.Count ?? 0) <= 1)
-        {
-            <h4>Operator: @Username</h4>
-        }
-        else
-        {
-            <small class="d-block">Główny operator: @MainOperator</small>
-            <small class="d-block">Operatorzy: @string.Join(", ", ActiveOperators)</small>
-        }
+            @if (HasCourier)
+            {
+                <div class="app-thumb app-thumb--wide" title="@CurrentJl!.Courier.GetDescription()">
+                    @if (!string.IsNullOrWhiteSpace(CourierLogo))
+                    {
+                        <img src="@CourierLogo" alt="@CurrentJl.Courier.GetDescription()" />
+                    }
+                    else
+                    {
+                        @* Couriers without a logo file (e.g. MIX) fall back to a
+                           generic icon instead of an empty box. *@
+                        <i class="bi bi-truck text-secondary fs-5"></i>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="pack-header__info">
+            @if (IsCollaborative)
+            {
+                <span class="app-chip" title="Główny operator">
+                    <i class="bi bi-person-check text-primary"></i>
+                    <span class="app-chip__value">@MainOperator</span>
+                </span>
+                <span class="app-chip" title="@OperatorsTitle">
+                    <i class="bi bi-people text-primary"></i>
+                    <span class="app-chip__label">Operatorzy</span>
+                    <span class="app-chip__value">@ActiveOperators!.Count</span>
+                </span>
+            }
+            else
+            {
+                <span class="app-chip">
+                    <i class="bi bi-person-badge text-primary"></i>
+                    <span class="app-chip__label">Operator</span>
+                    <span class="app-chip__value">@Username</span>
+                </span>
+            }
+
+            @if (HasClient)
+            {
+                <span class="app-chip app-chip--brand">
+                    <i class="bi bi-building"></i>
+                    <span class="app-chip__label">Klient</span>
+                    <span class="app-chip__value">@CurrentJl!.ClientSymbol</span>
+                </span>
+            }
+        </div>
     </div>
 
-    <div class="flex-grow-1 text-center">
-        <h2 class="scan-blink">Zeskanuj Towar</h2>
-    </div>
-
-    <div class="d-flex align-items-center ms-auto">
-        @if (CurrentJl != null)
-        {
-            <h4 class="me-3">Klient: @CurrentJl.ClientSymbol</h4>
-        }
+    <div class="pack-header__actions">
         <ManagerControlModal OnButtonClick="OnManagerClick"
                              OnRequestPassword="OnManagerRequestPassword"
                              ShowPackingButtons="true"
                              @ref="ManagerModal" />
     </div>
-</div>
+</header>
 
 @code {
-    [Parameter] public List<JlItemDto> JlItems { get; set; }
-    [Parameter] public JlData CurrentJl { get; set; }
-    [Parameter] public string Username { get; set; }
+    [Parameter] public List<JlItemDto>? JlItems { get; set; }
+    [Parameter] public JlData? CurrentJl { get; set; }
+    [Parameter] public string Username { get; set; } = string.Empty;
     [Parameter] public EventCallback<int> OnManagerClick { get; set; }
     [Parameter] public EventCallback OnManagerRequestPassword { get; set; }
     [Parameter] public bool IsMainOperator { get; set; }
     [Parameter] public string MainOperator { get; set; } = string.Empty;
     [Parameter] public List<string> ActiveOperators { get; set; } = new();
+
     public ManagerControlModal? ManagerModal { get; private set; }
+
+    private bool IsCollaborative => (ActiveOperators?.Count ?? 0) > 1;
+
+    private bool HasCourier => CurrentJl is not null && CurrentJl.Courier != Courier.Unknown;
+
+    private string CourierLogo => CurrentJl is null
+        ? string.Empty
+        : CourierHelper.GetCourierLogo(CurrentJl.ShipmentServices, CurrentJl.Courier);
+
+    private bool HasClient => !string.IsNullOrWhiteSpace(CurrentJl?.ClientSymbol);
+
+    private string OperatorsTitle => string.Join(", ", ActiveOperators ?? new List<string>());
+
+    // Export shipments get a visual flag so the operator adds the right paperwork.
+    private bool ShowExportBadge =>
+        JlItems is { Count: > 0 }
+        && CurrentJl is not null
+        && CurrentJl.Courier != Courier.MIX
+        && !string.IsNullOrEmpty(CurrentJl.DestinationCountry)
+        && CurrentJl.DestinationCountry != "PL";
 }

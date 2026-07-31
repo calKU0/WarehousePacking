@@ -4,24 +4,41 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#512bd4" />
+    <meta name="theme-color" content="#f9c211" />
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="images/icons/icon-192.png">
     <base href="/" />
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="WarehousePacking.Server.styles.css" />
-    <link rel="stylesheet" href="app.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+
+    @* Single UI typeface — Inter. Falls back to Segoe UI/system if it can't
+       load (e.g. an offline station).
+       display=optional (not swap) on purpose: `swap` re-flows every piece of
+       text the moment the webfont arrives, which is the one-off "jump" seen on
+       a cold cache. `optional` never swaps mid-page, so layout is stable; the
+       font is used from the cache on every subsequent load. *@
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=optional" rel="stylesheet">
+
+    @* Cascade order matters: vendor -> design tokens -> components -> page styles -> scoped.
+       Bootstrap must come first so our theme can override its component variables. *@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/theme.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/components.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="app.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="WarehousePacking.Server.styles.css?v=@AssetVersion" />
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/session.js"></script>
-    <script src="js/printer.js"></script>
-    <script src="js/fullscreen.js"></script>
-    <script src="js/activityTracker.js"></script>
-    <script src="js/autoScroller.js"></script>
+    <script src="js/utils.js?v=@AssetVersion"></script>
+    <script src="js/session.js?v=@AssetVersion"></script>
+    <script src="js/printer.js?v=@AssetVersion"></script>
+    <script src="js/fullscreen.js?v=@AssetVersion"></script>
+    <script src="js/activityTracker.js?v=@AssetVersion"></script>
+    <script src="js/autoScroller.js?v=@AssetVersion"></script>
+    <script src="js/appDialog.js?v=@AssetVersion"></script>
+    <script src="js/scanFocus.js?v=@AssetVersion"></script>
     <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 </head>
 
@@ -38,3 +55,32 @@
 </body>
 
 </html>
+
+@code {
+    // Cache-busting stamp for our own static assets.
+    //
+    // Kiosk browsers and PWAs hold on to CSS aggressively: after a deploy they
+    // kept serving a stale app.css, which re-applied styles that had already
+    // been deleted (old blue buttons and focus rings reappearing on top of the
+    // new theme). Tying the query string to the build makes every deploy fetch
+    // fresh files, while still allowing normal caching between deploys.
+    private static readonly string AssetVersion = ResolveAssetVersion();
+
+    private static string ResolveAssetVersion()
+    {
+        try
+        {
+            var location = typeof(App).Assembly.Location;
+            if (!string.IsNullOrEmpty(location) && File.Exists(location))
+            {
+                return File.GetLastWriteTimeUtc(location).Ticks.ToString("x");
+            }
+        }
+        catch
+        {
+            // Fall through to a per-process stamp.
+        }
+
+        return Guid.NewGuid().ToString("N")[..8];
+    }
+}
