@@ -1,4 +1,5 @@
 @inject IJSRuntime JSRuntime
+@inherits ModalBase<string>
 
 @*
     Disambiguates a scanned product code that exists in more than one JL.
@@ -34,35 +35,32 @@
                        autofocus />
             </div>
         </div>
+
+        @* Kept inside the dialog so its close button stays interactive while the modal is open. *@
+        <Toast @ref="Toast" />
     </ChildContent>
 
 
     <Footer>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Zamknij</button>
         <button type="button"
                 class="btn btn-primary"
-                style="flex: 7;"
                 disabled="@string.IsNullOrWhiteSpace(SelectedJl)"
-                @onclick="Confirm">
+                @onclick="() => Confirm(SelectedJl)">
             Potwierdź
         </button>
-        <button type="button" class="btn btn-secondary" style="flex: 3;" @onclick="Cancel">Anuluj</button>
     </Footer>
 </AppModal>
 
-<Toast @ref="Toast" />
-
 @code {
     private ElementReference _scanInputRef;
-    private TaskCompletionSource<string?>? _tcs;
-    private bool _shouldFocus;
+    private Toast Toast = new();
 
     private string SelectedJl { get; set; } = string.Empty;
     private string ScanValue { get; set; } = string.Empty;
-    private Toast Toast = new();
 
     public string Title { get; set; } = "Wybierz kuwetę";
     public string Message { get; set; } = "Towar znajduje się w więcej niż jednej kuwecie. Wybierz kuwetę.";
-    public bool IsVisible { get; set; }
     public List<(string JlCode, string JlEanCode)> JlCodes { get; set; } = new();
 
     public Task<string?> ShowAsync(List<(string JlCode, string JlEanCode)> jlCodes, string scannedCode)
@@ -71,37 +69,13 @@
         SelectedJl = string.Empty;
         ScanValue = string.Empty;
         Message = $"Kod {scannedCode} znajduje się w więcej niż jednej kuwecie. Wybierz kuwetę.";
-        IsVisible = true;
-        _shouldFocus = true;
-        StateHasChanged();
 
-        _tcs = new TaskCompletionSource<string?>();
-        return _tcs.Task;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (_shouldFocus)
-        {
-            _shouldFocus = false;
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", _scanInputRef);
-        }
+        return OpenAsync();
     }
 
     private void HandleSelectChanged(ChangeEventArgs e)
     {
         SelectedJl = e.Value?.ToString() ?? string.Empty;
-        StateHasChanged();
-    }
-
-    private void Confirm() => Close(SelectedJl);
-
-    private void Cancel() => Close(null);
-
-    private void Close(string? result)
-    {
-        _tcs?.TrySetResult(result);
-        IsVisible = false;
         StateHasChanged();
     }
 
@@ -122,6 +96,6 @@
         }
 
         SelectedJl = match.JlCode;
-        Confirm();
+        Confirm(SelectedJl);
     }
 }

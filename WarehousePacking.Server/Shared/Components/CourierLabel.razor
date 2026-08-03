@@ -1,0 +1,56 @@
+@using WarehousePacking.Contracts.Data.Enums
+@using WarehousePacking.Server.Helpers
+
+@*
+    Carrier shown as a small logo tile plus its name. Use anywhere a courier is
+    listed or picked so the operator recognises it at a glance instead of reading
+    a word. Accepts either the Courier enum or a raw courier name (some records
+    only carry the name); falls back to a generic truck glyph when no logo file
+    exists.
+*@
+
+<span class="courier-label">
+    <span class="courier-label__logo">
+        @if (!string.IsNullOrEmpty(_logo))
+        {
+            <img src="@_logo" alt="@DisplayName" />
+        }
+        else
+        {
+            <i class="bi bi-truck" aria-hidden="true"></i>
+        }
+    </span>
+    <span class="courier-label__name">@DisplayName</span>
+</span>
+
+@code {
+    /// <summary>The carrier as an enum. Leave unset to resolve from <see cref="Name"/>.</summary>
+    [Parameter] public Courier? Courier { get; set; }
+
+    /// <summary>Raw carrier name, used when no enum is supplied (and preferred for display when given).</summary>
+    [Parameter] public string? Name { get; set; }
+
+    private Courier _resolved;
+    private string _logo = string.Empty;
+
+    private string DisplayName => !string.IsNullOrWhiteSpace(Name) ? Name! : _resolved.GetDescription();
+
+    protected override void OnParametersSet()
+    {
+        // An explicit enum wins; otherwise resolve from the raw name, trying the
+        // name as a logo file directly before the fuzzy enum match so freight
+        // carriers (Raben, Suus, …) still get their logo.
+        if (Courier is { } c && c != WarehousePacking.Contracts.Data.Enums.Courier.Unknown)
+        {
+            _resolved = c;
+            _logo = CourierHelper.GetCourierLogo(null, c);
+        }
+        else
+        {
+            _resolved = string.IsNullOrWhiteSpace(Name)
+                ? WarehousePacking.Contracts.Data.Enums.Courier.Unknown
+                : CourierHelper.GetCourierFromName(Name);
+            _logo = CourierHelper.GetCourierLogoByName(Name);
+        }
+    }
+}

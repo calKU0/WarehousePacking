@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
 using WarehousePacking.Contracts.Data.Enums;
 using WarehousePacking.Contracts.DTOs;
 using WarehousePacking.Contracts.DTOs.Requests;
@@ -112,14 +113,6 @@ namespace WarehousePacking.Server.Shared.Base
             }
         }
 
-        protected override async Task OnAfterRenderAsync(bool firstRender)
-        {
-            if (firstRender)
-            {
-                await ScanInputComponent.FocusAsync();
-            }
-        }
-
         protected virtual async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
         {
             var uri = Navigation.ToBaseRelativePath(Navigation.Uri);
@@ -128,6 +121,22 @@ namespace WarehousePacking.Server.Shared.Base
                 await CollaborationService.LeaveSessionAsync(PackageId, UserSession.Username, closeSession: false);
                 _locationCleanupDone = true;
             }
+        }
+
+        /// <summary>
+        /// Applies a change to the two packing lists and re-renders.
+        ///
+        /// This used to wrap the change in a View Transition so the moved row
+        /// morphed between the tables. On Blazor Server the DOM update lands
+        /// asynchronously over the circuit, so the transition parked waiting for
+        /// it and held a frozen snapshot over the whole page for seconds on every
+        /// pack. The per-row entrance animations in PackingTables give the
+        /// movement cue instead, and cost nothing.
+        /// </summary>
+        protected Task AnimateListChangeAsync(Action apply)
+        {
+            apply();
+            return InvokeAsync(StateHasChanged);
         }
 
         public virtual void Dispose()

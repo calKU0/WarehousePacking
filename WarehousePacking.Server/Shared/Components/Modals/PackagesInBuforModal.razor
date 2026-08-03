@@ -61,7 +61,6 @@
     private int? SelectedPackage;
     private string ScanInput = string.Empty;
     private ElementReference InputRef;
-    private bool PendingFocus;
 
     /// <summary>
     /// True when the operator dismissed the dialog outright (as opposed to
@@ -78,19 +77,9 @@
 
         IsVisible = true;
         await InvokeAsync(StateHasChanged); // ensure render scheduled
-        PendingFocus = true;
         _tcs = new TaskCompletionSource<PackageSelectionResult?>();
 
         return await _tcs.Task;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (PendingFocus && IsVisible)
-        {
-            PendingFocus = false;
-            await InputRef.FocusAsync();
-        }
     }
 
     private void OnScanKeyDown(KeyboardEventArgs e)

@@ -127,8 +127,8 @@
                                             <span>Inne (@FormatHelper.FormatQuantity(OtherTasksTotalCount)/@FormatHelper.FormatQuantity(OtherDocumentsTotalCount))</span>
                                         </div>
                                     </th>
-                                    <th>Data zlc.</th>
-                                    <th>Operatorzy</th>
+                                    <!-- <th>Data zlc.</th> -->
+                                    <th class="dashboard-operators-cell">Operatorzy</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -138,7 +138,7 @@
                                         <td colspan="9" class="text-center text-muted py-3">
                                             @if (IsLoading)
                                             {
-                                                <span>Ładowanie danych...</span>
+                                                <AppSpinner Size="lg" Label="Ładowanie danych..." Block="true" />
                                             }
                                             else
                                             {
@@ -207,26 +207,26 @@
                                                     <td>
                                                         <DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.OtherCount)" />
                                                     </td>
-                                                    <td>
+                                                    @* <td>
                                                         @if (row.OldestDocumentDate.Date < DateTime.Today)
                                                         {
                                                             <span class="text-danger fw-bold">Zaległe</span>
                                                         }
                                                         else if (row.OldestDocumentDate == row.LatestDocumentDate)
                                                         {
-                                                            @FormatHelper.ToLocalTime(row.OldestDocumentDate).ToLocalTime().ToString("HH:mm")
+                                                            @FormatHelper.ToLocalTime(row.OldestDocumentDate).ToString("HH:mm")
                                                         }
                                                         else
                                                         {
                                                             <span>
-                                                                @FormatHelper.ToLocalTime(row.OldestDocumentDate).ToLocalTime().ToString("HH:mm")
+                                                                @FormatHelper.ToLocalTime(row.OldestDocumentDate).ToString("HH:mm")
                                                                 /
-                                                                @FormatHelper.ToLocalTime(row.LatestDocumentDate).ToLocalTime().ToString("HH:mm")
+                                                                @FormatHelper.ToLocalTime(row.LatestDocumentDate).ToString("HH:mm")
                                                             </span>
                                                         }
                                                         
-                                                    </td>
-                                                    <td title="@row.OperatorsList">@row.OperatorsList</td>
+                                                    </td>  *@
+                                                    <td class="dashboard-operators-cell"><DashboardOperatorsCell Operators="@row.OperatorsList" /></td>
                                                 </tr>
                                             }
                                         }
@@ -262,7 +262,7 @@
                                         <td colspan="3" class="text-center text-muted py-3">
                                             @if (IsLoading)
                                             {
-                                                <span>Ładowanie danych...</span>
+                                                <AppSpinner Size="lg" Label="Ładowanie danych..." Block="true" />
                                             }
                                             else
                                             {

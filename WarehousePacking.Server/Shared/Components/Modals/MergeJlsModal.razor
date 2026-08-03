@@ -45,10 +45,8 @@
     </ChildContent>
 
     <Footer>
-        <button type="button" class="btn btn-primary" style="flex: 6;" @onclick="Confirm">
-            Połącz zaznaczone kuwety
-        </button>
-        <button type="button" class="btn btn-outline-secondary" style="flex: 3;" @onclick="PrintList" disabled="@IsPrinting">
+        <button type="button" class="btn btn-secondary" @onclick="SkipMerge">Nie łącz kuwet</button>
+        <button type="button" class="btn btn-secondary" @onclick="PrintList" disabled="@IsPrinting">
             @if (IsPrinting)
             {
                 <span class="app-spinner app-spinner--sm me-2"></span>
@@ -59,7 +57,7 @@
             }
             Drukuj listę
         </button>
-        <button type="button" class="btn btn-secondary" style="flex: 3;" @onclick="SkipMerge">Nie łącz kuwet</button>
+        <button type="button" class="btn btn-primary" @onclick="Confirm">Połącz zaznaczone kuwety</button>
     </Footer>
 </AppModal>
 

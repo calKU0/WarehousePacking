@@ -9,9 +9,9 @@
 
 
     <Footer>
+        <button type="button" class="btn btn-secondary" disabled="@IsProcessing" @onclick="OnCancel">Zamknij</button>
         <button type="button"
                 class="btn btn-danger"
-                style="flex: 7;"
                 disabled="@IsProcessing"
                 @onclick="OnConfirm">
             @if (IsProcessing)
@@ -24,7 +24,6 @@
                 <span>Potwierdź</span>
             }
         </button>
-        <button type="button" class="btn btn-secondary" style="flex: 3;" @onclick="OnCancel">Anuluj</button>
     </Footer>
 </AppModal>
 

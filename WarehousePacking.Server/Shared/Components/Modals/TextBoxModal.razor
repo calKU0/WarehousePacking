@@ -1,10 +1,11 @@
 @inject IJSRuntime JSRuntime
+@inherits ModalBase<string>
 
 @*
     Single-field text prompt. Returns the entered value, or null if dismissed.
 *@
 
-<AppModal IsVisible="IsVisible" Title="@Title" Icon="bi bi-pencil-square" OnClose="Close">
+<AppModal IsVisible="IsVisible" Title="@Title" Icon="bi bi-pencil-square" OnClose="Cancel">
     <ChildContent>
         @if (!string.IsNullOrWhiteSpace(Message))
         {
@@ -24,8 +25,8 @@
 
 
     <Footer>
-        <button type="button" class="btn btn-primary" style="flex: 7;" @onclick="Confirm">Potwierdź</button>
-        <button type="button" class="btn btn-secondary" style="flex: 3;" @onclick="Close">Anuluj</button>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Zamknij</button>
+        <button type="button" class="btn btn-primary" @onclick="() => Confirm(InputValue)">Potwierdź</button>
     </Footer>
 </AppModal>
 
@@ -34,14 +35,10 @@
     [Parameter] public string Message { get; set; } = "Wiadomość";
     [Parameter] public string InputPlaceholder { get; set; } = "Wprowadź tekst...";
     [Parameter] public string InputType { get; set; } = "text";
-    [Parameter] public EventCallback OnClose { get; set; }
 
-    public bool IsVisible { get; set; }
     public string InputValue { get; set; } = string.Empty;
 
     private ElementReference _inputRef;
-    private TaskCompletionSource<string?>? _tcs;
-    private bool _shouldFocus;
 
     public Task<string?> Show(string? title = null, string? message = null, string? placeholder = null, string inputType = "text")
     {
@@ -51,47 +48,12 @@
         InputType = string.IsNullOrWhiteSpace(inputType) ? "text" : inputType;
 
         InputValue = string.Empty;
-        IsVisible = true;
-        _shouldFocus = true;
-        StateHasChanged();
 
-        _tcs = new TaskCompletionSource<string?>();
-        return _tcs.Task;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (_shouldFocus)
-        {
-            _shouldFocus = false;
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", _inputRef);
-        }
-    }
-
-    private void Confirm()
-    {
-        _tcs?.TrySetResult(InputValue);
-        Close();
-    }
-
-    /// <summary>
-    /// Also the dismiss path: any still-pending caller is completed with null
-    /// so awaiting code never hangs.
-    /// </summary>
-    private void Close()
-    {
-        _tcs?.TrySetResult(null);
-
-        InputValue = string.Empty;
-        IsVisible = false;
-        StateHasChanged();
+        return OpenAsync();
     }
 
     private void HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter")
-        {
-            Confirm();
-        }
+        if (e.Key == "Enter") Confirm(InputValue);
     }
 }

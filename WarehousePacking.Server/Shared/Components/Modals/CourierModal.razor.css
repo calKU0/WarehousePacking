@@ -1,0 +1,5 @@
+.courier-modal__option {
+    justify-content: flex-start;
+    width: 100%;
+    min-height: var(--touch);
+}

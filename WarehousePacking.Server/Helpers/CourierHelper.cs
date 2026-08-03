@@ -80,6 +80,25 @@ namespace WarehousePacking.Server.Helpers
             return TryGetImagePath(basePath, courierName, wwwRoot);
         }
 
+        /// <summary>
+        /// Resolves a logo from a raw courier name. Tries the name as a logo
+        /// file directly first (covers carriers whose stored name already matches
+        /// a file, e.g. "Raben", "Suus"), then falls back to the fuzzy
+        /// name-to-enum match. Returns empty when nothing fits.
+        /// </summary>
+        public static string GetCourierLogoByName(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return string.Empty;
+
+            string wwwRoot = Path.Combine(Environment.CurrentDirectory, "wwwroot");
+            var direct = TryGetImagePath("images/couriers/", name.Replace(":", "").Trim(), wwwRoot);
+            if (!string.IsNullOrEmpty(direct))
+                return direct;
+
+            return GetCourierLogo(null, GetCourierFromName(name));
+        }
+
         private static string TryGetImagePath(string basePath, string fileName, string wwwRoot)
         {
             string[] extensions = { ".png", ".jpg" };

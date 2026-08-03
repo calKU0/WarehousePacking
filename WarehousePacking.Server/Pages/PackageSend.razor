@@ -93,17 +93,9 @@
             <div class="row g-3 mt-3 mb-4 align-items-center">
                 <div class="col-md-3">
                     <label class="form-label fw-bold">Kurier</label>
-                    <InputSelect TValue="Courier"
-                                 Value="Package.Courier"
-                                 ValueChanged="@(courier => OnCourierChanged(courier))"
-                                 ValueExpression="() => Package.Courier"
-                                 class="form-select"
-                                 disabled="@(!Package.ManualEdit)">
-                        @foreach (var courier in Enum.GetValues<Courier>())
-                        {
-                            <option value="@courier">@courier.GetDescription()</option>
-                        }
-                    </InputSelect>
+                    <CourierSelect Value="Package.Courier"
+                                   ValueChanged="OnCourierChanged"
+                                   Disabled="@(!Package.ManualEdit)" />
                 </div>
 
                 @* Fixed-size slot: the logo box reserves its space up front so
@@ -168,7 +160,7 @@
             <!-- Services Card -->
             <div class="app-card p-4 mb-4">
                 <h6 class="app-section-label mb-3">Usługi dodatkowe</h6>
-                <div class="row row-cols-2 row-cols-md-2 g-2">
+                <div class="ps-services">
                     <div class="form-check">
                         <InputCheckbox @bind-Value="Package.ShipmentServices.POD"
                                        class="form-check-input"
@@ -225,7 +217,7 @@
                 <h6 class="app-section-label mb-3">Opcje dodatkowe</h6>
                 <div class="form-check mb-4">
                     <InputCheckbox @bind-Value="Package.ManualEdit" class="form-check-input" />
-                    <label class="form-check-label text-danger fw-bold">Modyfikuj dane ręcznie</label>
+                    <label class="form-check-label text-danger fw-bold">Modyfikuj dane</label>
                 </div>
 
                 <div class="d-flex flex-column gap-2 mb-4">
@@ -234,35 +226,15 @@
                 </div>
 
                 <div class="d-flex flex-column gap-2 mb-4">
-                    <button class="btn @(!RoutesStatus.DPDClosed ? "btn-dpd" : "btn-outline-dpd")"
-                            @onclick="() => CloseRoute(Courier.DPD)"
-                            disabled="@(RoutesStatus.DPDClosed || ClosingRoutes.Contains(Courier.DPD))">
-                        @if (ClosingRoutes.Contains(Courier.DPD))
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        }
-                        Zamknij Trasę DPD
-                    </button>
-
-                    <button class="btn @(!RoutesStatus.GLSClosed ? "btn-gls" : "btn-outline-gls")"
-                            @onclick="() => CloseRoute(Courier.GLS)"
-                            disabled="@(RoutesStatus.GLSClosed || ClosingRoutes.Contains(Courier.GLS))">
-                        @if (ClosingRoutes.Contains(Courier.GLS))
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        }
-                        Zamknij Trasę GLS
-                    </button>
-
-                    <button class="btn @(!RoutesStatus.FedexClosed ? "btn-fedex" : "btn-outline-fedex")"
-                            @onclick="() => CloseRoute(Courier.Fedex)"
-                            disabled="@(RoutesStatus.FedexClosed || ClosingRoutes.Contains(Courier.Fedex))">
-                        @if (ClosingRoutes.Contains(Courier.Fedex))
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        }
-                        Zamknij Trasę Fedex
-                    </button>
+                    <CourierRouteButton Courier="Courier.DPD" LogoSrc="@DpdLogo" Label="DPD"
+                                        Closed="RoutesStatus.DPDClosed" Busy="ClosingRoutes.Contains(Courier.DPD)"
+                                        OnClose="() => CloseRoute(Courier.DPD)" />
+                    <CourierRouteButton Courier="Courier.GLS" LogoSrc="@GlsLogo" Label="GLS"
+                                        Closed="RoutesStatus.GLSClosed" Busy="ClosingRoutes.Contains(Courier.GLS)"
+                                        OnClose="() => CloseRoute(Courier.GLS)" />
+                    <CourierRouteButton Courier="Courier.Fedex" LogoSrc="@FedexLogo" Label="Fedex"
+                                        Closed="RoutesStatus.FedexClosed" Busy="ClosingRoutes.Contains(Courier.Fedex)"
+                                        OnClose="() => CloseRoute(Courier.Fedex)" />
                 </div>
                 <div class="mb-4 d-flex flex-column">
                     <button class="btn @(Package.Id == 0 ? "btn-outline-info" : "btn-info")" disabled="@(Package.Id == 0)" @onclick=SendEmail>Wyślij mail do opiekuna</button>
@@ -272,9 +244,9 @@
     </div>
 </div>
 
-<Toast FocusAfterCloseInput="InputRef" @ref="Toast" />
+<Toast @ref="Toast" />
 <EmailModal @ref="EmailModal" />
-<ShipmentModal @ref="ShipmentModal" OnOk="OnShipmentOkClicked" />
+<ShipmentModal @ref="ShipmentModal" />
 <ConfirmDialog @ref="ConfirmDialog"/>
 <AddressInvoiceModal @ref="AddressInvoiceModal" OnConfirmed="OnAddressModalConfirmed" />
 <PackingListModal @ref="PackingListModal" OnSaveNumber="HandlePackingListSave" OnPrintLabel="HandlePackingListPrint" />
@@ -289,9 +261,15 @@
     private WorkstationSettings WorkstationSettings = new();
     private AppSettings AppSettings => AppOptions.Value;
     private ElementReference InputRef;
-    private string? _scanGuardId;
+    private int _scanHandle;
     private RoutesStatus RoutesStatus = new();
     private HashSet<Courier> ClosingRoutes = new();
+
+    // Plain carrier logos for the "Zamknij Trasę" buttons. Resolved once (the
+    // helper hits the disk), since they never change for the life of the page.
+    private static readonly string DpdLogo = CourierHelper.GetCourierLogo(null, Courier.DPD);
+    private static readonly string GlsLogo = CourierHelper.GetCourierLogo(null, Courier.GLS);
+    private static readonly string FedexLogo = CourierHelper.GetCourierLogo(null, Courier.Fedex);
 
     // Timer for checking closed routes
     private System.Threading.Timer? Timer;
@@ -338,7 +316,7 @@
             // Keeps the scanner field focused for the lifetime of the page, so
             // clicking buttons or dismissing modals never leaves the scanner
             // typing into nowhere.
-            _scanGuardId = await JSRuntime.InvokeAsync<string>("scanFocus.register", InputRef);
+            _scanHandle = await JSRuntime.InvokeAsync<int>("scanFocus.attach", InputRef);
         }
     }
 
@@ -390,7 +368,6 @@
                         finally
                         {
                             await ClearData();
-                            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
                         }
                     },
                     onCancel: async () =>
@@ -408,7 +385,6 @@
         finally
         {
             await InvokeAsync(StateHasChanged);
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
         }
     }
 
@@ -617,7 +593,6 @@
         finally
         {
             await ClearData();
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
         }
     }
 
@@ -634,7 +609,6 @@
         finally
         {
             await ClearData();
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
         }
     }
 
@@ -642,7 +616,6 @@
     {
         Package = new();
         Barcode = string.Empty;
-        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
         await InvokeAsync(StateHasChanged);
     }
 
@@ -769,11 +742,6 @@
         }
     }
 
-    private async Task OnShipmentOkClicked((string ScannedCode, string TrackingNumber) data)
-    {
-        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
-    }
-
     public async Task UpdateDimensions()
     {
         try
@@ -806,21 +774,21 @@
     {
         Timer?.Dispose();
 
-        if (_scanGuardId is not null)
+        if (_scanHandle != 0)
         {
             // The circuit is often already gone by the time Dispose runs, and an
             // unobserved JSDisconnectedException from a fire-and-forget interop
             // call surfaces as an unhandled circuit error. Swallow it explicitly.
-            _ = UnregisterScanGuardAsync(_scanGuardId);
-            _scanGuardId = null;
+            _ = DetachScanFocusAsync(_scanHandle);
+            _scanHandle = 0;
         }
     }
 
-    private async Task UnregisterScanGuardAsync(string guardId)
+    private async Task DetachScanFocusAsync(int handle)
     {
         try
         {
-            await JSRuntime.InvokeVoidAsync("scanFocus.unregister", guardId);
+            await JSRuntime.InvokeVoidAsync("scanFocus.detach", handle);
         }
         catch (JSDisconnectedException)
         {

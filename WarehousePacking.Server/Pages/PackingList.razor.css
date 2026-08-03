@@ -15,6 +15,19 @@
     width: 84px;
 }
 
+/* The order date is extra context that only earns its column on a full HD (or
+   larger) screen; on anything narrower it is hidden so the essential columns
+   keep their room. */
+.packing-list__date-col {
+    display: none;
+}
+
+@media (min-width: 1920px) {
+    .packing-list__date-col {
+        display: table-cell;
+    }
+}
+
 /* All seven columns must stay visible, so on anything below a wide desktop the
    table switches to its compact form rather than dropping information. */
 @media (max-width: 1399.98px) {

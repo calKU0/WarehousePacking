@@ -1,23 +1,23 @@
 @*
     Supervisor action panel, unlocked by password. The action ids are a
-    contract with the host page's HandleManagerClick switch — do not renumber.
+    actions are dispatched to the host page as ManagerAction values.
 *@
 
-<button type="button" class="btn btn-secondary manager-lock" @onclick="OnLockClick" title="Funkcje kierownika">
+<button type="button" class="btn btn-secondary btn-icon manager-lock" @onclick="OnLockClick" title="Funkcje kierownika">
     <i class="bi bi-lock"></i>
 </button>
 
 <AppModal IsVisible="IsOpen" Title="Przyciski kierownika" Icon="bi bi-sliders" Size="lg" OnClose="CloseModal">
     <ChildContent>
         <div class="manager-grid">
-            @foreach (var action in VisibleActions)
+            @foreach (var tile in VisibleActions)
             {
                 <button type="button"
                         class="btn btn-primary manager-grid__btn"
                         disabled="@IsLoading"
-                        @onclick="() => HandleClick(action.Id)">
-                    <i class="@action.Icon"></i>
-                    <span>@action.Label</span>
+                        @onclick="() => HandleClick(tile.Action)">
+                    <i class="@tile.Icon"></i>
+                    <span>@tile.Label</span>
                 </button>
             }
         </div>
@@ -31,37 +31,31 @@
 </AppModal>
 
 @code {
-    /// <summary>
-    /// A supervisor action. <paramref name="Id"/> is dispatched to the host page.
-    /// </summary>
-    private sealed record ManagerAction(int Id, string Label, string Icon, bool PackingOnly = false);
+    /// <summary>A tile on the panel; <paramref name="Action"/> is what the host page receives.</summary>
+    private sealed record ActionTile(ManagerAction Action, string Label, string Icon, bool PackingOnly = false);
 
-    // Ids 1 (Etykiety), 3 (Zawartość) and 10 (Zabuforuj paczkę) were previously
-    // commented out in the markup; they stay retired but the numbering is kept
-    // so the host switch statement remains valid.
-    private static readonly ManagerAction[] Actions =
+    private static readonly ActionTile[] Tiles =
     {
-        new(2,  "Spakuj",          "bi bi-box-seam",        PackingOnly: true),
-        new(4,  "Kurier",          "bi bi-truck",           PackingOnly: true),
-        new(5,  "Zalogowani",      "bi bi-people"),
-        new(6,  "Kuwety podjęte",  "bi bi-hand-index"),
-        new(7,  "Zamknij paczkę",  "bi bi-door-closed"),
-        new(8,  "Zm. magazyn",     "bi bi-building"),
-        new(9,  "Połącz paczki",   "bi bi-union"),
-        new(11, "Konf. kurierów",  "bi bi-gear"),
-        new(12, "Zmień hasło",     "bi bi-key")
+        new(ManagerAction.PackAll,               "Spakuj",         "bi bi-box-seam", PackingOnly: true),
+        new(ManagerAction.Courier,               "Kurier",         "bi bi-truck",    PackingOnly: true),
+        new(ManagerAction.LoggedOperators,       "Zalogowani",     "bi bi-people"),
+        new(ManagerAction.JlsInProgress,         "Kuwety podjęte", "bi bi-hand-index"),
+        new(ManagerAction.ReleasePackage,        "Zamknij paczkę", "bi bi-door-closed"),
+        new(ManagerAction.ChangeWarehouse,       "Zm. magazyn",    "bi bi-building"),
+        new(ManagerAction.MergePackages,         "Połącz paczki",  "bi bi-union"),
+        new(ManagerAction.CourierConfiguration,  "Konf. kurierów", "bi bi-gear"),
+        new(ManagerAction.ChangePassword,        "Zmień hasło",    "bi bi-key")
     };
 
-    [Parameter] public EventCallback<int> OnButtonClick { get; set; }
+    [Parameter] public EventCallback<ManagerAction> OnButtonClick { get; set; }
     [Parameter] public EventCallback OnRequestPassword { get; set; }
     [Parameter] public bool ShowPackingButtons { get; set; }
 
     private bool IsOpen;
     private bool IsLoading;
-    private ScanInput? ScanInput;
 
-    private IEnumerable<ManagerAction> VisibleActions =>
-        Actions.Where(a => ShowPackingButtons || !a.PackingOnly);
+    private IEnumerable<ActionTile> VisibleActions =>
+        Tiles.Where(a => ShowPackingButtons || !a.PackingOnly);
 
     private async Task OnLockClick()
     {
@@ -71,24 +65,18 @@
         }
     }
 
-    public void OpenModal(ScanInput? scanInput = null)
+    public void OpenModal()
     {
         IsOpen = true;
-        ScanInput = scanInput;
         _ = InvokeAsync(StateHasChanged);
     }
 
-    private async Task CloseModal()
+    private void CloseModal()
     {
         IsOpen = false;
-
-        if (ScanInput != null)
-        {
-            await ScanInput.FocusAsync();
-        }
     }
 
-    private async Task HandleClick(int value)
+    private async Task HandleClick(ManagerAction action)
     {
         if (IsLoading)
             return;
@@ -104,7 +92,7 @@
 
         try
         {
-            await OnButtonClick.InvokeAsync(value);
+            await OnButtonClick.InvokeAsync(action);
         }
         finally
         {

@@ -20,7 +20,7 @@ namespace WarehousePacking.Server.Shared.Base
     {
         protected virtual async Task OnManagerButtonClick()
         {
-            var password = await PasswordModal.ShowAsync(scanInput: ScanInputComponent);
+            var password = await PasswordModal.ShowAsync();
             if (password == null)
                 return;
 
@@ -28,24 +28,23 @@ namespace WarehousePacking.Server.Shared.Base
             if (!valid)
             {
                 Toast.Show("Błąd!", "Błędne hasło");
-                await ScanInputComponent.FocusAsync();
                 return;
             }
 
-            ManagerModal.OpenModal(ScanInputComponent);
+            ManagerModal.OpenModal();
             StateHasChanged();
         }
 
-        protected virtual async Task HandleManagerClick(int returnClick)
+        protected virtual async Task HandleManagerClick(ManagerAction action)
         {
-            switch (returnClick)
+            switch (action)
             {
-                //case 1: /* Etykiety */ break;
-                case 2: /* Spakuj */
+                //case ManagerAction.Labels: /* Etykiety */ break;
+                case ManagerAction.PackAll: /* Spakuj */
                     await PackAllItems();
                     break;
 
-                //case 3: /* Zawartość */
+                //case ManagerAction.Contents: /* Zawartość */
                 //    var barcode = await TextBoxModal.Show("Zawartość kuwety", "Wprowadź kod wewnętrzny", "Kod wewnętrzny");
                 //    if (!string.IsNullOrEmpty(barcode))
                 //    {
@@ -53,7 +52,7 @@ namespace WarehousePacking.Server.Shared.Base
                 //    }
                 //    break;
 
-                case 4: /* Kurier */
+                case ManagerAction.Courier: /* Kurier */
                     if (!EnsureMainOperator("zmiana kuriera"))
                         break;
 
@@ -87,15 +86,15 @@ namespace WarehousePacking.Server.Shared.Base
                     }
                     break;
 
-                case 5: /* Zalogowani */
+                case ManagerAction.LoggedOperators: /* Zalogowani */
                     await LoggedOperatorsModal.ShowModal();
                     break;
 
-                case 6: /* Kuwety podjęte */
+                case ManagerAction.JlsInProgress: /* Kuwety podjęte */
                     await JlInProgressModal.ShowModal();
                     break;
 
-                case 7: /* Zwolnij */
+                case ManagerAction.ReleasePackage: /* Zwolnij */
                     try
                     {
                         var jlCode = await TextBoxModal.Show("Zwolnij kuwetę", "Wprowadź kod kuwety", "Kod kuwety");
@@ -115,11 +114,11 @@ namespace WarehousePacking.Server.Shared.Base
                     }
                     break;
 
-                case 8: /* Zmień magazyn */
+                case ManagerAction.ChangeWarehouse: /* Zmień magazyn */
                     await ChangePackingWarehouseModal.Show();
                     break;
 
-                case 9: /* Połącz paczki */
+                case ManagerAction.MergePackages: /* Połącz paczki */
                     try
                     {
                         var result = await MergePackagesModal.Show();
@@ -136,7 +135,7 @@ namespace WarehousePacking.Server.Shared.Base
                     }
                     break;
 
-                case 10: /* Do bufora */
+                case ManagerAction.SendToBuffer: /* Do bufora */
                     try
                     {
                         var internalBarcode = await TextBoxModal.Show("Zabuforuj paczkę/palete.", "Zeskanduj kod kreskowy paczki/palety, która jest zatwierdona i nie została wygenerowana do niej wysyłka. Paczka zmieni status na bufor.", "Kod kreskowy");
@@ -158,7 +157,7 @@ namespace WarehousePacking.Server.Shared.Base
                     }
                     break;
 
-                case 11: /* Konfiguracja kurierów */
+                case ManagerAction.CourierConfiguration: /* Konfiguracja kurierów */
                     List<CourierConfiguration> courierConfigurations;
                     try
                     {
@@ -190,7 +189,7 @@ namespace WarehousePacking.Server.Shared.Base
                     );
                     break;
 
-                case 12: /* Zmień hasło */
+                case ManagerAction.ChangePassword: /* Zmień hasło */
                     try
                     {
                         var newPassword = await TextBoxModal.Show("Zmień hasło kierownika", "Wprowadź nowe uniwersalne hasło kierownika do wytycznych/czerwonych kuwet itp.", "Nowe hasło", "password");
@@ -212,7 +211,6 @@ namespace WarehousePacking.Server.Shared.Base
                     }
                     break;
             }
-            await ScanInputComponent.FocusAsync();
         }
     }
 }

@@ -244,11 +244,6 @@ namespace WarehousePacking.Server.Shared.Base
                     {
                         Toast.Show("Błąd!", $"Błąd przy próbie zamknięcia pakowania: {ex.Message}");
                     }
-                },
-                onCancel: async () =>
-                {
-                    // Refocus input
-                    await ScanInputComponent.FocusAsync();
                 }
             );
         }
@@ -354,6 +349,44 @@ namespace WarehousePacking.Server.Shared.Base
             }
         }
 
+        /// <summary>
+        /// Ends whichever flow the operator is in: back to the kuweta list, or
+        /// straight into the next package. Both closing paths ran their own copy
+        /// of this, differing only in whether the kuweta also leaves the packing
+        /// list.
+        /// </summary>
+        protected async Task CompleteCurrentFlowAsync(bool removeFromPackingList)
+        {
+            if (_currentPackingFlow == PackingFlow.NextPackage)
+            {
+                await HandleNextPackage();
+                return;
+            }
+
+            if (_currentPackingFlow != PackingFlow.FinishPacking)
+                return;
+
+            await CollaborationService.LeaveSessionAsync(PackageId, UserSession.Username, closeSession: true);
+            await ReleaseJlsAsync(removeFromPackingList);
+
+            Navigation.NavigateTo("/kontrola-pakowania");
+        }
+
+        /// <summary>
+        /// Hands the kuweta (and anything merged into it) back. Released before
+        /// navigating away, because navigation tears this component down.
+        /// </summary>
+        protected async Task ReleaseJlsAsync(bool removeFromPackingList)
+        {
+            foreach (var jlCode in MergeJls.Select(m => m.jlName).Append(Jl))
+            {
+                await PackingService.RemoveJlRealization(jlCode, UserSession.Username, false);
+
+                if (removeFromPackingList)
+                    await PackingService.RemoveJlFromPackingList(jlCode);
+            }
+        }
+
         protected virtual async Task HandleShipmentOkClick((string ScannedCode, string TrackingNumber) data)
         {
             if (!EnsureMainOperator("potwierdzenie wysyłki"))
@@ -369,25 +402,7 @@ namespace WarehousePacking.Server.Shared.Base
 
                 await CloseJlInWMS(CurrentJl.CourierName, data.ScannedCode, data.TrackingNumber, DocumentStatus.Ready);
 
-                switch (_currentPackingFlow)
-                {
-                    case PackingFlow.FinishPacking:
-                        await CollaborationService.LeaveSessionAsync(PackageId, UserSession.Username, closeSession: true);
-                        foreach (var jl in MergeJls)
-                        {
-                            await PackingService.RemoveJlRealization(jl.jlName, UserSession.Username, false);
-                            await PackingService.RemoveJlFromPackingList(jl.jlName);
-                        }
-                        await PackingService.RemoveJlRealization(Jl, UserSession.Username, false);
-                        await PackingService.RemoveJlFromPackingList(Jl);
-                        Navigation.NavigateTo("/kontrola-pakowania");
-                        break;
-
-                    case PackingFlow.NextPackage:
-                        await HandleNextPackage();
-                        await ScanInputComponent.FocusAsync();
-                        break;
-                }
+                await CompleteCurrentFlowAsync(removeFromPackingList: true);
             }
             catch (Exception ex)
             {
@@ -536,23 +551,9 @@ namespace WarehousePacking.Server.Shared.Base
                 await ClosePackage(CurrentJl.InternalBarcode, dimensions, DocumentStatus.Bufor);
                 await ClientPrinterService.PrintCrystalAsync(Settings.PrinterLabel, "Label", new Dictionary<string, string> { { "Kod Kreskowy", CurrentJl.InternalBarcode } });
 
-                switch (_currentPackingFlow)
-                {
-                    case PackingFlow.FinishPacking:
-                        await CollaborationService.LeaveSessionAsync(PackageId, UserSession.Username, closeSession: true);
-                        Navigation.NavigateTo("/kontrola-pakowania");
-                        foreach (var jl in MergeJls)
-                        {
-                            await PackingService.RemoveJlRealization(jl.jlName, UserSession.Username, false);
-                        }
-                        await PackingService.RemoveJlRealization(Jl, UserSession.Username, false);
-                        break;
-
-                    case PackingFlow.NextPackage:
-                        await HandleNextPackage();
-                        await ScanInputComponent.FocusAsync();
-                        break;
-                }
+                // Buffered packages stay on the packing list: the kuweta is
+                // waiting to be topped up, unlike a package that just shipped.
+                await CompleteCurrentFlowAsync(removeFromPackingList: false);
             }
             catch (Exception ex)
             {

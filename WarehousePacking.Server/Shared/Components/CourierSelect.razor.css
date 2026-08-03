@@ -1,0 +1,77 @@
+.courier-select {
+    position: relative;
+}
+
+/* The trigger reuses .form-select so it matches every other field; we just lay
+   the logo + name out inside it. */
+.courier-select__trigger {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 3rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.courier-select.is-disabled .courier-select__trigger {
+    cursor: not-allowed;
+    background-color: var(--surface-sunken);
+    opacity: 1;
+}
+
+/* Popover: top layer, so no card overflow or page transform can clip it. The
+   UA centres popovers by default — we reset that and let the JS helper set
+   top/left/width/max-height from the trigger. */
+.courier-select__menu {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    padding: 0.35rem;
+    list-style: none;
+    overflow-y: auto;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    z-index: 1056;
+}
+
+.courier-select__menu:popover-open {
+    animation: courier-select-in 140ms var(--ease) both;
+}
+
+@keyframes courier-select-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.courier-select__option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.4rem 0.6rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--dur) var(--ease);
+}
+
+    .courier-select__option:hover {
+        background: var(--surface-sunken);
+    }
+
+    .courier-select__option.is-selected {
+        background: var(--brand-soft);
+    }
+
+.courier-select__check {
+    flex: 0 0 auto;
+    color: var(--brand-ink);
+    font-size: 1.1rem;
+}

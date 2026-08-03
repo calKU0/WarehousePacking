@@ -19,3 +19,38 @@
         max-width: 100%;
         object-fit: contain;
     }
+
+/* Extra-services checkboxes.
+
+   The old Bootstrap `row row-cols-2` kept two columns even when the sidebar is
+   only 25% wide, so long labels ran into each other. This auto-fit grid drops to
+   a single column whenever the cell would be too narrow, at any breakpoint, so
+   the checkboxes never overlap. Each item is laid out as a clean flex row so a
+   wrapping label pushes the row taller instead of colliding with its neighbour. */
+.ps-services {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: var(--space-2) var(--space-3);
+}
+
+    .ps-services .form-check {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        min-height: var(--touch-min);
+        margin: 0;
+        padding-left: 5px;
+        min-width: 0;
+    }
+
+        .ps-services .form-check-input {
+            float: none;
+            flex: 0 0 auto;
+            margin: 0;
+        }
+
+        .ps-services .form-check-label {
+            margin: 0;
+            line-height: 1.2;
+            min-width: 0;
+        }

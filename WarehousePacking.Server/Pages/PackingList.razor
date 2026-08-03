@@ -49,15 +49,17 @@
                     <table class="app-table app-table--center app-table--interactive app-table--compact">
                         <thead>
                             <tr>
-                                <th>Lokalizacja</th>
-                                <th>Kuweta</th>
-                                <th>Kurier</th>
-                                <th>Waga</th>
-                                <th>Poza UE</th>
-                                <th>Klient</th>
+                                <th class="app-table__fit">Lok.</th>
+                                <th class="app-table__fit">Kuweta</th>
+                                <th class="app-table__fit">Kurier</th>
+                                <th class="app-table__fit">Waga</th>
+                                <th class="app-table__fit">Poza UE</th>
+                                <th class="app-table__fit packing-list__date-col">Data</th>
+                                <th class="app-table__truncate">Klient</th>
                             </tr>
                         </thead>
                         <tbody class="@(_animateRows ? "app-stagger" : null)">
+                            @{ var rowIndex = 0; }
                             @foreach (var item in JlList)
                             {
                                 var rowClass = item.Status switch
@@ -67,11 +69,14 @@
                                     3 => "is-warning",
                                     _ => ""
                                 };
+                                // Per-row stagger, capped so a long list still finishes promptly.
+                                var delayMs = Math.Min(rowIndex, 24) * 28;
+                                rowIndex++;
 
-                                <tr class="@rowClass" @key="item.Id" ondblclick="@(() => OnRowDoubleClick(item))">
-                                    <td class="fw-medium app-table__truncate" title="@item.Location">@item.Location</td>
+                                <tr class="@rowClass" @key="item.Id" ondblclick="@(() => OnRowDoubleClick(item))" style="animation-delay: @(delayMs)ms">
+                                    <td class="app-table__code" title="@item.Location">@item.Location</td>
                                     <td class="app-table__code">@item.Code</td>
-                                    <td class="packing-list__logo-cell">
+                                    <td class="packing-list__logo-cell app-table__fit">
                                         @{
                                             var courierLogo = CourierHelper.GetCourierLogo(item.ShipmentServices, item.Courier);
                                         }
@@ -87,12 +92,12 @@
                                             }
                                         </div>
                                     </td>
-                                    <td>
+                                    <td class="app-table__fit">
                                         <span class="badge bg-light text-dark border">
-                                            @item.Weight.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) kg
+                                            @Math.Ceiling(item.Weight).ToString("F0", System.Globalization.CultureInfo.InvariantCulture) kg
                                         </span>
                                     </td>
-                                    <td>
+                                    <td class="app-table__fit">
                                         @if (item.OutsideEU)
                                         {
                                             <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle">Tak</span>
@@ -101,6 +106,9 @@
                                         {
                                             <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle">Nie</span>
                                         }
+                                    </td>
+                                    <td class="app-table__fit packing-list__date-col">
+                                        <span class="text-muted">@item.DocumentDate.ToString("yyyy-MM-dd HH:mm")</span>
                                     </td>
                                     <td class="text-muted app-table__truncate" title="@item.ClientSymbol">@item.ClientSymbol</td>
                                 </tr>
@@ -246,7 +254,7 @@
 <PackagesInBuforModal @ref="PackagesInBuforModal"/>
 <CourierConfigurationModal @ref="CourierConfigurationModal" />
 
-<Toast FocusAfterCloseInput="InputRef" @ref="Toast" />
+<Toast @ref="Toast" />
 
 @code  {
     private List<JlData> JlList = new();
@@ -254,7 +262,7 @@
     private System.Threading.Timer? RefreshListTimer;
     private System.Threading.Timer? AfkTimer;
     private ElementReference InputRef;
-    private string? _scanGuardId;
+    private int _scanHandle;
     private Toast Toast = new();
     private WorkstationSettings Settings = new();
     private AppSettings AppSettings => AppOptions.Value;
@@ -308,7 +316,7 @@
             // Keeps the scanner field focused for the lifetime of the page, so
             // clicking buttons or dismissing modals never leaves the scanner
             // typing into nowhere.
-            _scanGuardId = await JSRuntime.InvokeAsync<string>("scanFocus.register", InputRef);
+            _scanHandle = await JSRuntime.InvokeAsync<int>("scanFocus.attach", InputRef);
         }
     }
 
@@ -345,7 +353,6 @@
         // Operator-initiated refresh: replaying the reveal is wanted feedback.
         _animateRows = true;
         await LoadData();
-        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
     }
 
     private async Task CheckAfkAsync()
@@ -403,12 +410,10 @@
             Toast.Show("Nie znaleziono", $"Nie znaleziono kuwet o kodzie '{Kuweta}'");
             Kuweta = string.Empty;
             _ = ShakeScanAsync();
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
             return;
         }
 
         Kuweta = string.Empty;
-        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
 
         // Reuse existing logic from row double-click
         await OnRowDoubleClick(jl);
@@ -586,17 +591,17 @@
         StateHasChanged();
     }
 
-    private async void HandleManagerClick(int returnClick)
+    private async void HandleManagerClick(ManagerAction action)
     {
-        switch (returnClick)
+        switch (action)
         {
-            case 5: /* Zalogowani */
+            case ManagerAction.LoggedOperators: /* Zalogowani */
                 await LoggedOperatorsModal.ShowModal();
                 break;
-            case 6: /* Kuwety podjęte */
+            case ManagerAction.JlsInProgress: /* Kuwety podjęte */
                 await JlInProgressModal.ShowModal();
                 break;
-            case 7: /* Zwolnij */
+            case ManagerAction.ReleasePackage: /* Zwolnij */
                 try
                 {
                     var pendingSelection = ComboBoxModal.ShowLoading(
@@ -645,10 +650,10 @@
                     Toast.Show("Błąd!", $"Błąd przy próbie zwolnienia paczki: {ex.Message}");
                 }
                 break;
-            case 8: /* Zmień magazyn */
+            case ManagerAction.ChangeWarehouse: /* Zmień magazyn */
                 await ChangePackingWarehouseModal.Show();
                 break;
-            case 9: /* Połącz paczki */
+            case ManagerAction.MergePackages: /* Połącz paczki */
                 try
                 {
                     var result = await MergePackagesModal.Show();
@@ -664,7 +669,7 @@
                     Toast.Show("Błąd!", $"Błąd przy próbie łącznia paczek: {ex.Message}");
                 }
                 break;
-            case 10: /* Do bufora */
+            case ManagerAction.SendToBuffer: /* Do bufora */
                 try
                 {
                     var internalBarcode = await TextBoxModal.Show("Zabuforuj paczkę/palete.", "Zeskanduj kod kreskowy paczki/palety, która jest zatwierdona i nie została wygenerowana do niej wysyłka. Paczka zmieni status na bufor.", "Kod kreskowy");
@@ -685,7 +690,7 @@
                     Toast.Show("Błąd!", $"Błąd przy próbie zabuforowania paczki: {ex.Message}");
                 }
                 break;
-            case 11: /* Konfiguracja kurierów */
+            case ManagerAction.CourierConfiguration: /* Konfiguracja kurierów */
                 List<CourierConfiguration> courierConfigurations;
                 try
                 {
@@ -716,7 +721,7 @@
                     }
                 );
                 break;
-            case 12: /* Zmień hasło */
+            case ManagerAction.ChangePassword: /* Zmień hasło */
                 try
                 {
                     var newPassword = await TextBoxModal.Show("Zmień hasło kierownika", "Wprowadź nowe uniwersalne hasło kierownika do wytycznych/czerwonych kuwet itp.", "Nowe hasło", "password");
@@ -738,7 +743,6 @@
                 }
                 break;
         }
-        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
     }
 
     public void Dispose()
@@ -746,21 +750,21 @@
         RefreshListTimer?.Dispose();
         AfkTimer?.Dispose();
 
-        if (_scanGuardId is not null)
+        if (_scanHandle != 0)
         {
             // The circuit is often already gone by the time Dispose runs, and an
             // unobserved JSDisconnectedException from a fire-and-forget interop
             // call surfaces as an unhandled circuit error. Swallow it explicitly.
-            _ = UnregisterScanGuardAsync(_scanGuardId);
-            _scanGuardId = null;
+            _ = DetachScanFocusAsync(_scanHandle);
+            _scanHandle = 0;
         }
     }
 
-    private async Task UnregisterScanGuardAsync(string guardId)
+    private async Task DetachScanFocusAsync(int handle)
     {
         try
         {
-            await JSRuntime.InvokeVoidAsync("scanFocus.unregister", guardId);
+            await JSRuntime.InvokeVoidAsync("scanFocus.detach", handle);
         }
         catch (JSDisconnectedException)
         {

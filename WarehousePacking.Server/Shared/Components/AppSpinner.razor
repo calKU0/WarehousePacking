@@ -1,0 +1,44 @@
+@*
+    The shared loading spinner. One ring, one animation, one style everywhere —
+    reach for this instead of hand-rolling a Bootstrap spinner. Colour follows
+    the surrounding text (brand by default; the button's colour inside a button).
+
+    Usage:
+        <AppSpinner />                                  a plain ring
+        <AppSpinner Size="sm" />                        inline, e.g. in a button
+        <AppSpinner Label="Ładowanie danych..." Block="true" Size="lg" />
+                                                         centred spinner + message
+*@
+
+@if (!string.IsNullOrEmpty(Label))
+{
+    <span class="app-loading @(Block ? "app-loading--block" : null) @Class" role="status" aria-live="polite">
+        <span class="app-spinner @SizeClass" aria-hidden="true"></span>
+        <span class="app-loading__text">@Label</span>
+    </span>
+}
+else
+{
+    <span class="app-spinner @SizeClass @Class" role="status" aria-label="Ładowanie"></span>
+}
+
+@code {
+    /// <summary>"sm", "lg", or null for the default size.</summary>
+    [Parameter] public string? Size { get; set; }
+
+    /// <summary>Optional message shown next to (or under, with Block) the spinner.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Stack the spinner and message vertically, centred — for empty table bodies / panels.</summary>
+    [Parameter] public bool Block { get; set; }
+
+    /// <summary>Extra CSS classes (e.g. spacing utilities) passed through.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    private string SizeClass => Size switch
+    {
+        "sm" => "app-spinner--sm",
+        "lg" => "app-spinner--lg",
+        _ => string.Empty
+    };
+}

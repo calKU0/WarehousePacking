@@ -43,6 +43,23 @@ namespace WarehousePacking.Contracts.DTOs
 
         public ShipmentServices ShipmentServices { get; set; } = new();
 
+        /// <summary>
+        /// A copy of this line to sit on the packed list: same item, no quantity
+        /// yet, and its own collection instances so editing one list cannot
+        /// reach into the other.
+        /// </summary>
+        public JlItemDto CopyAsPackedLine(string packingUser)
+        {
+            var copy = (JlItemDto)MemberwiseClone();
+
+            copy.ItemEan = ItemEan?.ToList() ?? new List<string>();
+            copy.SupplierCode = SupplierCode?.ToList() ?? new List<string>();
+            copy.JlQuantity = 0;
+            copy.PackingUser = packingUser;
+
+            return copy;
+        }
+
         public int BatchId { get; set; }
         public string BatchNumber { get; set; } = string.Empty;
         public string TermValidity { get; set; } = string.Empty;

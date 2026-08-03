@@ -32,11 +32,11 @@
                     <div class="product-select__quantities">
                         <span class="app-chip">
                             <span class="app-chip__label">Na dok.</span>
-                            <span class="app-chip__value">@Product?.DocumentQuantity @Product?.ItemUnit</span>
+                            <span class="app-chip__value">@FormatQuantity(Product?.DocumentQuantity) @Product?.ItemUnit</span>
                         </span>
                         <span class="app-chip app-chip--brand">
                             <span class="app-chip__label">W kuwecie</span>
-                            <span class="app-chip__value">@Product?.JlQuantity @Product?.ItemUnit</span>
+                            <span class="app-chip__value">@FormatQuantity(Product?.JlQuantity) @Product?.ItemUnit</span>
                         </span>
                     </div>
                 </div>
@@ -67,18 +67,21 @@
                            OnEnter="Confirm"
                            IsBusy="IsSubmitting"
                            EnterDisabled="IsSubmitting" />
+
+            @* Hosted inside the dialog on purpose: a popover rendered outside an
+               open modal <dialog> lands in the top layer but stays inert, so its
+               close button never fires. Inside the dialog's subtree it is both
+               interactive and still painted on top. *@
+            <Toast @ref="Toast" />
         </div>
     </ChildContent>
 </AppModal>
-
-<Toast @ref="Toast" />
 
 @code {
     private const string NoImage = "images/no-image.jpeg";
 
     [Parameter] public EventCallback<decimal> OnConfirm { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
-    [Parameter] public ScanInput? FocusOnClose { get; set; }
 
     private JlItemDto? Product { get; set; }
     private ElementReference _quantityInputRef;
@@ -93,6 +96,14 @@
         "Delikatny" => "images/product_types/glass.jpg",
         _ => string.Empty
     };
+
+    // Whole quantities show without a trailing ",0"; fractional ones keep only
+    // the digits they need. Mirrors PackingTables so the screen is consistent.
+    private static string FormatQuantity(decimal? value)
+    {
+        var qty = value ?? 0m;
+        return qty == decimal.Truncate(qty) ? qty.ToString("0") : qty.ToString("0.###");
+    }
 
     public async Task Show(JlItemDto product)
     {
@@ -132,9 +143,6 @@
         {
             await OnConfirm.InvokeAsync(qty);
             IsVisible = false;
-
-            if (FocusOnClose != null)
-                await FocusOnClose.FocusAsync();
         }
         finally
         {
@@ -148,8 +156,5 @@
             await OnClose.InvokeAsync();
 
         IsVisible = false;
-
-        if (FocusOnClose != null)
-            await FocusOnClose.FocusAsync();
     }
 }

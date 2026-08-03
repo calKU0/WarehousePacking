@@ -1,51 +1,61 @@
-﻿@using WarehousePacking.Contracts.DTOs
-@inject IJSRuntime JSRuntime
+@using WarehousePacking.Contracts.DTOs
 
-@if (IsVisible)
-{
-    <div class="modal-backdrop @(IsVisible ? "show" : "")">
-        <div class="modal-container shadow-lg rounded-2 p-4">
-            <div class="modal-header d-flex justify-content-between align-items-center mb-3">
-                <h5 class="modal-title">Przesyłka z listem przewozowym</h5>
-                <button type="button" class="btn-close" @onclick="Close" aria-label="Close"></button>
-            </div>
+@*
+    Confirmation that the scanned package matches the waybill in the operator's
+    hand, with the option to print an internal label instead.
+*@
 
-            <div class="modal-body mb-3">
-                <p>Sprawdź zgodność danych zeskanowanej paczki/palety z dostarczonym listem przewozowym.</p>
-                <p>Jeśli nie masz listu, wygeneruj etykietę wewnętrzną i naklej na przesyłkę</p>
+<AppModal IsVisible="IsVisible" Title="Przesyłka z listem przewozowym" Icon="bi bi-file-earmark-text"
+          Size="lg" OnClose="Close">
+    <ChildContent>
+        <p>Sprawdź zgodność danych zeskanowanej paczki/palety z dostarczonym listem przewozowym.</p>
+        <p class="text-muted">Jeśli nie masz listu, wygeneruj etykietę wewnętrzną i naklej na przesyłkę.</p>
 
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Dane odbiorcy:</label>
-                    <div>
-                        <div>Akronim: @Recipient?.Name</div>
-                        <div>Ulica: @Recipient?.Street</div>
-                        <div>Kod Pocztowy: @Recipient?.PostalCode</div>
-                        <div>Kraj: @Recipient?.Country</div>
-                        <div>Sposób wysyłki: <strong>@Courier</strong></div>
-                    </div>
-                </div>
+        <h6 class="app-section-label mt-4 mb-2">Dane odbiorcy</h6>
+        <dl class="app-facts">
+            <dt>Akronim</dt>
+            <dd class="app-table__code">@Recipient?.Name</dd>
 
-                <div>
-                    <label class="form-label">Numer przesyłki:</label>
-                    <input type="text" class="form-control mb-2" placeholder="Zeskanuj lub wpisz numer" @bind="TrackingNumber" @ref="InputRef" />
-                </div>
-            </div>
+            <dt>Ulica</dt>
+            <dd>@Recipient?.Street</dd>
 
-            <div class="modal-footer d-flex gap-2 justify-content-end">
-                <button class="btn btn-success" @onclick="TriggerSave">Zapisz numer</button>
-                <button class="btn btn-secondary" @onclick="TriggerPrint">Drukuj etykietę wewn.</button>
-                <button class="btn btn-danger" @onclick="Close">Cofnij</button>
-            </div>
+            <dt>Kod pocztowy</dt>
+            <dd>@Recipient?.PostalCode</dd>
+
+            <dt>Kraj</dt>
+            <dd>@Recipient?.Country</dd>
+
+            <dt>Sposób wysyłki</dt>
+            <dd><strong>@Courier</strong></dd>
+        </dl>
+
+        <label class="form-label app-section-label mt-4" for="packingListTracking">Numer przesyłki</label>
+        <div class="app-scan">
+            <span class="app-scan__icon" aria-hidden="true"><i class="bi bi-upc-scan"></i></span>
+            <input id="packingListTracking"
+                   class="app-scan__input"
+                   placeholder="Zeskanuj lub wpisz numer"
+                   @bind="TrackingNumber"
+                   @bind:event="oninput"
+                   autocomplete="off"
+                   autofocus />
         </div>
-    </div>
-}
+    </ChildContent>
+
+    <Footer>
+        <button type="button" class="btn btn-secondary" @onclick="Close">Zamknij</button>
+        <button type="button" class="btn btn-secondary" @onclick="TriggerPrint">
+            <i class="bi bi-printer me-1"></i>Drukuj etykietę wewn.
+        </button>
+        <button type="button" class="btn btn-primary" @onclick="TriggerSave">Zapisz numer</button>
+    </Footer>
+</AppModal>
 
 @code {
-    private bool IsVisible = false;
+    private bool IsVisible;
     private string TrackingNumber = string.Empty;
     private Recipient Recipient { get; set; } = new();
     private string Courier { get; set; } = string.Empty;
-    private ElementReference InputRef;
 
     [Parameter] public EventCallback<string> OnSaveNumber { get; set; }
     [Parameter] public EventCallback<Recipient> OnPrintLabel { get; set; }
@@ -56,15 +66,8 @@
         Courier = courier;
         TrackingNumber = string.Empty;
         IsVisible = true;
-        await InvokeAsync(StateHasChanged);
-    }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (IsVisible)
-        {
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
-        }
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task TriggerSave()

@@ -79,7 +79,7 @@
                                     <th>Waga</th>
                                     <th>Data pick.</th>
                                     <th>Operator pick.</th>
-                                    <th>Operatorzy sort.</th>
+                                    <th class="dashboard-operators-cell">Operatorzy sort.</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -89,7 +89,7 @@
                                         <td colspan="7" class="text-center text-muted py-3">
                                             @if (IsLoading)
                                             {
-                                                <span>Ładowanie danych...</span>
+                                                <AppSpinner Size="lg" Label="Ładowanie danych..." Block="true" />
                                             }
                                             else
                                             {
@@ -110,7 +110,7 @@
                                             <td><DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.Data.Weight, "kg", "F0")" /></td>
                                             <td>@(row.Data.LastPickingDate == null || row.Data.LastPickingDate == DateTime.MinValue ? "-" : FormatHelper.ToLocalTime(row.Data.LastPickingDate.Value).ToString("yyyy-MM-dd HH:mm"))</td>
                                             <td>@row.Data.LastPickingOperator</td>
-                                            <td class="dashboard-operators-cell" title="@row.Data.OperatorsList">@row.Data.OperatorsList</td>
+                                            <td class="dashboard-operators-cell"><DashboardOperatorsCell Operators="@row.Data.OperatorsList" /></td>
                                         </tr>
                                     }
                                 }
@@ -143,7 +143,7 @@
                                         <td colspan="2" class="text-center text-muted py-3">
                                             @if (IsLoading)
                                             {
-                                                <span>Ładowanie danych...</span>
+                                                <AppSpinner Size="lg" Label="Ładowanie danych..." Block="true" />
                                             }
                                             else
                                             {

@@ -3,110 +3,200 @@
 @inject IJSRuntime JSRuntime
 
 @*
-    Centred notification.
+    Notification stack.
 
-    Rendered as a <dialog> opened with showModal() so it lives in the browser's
-    top layer and therefore paints above any open modal (which is also a
-    top-layer <dialog>). A plain high z-index is not enough: the top layer
-    always sits above normal content, and a modal dialog outranks a popover, so
-    a *later* modal dialog is the only reliable way to appear above one.
+    Two kinds of message live here, so every call site has a single component
+    to reach for:
+
+      • Show(...)        — a corner toast. Non-blocking: it stacks, drains a
+                           life bar and fades on its own, never taking the caret.
+                           Rendered as a popover so it paints in the browser's
+                           top layer, above open modals, without a backdrop.
+
+      • ShowBlocking(...) — a centred card that dims and blocks the whole screen
+                           until the operator presses "Potwierdź". Built on the
+                           shared modal shell (a native <dialog> shown modally),
+                           which is always interactive and always on top — the
+                           right tool for a message that MUST be read, such as
+                           the single-packing warning or a hand-off notice.
 *@
 
-<dialog class="toast-backdrop" @ref="_dialogRef" @onclick="Hide">
-    <div class="toast-container @ToastClass" @onclick:stopPropagation="true">
-        <div class="toast-header-wrapper">
-            <strong class="toast-title">@Title</strong>
-            <button type="button" class="btn-close btn-close-white toast-close" @onclick="Hide" aria-label="Close"></button>
+<div class="toast-stack" popover="manual" @ref="_stackRef">
+    @foreach (var toast in _toasts)
+    {
+        <div class="toast-item toast-item--@Kind(toast.Type) @(_leaving.Contains(toast.Id) ? "is-leaving" : null)" @key="toast.Id" role="status">
+            <span class="toast-item__icon" aria-hidden="true"><i class="@Icon(toast.Type)"></i></span>
+
+            <div class="toast-item__text">
+                <strong class="toast-item__title">@toast.Title</strong>
+                <div class="toast-item__body">@((MarkupString)toast.Message)</div>
+            </div>
+
+            <button type="button" class="toast-item__close" aria-label="Zamknij" @onclick="() => Dismiss(toast.Id)">
+                <i class="bi bi-x-lg"></i>
+            </button>
+
+            <span class="toast-item__life" style="animation-duration: @(toast.DurationMs)ms"></span>
         </div>
-        <div class="toast-body">@((MarkupString)Message)</div>
-    </div>
-</dialog>
+    }
+</div>
+
+@* Blocking acknowledgement. Only the current head of the queue is shown; the
+   next one (if any) slides in once this one is confirmed. *@
+<AppModal IsVisible="_ack is not null" Size="sm" ShowHeader="false" ShowClose="false">
+    <ChildContent>
+        @if (_ack is not null)
+        {
+            <div class="toast-ack toast-ack--@Kind(_ack.Type)">
+                <div class="toast-ack__icon" aria-hidden="true"><i class="@Icon(_ack.Type)"></i></div>
+                <h5 class="toast-ack__title">@_ack.Title</h5>
+                <div class="toast-ack__body">@((MarkupString)_ack.Message)</div>
+
+                <button type="button" class="btn btn-primary btn-lg toast-ack__confirm" @onclick="ConfirmAck">
+                    <i class="bi bi-check-lg"></i>Potwierdź
+                </button>
+            </div>
+        }
+    </ChildContent>
+</AppModal>
 
 @code {
-    private ElementReference _dialogRef;
-    private DotNetObjectReference<Toast>? _selfRef;
-    private System.Timers.Timer? _timer;
+    /// <summary>How long a notification stays up when the caller does not say.</summary>
+    private const int DefaultMs = 4000;
 
-    // Desired vs. last-applied visibility, reconciled in OnAfterRenderAsync so
-    // showModal()/close() runs only after the new content has rendered.
+    /// <summary>Errors linger: they are the ones worth reading twice.</summary>
+    private const int ErrorMs = 7000;
+
+    /// <summary>Matches the exit animation in Toast.razor.css.</summary>
+    private const int LeaveMs = 240;
+
+    private sealed record ToastItem(long Id, string Title, string Message, ToastType Type, int DurationMs);
+
+    private readonly List<ToastItem> _toasts = new();
+    private readonly HashSet<long> _leaving = new();
+    private ElementReference _stackRef;
+    private long _nextId = 1;
     private bool _visible;
-    private bool _syncedVisible;
+    private bool _disposed;
 
-    public string Title { get; private set; } = string.Empty;
-    public string Message { get; private set; } = string.Empty;
-    public ToastType Type { get; private set; } = ToastType.Info;
-    [Parameter] public object? FocusAfterCloseInput { get; set; }
+    private sealed record AckItem(string Title, string Message, ToastType Type);
 
-    private string ToastClass => Type switch
-    {
-        ToastType.Success => "toast-success",
-        ToastType.Error => "toast-error",
-        ToastType.Info => "toast-info",
-        _ => "toast-info"
-    };
+    /// <summary>Blocking acknowledgements waiting to be confirmed, shown one at a time.</summary>
+    private readonly Queue<AckItem> _acks = new();
+    private AckItem? _ack;
 
+    /// <summary>
+    /// Shows a notification. Signature kept from the blocking toast so the call
+    /// sites did not have to change.
+    /// </summary>
     public void Show(string title, string message, ToastType type = ToastType.Error, int? autoHideMs = null)
     {
-        Title = title;
-        Message = message;
-        Type = type;
-        _visible = true;
+        var duration = autoHideMs ?? (type == ToastType.Error ? ErrorMs : DefaultMs);
+        var item = new ToastItem(_nextId++, title, message, type, duration);
 
+        _toasts.Add(item);
         StateHasChanged();
 
-        _timer?.Stop();
-        _timer = null;
-
-        if (autoHideMs.HasValue)
-        {
-            _timer = new System.Timers.Timer(autoHideMs.Value);
-            _timer.Elapsed += (s, e) => InvokeAsync(Hide);
-            _timer.AutoReset = false;
-            _timer.Start();
-        }
+        _ = ExpireAsync(item.Id, duration);
     }
 
-    public void Hide() => _ = HideAsync();
-
-    /// <summary>Also the Esc-dismiss path (invoked from JS via NotifyDismissed).</summary>
-    private async Task HideAsync()
+    /// <summary>
+    /// Shows a centred, screen-blocking message the operator has to acknowledge
+    /// with "Potwierdź" before carrying on. Use it for the few notices that must
+    /// not be missed; everything else should stay a corner toast via Show().
+    /// Calls queue, so two in a row are shown one after the other.
+    /// </summary>
+    public void ShowBlocking(string title, string message, ToastType type = ToastType.Info)
     {
-        _timer?.Stop();
-        _visible = false;
-
-        if (FocusAfterCloseInput is ElementReference elRef)
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", elRef);
-        else if (FocusAfterCloseInput is ScanInput scanInput)
-            await scanInput.FocusAsync();
-
+        _acks.Enqueue(new AckItem(title, message, type));
+        _ack ??= _acks.Dequeue();
         StateHasChanged();
     }
 
-    [JSInvokable]
-    public Task NotifyDismissed() => HideAsync();
+    private void ConfirmAck()
+    {
+        _ack = _acks.Count > 0 ? _acks.Dequeue() : null;
+        StateHasChanged();
+    }
+
+    /// <summary>Clears everything on screen at once.</summary>
+    public void Hide()
+    {
+        if (_toasts.Count == 0) return;
+
+        _toasts.Clear();
+        _leaving.Clear();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Starts a notification's exit: it plays the slide-out, then leaves the
+    /// list. Called both by the close button and by the auto-expire timer.
+    /// </summary>
+    private void Dismiss(long id)
+    {
+        if (_leaving.Contains(id) || _toasts.All(t => t.Id != id))
+            return;
+
+        _leaving.Add(id);
+        StateHasChanged();
+
+        _ = RemoveAfterLeaveAsync(id);
+    }
+
+    private async Task RemoveAfterLeaveAsync(long id)
+    {
+        await Task.Delay(LeaveMs);
+
+        if (_disposed) return;
+
+        await InvokeAsync(() =>
+        {
+            _leaving.Remove(id);
+            var index = _toasts.FindIndex(t => t.Id == id);
+            if (index >= 0) _toasts.RemoveAt(index);
+            StateHasChanged();
+        });
+    }
+
+    private async Task ExpireAsync(long id, int delayMs)
+    {
+        await Task.Delay(delayMs);
+
+        if (_disposed) return;
+
+        await InvokeAsync(() => Dismiss(id));
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_syncedVisible == _visible)
-            return;
+        var shouldBeVisible = _toasts.Count > 0;
+        if (_visible == shouldBeVisible) return;
 
-        _syncedVisible = _visible;
-        _selfRef ??= DotNetObjectReference.Create(this);
+        _visible = shouldBeVisible;
 
         try
         {
-            // Reuses the modal shell's open/close + Esc plumbing. Passing the
-            // ref lets Esc route back through HideAsync (timer stop + refocus).
-            await JSRuntime.InvokeVoidAsync("appDialog.sync", _dialogRef, _visible, _selfRef);
+            await JSRuntime.InvokeVoidAsync("toastStack.sync", _stackRef, shouldBeVisible);
         }
         catch (JSDisconnectedException)
         {
         }
     }
 
-    public void Dispose()
+    private static string Kind(ToastType type) => type switch
     {
-        _timer?.Dispose();
-        _selfRef?.Dispose();
-    }
+        ToastType.Success => "success",
+        ToastType.Info => "info",
+        _ => "error"
+    };
+
+    private static string Icon(ToastType type) => type switch
+    {
+        ToastType.Success => "bi bi-check-circle-fill",
+        ToastType.Info => "bi bi-info-circle-fill",
+        _ => "bi bi-exclamation-triangle-fill"
+    };
+
+    public void Dispose() => _disposed = true;
 }

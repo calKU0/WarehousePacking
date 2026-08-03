@@ -81,7 +81,7 @@
     [Parameter] public List<JlItemDto>? JlItems { get; set; }
     [Parameter] public JlData? CurrentJl { get; set; }
     [Parameter] public string Username { get; set; } = string.Empty;
-    [Parameter] public EventCallback<int> OnManagerClick { get; set; }
+    [Parameter] public EventCallback<ManagerAction> OnManagerClick { get; set; }
     [Parameter] public EventCallback OnManagerRequestPassword { get; set; }
     [Parameter] public bool IsMainOperator { get; set; }
     [Parameter] public string MainOperator { get; set; } = string.Empty;

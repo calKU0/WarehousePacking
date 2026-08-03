@@ -27,17 +27,18 @@
                   rows="5"
                   placeholder="Wpisz swoją wiadomość..."
                   autofocus></textarea>
+
+        @* Kept inside the dialog so its close button stays interactive while the modal is open. *@
+        <Toast @ref="Toast" />
     </ChildContent>
 
     <Footer>
-        <button type="button" class="btn btn-secondary" @onclick="Hide">Anuluj</button>
+        <button type="button" class="btn btn-secondary" @onclick="Hide">Zamknij</button>
         <button type="button" class="btn btn-primary" @onclick="SendEmailAsync" disabled="@string.IsNullOrWhiteSpace(UserMessage)">
             <i class="bi bi-send me-1"></i>Wyślij
         </button>
     </Footer>
 </AppModal>
-
-<Toast @ref="Toast" />
 
 @code {
     [Parameter] public string Title { get; set; } = "Wyślij email";

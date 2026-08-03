@@ -10,11 +10,30 @@
     min-width: 0;
 }
 
-/* Cap each result list so the modal never grows past the viewport. */
+/* A fixed height, not a cap: results arriving or being cleared must not resize
+   the dialog while the operator is typing. */
 .address-invoice__scroll {
-    max-height: 42dvh;
+    height: 42dvh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+}
+
+/* The loading line keeps its space whether it shows or not: it toggles on
+   every keystroke, and without a reserved line the table below would twitch
+   with each one. */
+.address-invoice__status {
+    display: flex;
+    align-items: center;
+    min-height: 1.5rem;
+    margin-bottom: var(--space-2);
+    color: var(--text-subtle);
+    font-size: var(--fs-sm);
+}
+
+/* No reserved height here: picking an address happens once, so the dialog can
+   simply glide to its new size rather than sit with a permanent gap. */
+.address-invoice__chosen:not(:empty) {
+    padding-top: var(--space-3);
 }
 
 @media (max-width: 767.98px) {
@@ -23,6 +42,6 @@
     }
 
     .address-invoice__scroll {
-        max-height: 30dvh;
+        height: 30dvh;
     }
 }

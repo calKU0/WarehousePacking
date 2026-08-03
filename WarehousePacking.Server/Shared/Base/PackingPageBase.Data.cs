@@ -1,15 +1,10 @@
-﻿using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.AspNetCore.Components.Web;
-using WarehousePacking.Contracts.Data.Enums;
+﻿using WarehousePacking.Contracts.Data.Enums;
 using WarehousePacking.Contracts.DTOs;
 using WarehousePacking.Contracts.DTOs.Requests;
 using WarehousePacking.Server.Helpers;
 using WarehousePacking.Server.Services;
-using WarehousePacking.Server.Settings;
 using WarehousePacking.Server.Shared.Components;
 using WarehousePacking.Server.Shared.Components.Modals;
-using WarehousePacking.Server.Shared.Components.Packing;
 
 namespace WarehousePacking.Server.Shared.Base
 {
@@ -68,12 +63,46 @@ namespace WarehousePacking.Server.Shared.Base
                         JlItems.AddRange(items);
                     }
                 }
+
+                JlItems = MergeDuplicateLines(JlItems);
             }
             catch (Exception ex)
             {
                 JlItems = new List<JlItemDto>();
                 Toast.Show("Błąd!", $"Błąd przy pobieraniu zawartości kuwety: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Folds rows that are the same ERP line — same item, same document, same
+        /// document position — into one, summing their quantity, so a line the
+        /// source split across several rows shows as a single row to pack.
+        /// Order is preserved: each line keeps the place of its first occurrence.
+        /// </summary>
+        protected static List<JlItemDto> MergeDuplicateLines(List<JlItemDto> items)
+        {
+            if (items is null || items.Count < 2)
+                return items ?? new List<JlItemDto>();
+
+            var byLine = new Dictionary<(int ItemErpId, int DocumentId, int Position, string jlCode), JlItemDto>();
+            var merged = new List<JlItemDto>(items.Count);
+
+            foreach (var item in items)
+            {
+                var line = (item.ItemErpId, item.DocumentId, item.ErpPositionNumber, item.JlCode);
+
+                if (byLine.TryGetValue(line, out var existing))
+                {
+                    existing.JlQuantity += item.JlQuantity;
+                }
+                else
+                {
+                    byLine[line] = item;
+                    merged.Add(item);
+                }
+            }
+
+            return merged;
         }
 
         protected virtual void LoadMergeJlsFromQuery()
@@ -249,11 +278,7 @@ namespace WarehousePacking.Server.Shared.Base
                         {
                             Toast.Show("Błąd!", $"Błąd przy próbie zmiany kuriera: {ex.Message}");
                         }
-                    },
-                    onCancel: async () =>
-                    {
                     });
-                await ScanInputComponent.FocusAsync();
             }
         }
 

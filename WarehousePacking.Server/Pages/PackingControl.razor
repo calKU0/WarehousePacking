@@ -33,8 +33,7 @@
                 OnPackedItemSelect="SelectPackedItem"
                 CourierConfiguration="CourierConfiguration"
                 CurrentUsername="@UserSession.Username"
-                IsCollaborativePacking="@(ActiveOperators?.Count > 1)"
-                OnPackedFilterChanged="HandlePackedFilterChanged" />
+                IsCollaborativePacking="@(ActiveOperators?.Count > 1)" />
 
     <PackingButtons NextPackage="NextPackage"
                     UnpackItem="UnpackItem"
@@ -49,7 +48,7 @@
    Declared at page level because each @ref binds to a field on
    PackingPageBase, which the shared packing logic drives directly. *@
 
-<ProductSelectModal @ref=ProductSelectModal FocusOnClose="ScanInputComponent" OnConfirm="PackItem" />
+<ProductSelectModal @ref=ProductSelectModal OnConfirm="PackItem" />
 <JlSelectModal @ref="JlSelectModal" />
 <PasswordModal @ref=PasswordModal />
 <ConfirmDialog @ref="ConfirmDialog" />
@@ -73,7 +72,7 @@
 <MergePackagesModal @ref="MergePackagesModal" />
 <CourierConfigurationModal @ref="CourierConfigurationModal" />
 
-<Toast FocusAfterCloseInput="ScanInputComponent" @ref="Toast" />
+<Toast @ref="Toast" />
 
 @code {
     private PackingHeader? Header;

@@ -4,10 +4,9 @@
 @*
     Barcode scan field. Presentation only — the parent owns the key handling.
 
-    Focus is maintained by the scanFocus guardian rather than by callers
-    remembering to call FocusAsync() after every action: a hardware scanner
-    types into whatever holds the caret, so this field must effectively always
-    own it while no modal is open.
+    The field claims the page's focus through scanFocus, which keeps the caret
+    here instead of callers having to re-focus after every action: a hardware
+    scanner types into whatever holds the caret.
 *@
 
 <div class="app-scan @(Disabled ? "is-disabled" : null) @(_shaking ? "app-anim-shake" : null)">
@@ -28,7 +27,8 @@
 
 @code {
     private ElementReference _inputRef;
-    private string? _guardId;
+    private int _handle;
+    private bool _wasDisabled;
     private bool _shaking;
 
     [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
@@ -37,14 +37,27 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
-        {
-            return;
-        }
-
         try
         {
-            _guardId = await JSRuntime.InvokeAsync<string>("scanFocus.register", _inputRef);
+            if (firstRender)
+            {
+                _wasDisabled = Disabled;
+                _handle = await JSRuntime.InvokeAsync<int>("scanFocus.attach", _inputRef);
+                return;
+            }
+
+            if (_wasDisabled == Disabled)
+            {
+                return;
+            }
+
+            // A disabled field cannot hold the caret, so take it back the
+            // moment the flow re-enables scanning.
+            _wasDisabled = Disabled;
+            if (!Disabled)
+            {
+                await FocusAsync();
+            }
         }
         catch (JSDisconnectedException)
         {
@@ -52,20 +65,18 @@
     }
 
     /// <summary>
-    /// Explicit focus request. Rarely needed now that the guardian handles it,
-    /// but kept so existing flows keep working.
+    /// Asks for the caret back. Rarely needed — scanFocus keeps it here — but
+    /// available for flows that re-enable the field themselves.
     /// </summary>
     public async Task FocusAsync()
     {
-        // Best-effort: the element may not be rendered yet (e.g. called from a
-        // modal callback mid-render).
         try
         {
-            await JSRuntime.InvokeVoidAsync("scanFocus.refocus");
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", _inputRef);
+            await JSRuntime.InvokeVoidAsync("scanFocus.focus");
         }
         catch
         {
+            // Circuit gone, or the element is not rendered yet.
         }
     }
 
@@ -93,14 +104,14 @@
 
     public async ValueTask DisposeAsync()
     {
-        if (_guardId is null)
+        if (_handle == 0)
         {
             return;
         }
 
         try
         {
-            await JSRuntime.InvokeVoidAsync("scanFocus.unregister", _guardId);
+            await JSRuntime.InvokeVoidAsync("scanFocus.detach", _handle);
         }
         catch
         {

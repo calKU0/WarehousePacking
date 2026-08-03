@@ -29,13 +29,16 @@
     width: 100%;
 }
 
+    /* These are the terminal, primary actions of the whole packing flow — give
+       them the primary tier height and weight so they read as the main choice. */
     .finish-packing__actions ::deep .btn {
         display: inline-flex;
         align-items: center;
         justify-content: flex-start;
         gap: var(--space-3);
-        min-height: var(--touch);
-        font-size: var(--fs-base);
+        min-height: 4rem; /* 64px — primary tier */
+        font-size: var(--fs-lg);
+        font-weight: 700;
     }
 
     .finish-packing__actions ::deep .btn i {

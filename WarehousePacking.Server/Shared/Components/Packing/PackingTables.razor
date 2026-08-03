@@ -4,12 +4,16 @@
     The two working lists of the packing screen: what is left to pack (left,
     wide) and what has already been packed (right, narrow). Both share the
     .app-card / .app-table primitives so they match the rest of the app.
+
+    Row identity is handled by WithKeys below. A duplicate @key makes Blazor
+    throw while diffing, which tears down the circuit — the screen then freezes
+    behind the busy overlay and stops responding to anything, scanner included.
 *@
 
 <div class="pack-tables">
 
     @* ----- To pack ----------------------------------------------------- *@
-    <section class="app-card app-card--fill pack-tables__pending">
+    <section class="app-card app-card--fill app-anim-fade-up pack-tables__pending">
         <div class="app-card__header app-card__header--accent">
             <span class="app-card__title">
                 <i class="bi bi-box-seam"></i>
@@ -34,7 +38,7 @@
                         <th>Obraz</th>
                     </tr>
                 </thead>
-                <tbody class="app-stagger @(Disabled ? "is-disabled" : null)">
+                <tbody class="@(Disabled ? "is-disabled" : null)">
                     @if (JlItems is null)
                     {
                         <tr>
@@ -60,13 +64,14 @@
                     }
                     else
                     {
-                        @foreach (var item in JlItems)
+                        @foreach (var row in WithKeys(JlItems))
                         {
-                            <tr class="@(IsHighlighted(item) ? "is-highlight" : null)"
-                                @key="ItemKey(item)"
+                            var item = row.Item;
+                            <tr class="app-row-in-right @((IsHighlighted(item) || IsPartiallyPacked(item)) ? "is-highlight" : null)"
+                                @key="row.Key"
                                 @ondblclick="() => OnRowDoubleClick.InvokeAsync(item)">
                                 <td class="app-table__code">@item.ItemCode</td>
-                                <td class="app-table__num">@item.JlQuantity</td>
+                                <td class="app-table__num">@FormatQuantity(item.JlQuantity)</td>
                                 <td class="app-table__truncate" title="@item.ItemName">@item.ItemName</td>
                                 <td>
                                     <div class="app-thumb">
@@ -137,13 +142,14 @@
                     }
                     else
                     {
-                        @foreach (var packed in VisiblePackedItems)
+                        @foreach (var row in WithKeys(VisiblePackedItems))
                         {
-                            <tr class="app-anim-scale-in @(ReferenceEquals(packed, SelectedPackedItem) ? "is-selected" : null)"
-                                @key="ItemKey(packed)"
+                            var packed = row.Item;
+                            <tr class="app-row-in-left @(ReferenceEquals(packed, SelectedPackedItem) ? "is-selected" : null)"
+                                @key="row.Key"
                                 @onclick="() => OnPackedItemSelect.InvokeAsync(packed)">
                                 <td class="app-table__code">@packed.ItemCode</td>
-                                <td class="app-table__num">@packed.JlQuantity</td>
+                                <td class="app-table__num">@FormatQuantity(packed.JlQuantity)</td>
                                 @if (IsCollaborativePacking)
                                 {
                                     <td>@packed.PackingUser</td>
@@ -170,7 +176,6 @@
     [Parameter] public bool Disabled { get; set; }
     [Parameter] public string CurrentUsername { get; set; } = string.Empty;
     [Parameter] public bool IsCollaborativePacking { get; set; }
-    [Parameter] public EventCallback OnPackedFilterChanged { get; set; }
 
     private bool ShowOnlyMine { get; set; }
 
@@ -192,16 +197,56 @@
 
     private static string FormatWeight(decimal value) => value.ToString("F2");
 
-    // Stable identity so Blazor reuses rows instead of re-rendering the list.
-    private static string ItemKey(JlItemDto item)
-        => $"{item.DocumentId}|{item.ErpPositionNumber}|{item.ItemCode}|{item.JlCode}";
+    // Whole quantities show without a trailing ",0" (10 not 10,0); fractional
+    // ones keep only the digits they actually need.
+    private static string FormatQuantity(decimal value)
+        => value == decimal.Truncate(value)
+            ? value.ToString("0")
+            : value.ToString("0.###");
 
-    private async Task OnShowOnlyMineChanged(ChangeEventArgs e)
+    /// <summary>
+    /// Pairs each row with a key that is both stable and unique.
+    ///
+    /// Stable matters as much as unique: every pack and unpack replaces these
+    /// lists with fresh objects from the session snapshot, so keying on the
+    /// object itself would rebuild every row — and rebuilt rows replay their
+    /// entrance animation, which is why the whole table used to flash when a
+    /// single item moved. A business key keeps untouched rows untouched; the
+    /// occurrence counter is a safety net for any residual duplicate the merge
+    /// step upstream did not fold together.
+    /// </summary>
+    private static List<Row> WithKeys(IEnumerable<JlItemDto> items)
+    {
+        var seen = new Dictionary<string, int>();
+        var rows = new List<Row>();
+
+        foreach (var item in items)
+        {
+            var key = $"{item.DocumentId}|{item.ErpPositionNumber}|{item.ItemCode}|{item.JlCode}|{item.BatchId}";
+            seen.TryGetValue(key, out var seenBefore);
+            seen[key] = seenBefore + 1;
+
+            rows.Add(new Row(item, seenBefore == 0 ? key : $"{key}#{seenBefore}"));
+        }
+
+        return rows;
+    }
+
+    private sealed record Row(JlItemDto Item, string Key);
+
+    private void OnShowOnlyMineChanged(ChangeEventArgs e)
     {
         ShowOnlyMine = e.Value is bool b && b;
-        await OnPackedFilterChanged.InvokeAsync();
     }
 
     private bool IsHighlighted(JlItemDto item)
         => HighlightedRows?.Contains(item.ItemCode) == true;
+
+    // A pending row whose line already has some quantity on the packed side:
+    // the operator moved part of it (e.g. 2 of 3). Marked so the remainder is
+    // easy to spot without opening the packed list.
+    private bool IsPartiallyPacked(JlItemDto item)
+        => PackedItems.Any(p => p.DocumentId == item.DocumentId
+            && p.ErpPositionNumber == item.ErpPositionNumber
+            && p.ItemCode == item.ItemCode);
 }

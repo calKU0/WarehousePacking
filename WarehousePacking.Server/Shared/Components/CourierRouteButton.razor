@@ -1,0 +1,76 @@
+@using WarehousePacking.Contracts.Data.Enums
+
+@*
+    "Zamknij Trasę" action for a single carrier.
+
+    Kept on a neutral surface on purpose: the carrier's own logo is the colour
+    on the button, so painting the whole button in the carrier colour would only
+    make the logo disappear into it. A slim accent bar in the carrier colour
+    identifies the route instead. Once the route is closed the button settles
+    into a calm "done" state with a green tick.
+*@
+
+<button type="button"
+        class="btn route-btn route-btn--@CssKey @(Closed ? "route-btn--done" : null)"
+        @onclick="OnClose"
+        disabled="@(Closed || Busy)">
+    <span class="route-btn__logo">
+        @if (!string.IsNullOrEmpty(LogoSrc))
+        {
+            <img src="@LogoSrc" alt="@Label" />
+        }
+        else
+        {
+            <i class="bi bi-truck" aria-hidden="true"></i>
+        }
+    </span>
+
+    <span class="route-btn__label">
+        @if (Busy)
+        {
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span>Zamykanie trasy…</span>
+        }
+        else if (Closed)
+        {
+            <span>Trasa zamknięta</span>
+        }
+        else
+        {
+            <span>Zamknij Trasę</span>
+        }
+    </span>
+
+    <span class="route-btn__status" aria-hidden="true">
+        @if (Closed)
+        {
+            <i class="bi bi-check-circle-fill"></i>
+        }
+        else if (!Busy)
+        {
+            <i class="bi bi-chevron-right"></i>
+        }
+    </span>
+</button>
+
+@code {
+    [Parameter] public Courier Courier { get; set; }
+    [Parameter] public string? LogoSrc { get; set; }
+    [Parameter] public string Label { get; set; } = string.Empty;
+
+    /// <summary>Route already closed for the day — the button becomes a done marker.</summary>
+    [Parameter] public bool Closed { get; set; }
+
+    /// <summary>A close request is in flight.</summary>
+    [Parameter] public bool Busy { get; set; }
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private string CssKey => Courier switch
+    {
+        Courier.DPD => "dpd",
+        Courier.GLS => "gls",
+        Courier.Fedex => "fedex",
+        _ => "generic"
+    };
+}

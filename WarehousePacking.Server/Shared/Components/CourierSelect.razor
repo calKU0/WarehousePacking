@@ -1,0 +1,75 @@
+@using WarehousePacking.Contracts.Data.Enums
+@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Server.Helpers
+@inject IJSRuntime JS
+
+@*
+    Courier picker that shows each carrier's logo — a native <select> can only
+    render text, so this is a custom dropdown. The trigger shows the current
+    pick (logo + name); the panel lists every carrier the same way.
+
+    The panel is a popover, so it renders in the browser's top layer and is never
+    clipped by the cards (which hide overflow) or by the bottom of the page. The
+    trigger toggles it natively via popovertarget — so clicking the trigger again
+    closes it — and a JS helper places it under, or above, the trigger. Clicking
+    away or pressing Esc closes it (popover light-dismiss).
+*@
+
+<div class="courier-select @(Disabled ? "is-disabled" : null)">
+    <button type="button"
+            class="courier-select__trigger form-select"
+            popovertarget="@_id"
+            disabled="@Disabled"
+            @ref="_trigger">
+        <CourierLabel Courier="Value" />
+    </button>
+
+    <ul class="courier-select__menu" id="@_id" popover @ref="_menu" role="listbox">
+        @foreach (var courier in Options ?? Enumerable.Empty<Courier>())
+        {
+            <li>
+                <button type="button"
+                        class="courier-select__option @(courier == Value ? "is-selected" : null)"
+                        role="option"
+                        aria-selected="@(courier == Value)"
+                        popovertarget="@_id"
+                        popovertargetaction="hide"
+                        @onclick="() => Select(courier)">
+                    <CourierLabel Courier="courier" />
+                    @if (courier == Value)
+                    {
+                        <i class="bi bi-check-lg courier-select__check" aria-hidden="true"></i>
+                    }
+                </button>
+            </li>
+        }
+    </ul>
+</div>
+
+@code {
+    [Parameter] public Courier Value { get; set; }
+    [Parameter] public EventCallback<Courier> ValueChanged { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Override the option list; defaults to every carrier.</summary>
+    [Parameter] public IEnumerable<Courier>? Options { get; set; }
+
+    private readonly string _id = "cs-" + Guid.NewGuid().ToString("N");
+    private ElementReference _trigger;
+    private ElementReference _menu;
+
+    protected override void OnParametersSet()
+        => Options ??= Enum.GetValues<Courier>();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await JS.InvokeVoidAsync("courierSelect.init", _trigger, _menu);
+    }
+
+    private async Task Select(Courier courier)
+    {
+        if (courier != Value)
+            await ValueChanged.InvokeAsync(courier);
+    }
+}

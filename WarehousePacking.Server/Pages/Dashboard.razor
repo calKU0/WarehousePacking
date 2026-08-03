@@ -24,7 +24,7 @@
         </div>
 
         <div class="col-4 text-center">
-            <h1 class="mb-0 text-primary fw-semibold text-truncate">
+            <h1 class="mb-0 text-primary fw-semibold dashboard-panel-title">
                 @(ActivePanel.GetDescription())
             </h1>
         </div>
@@ -33,27 +33,27 @@
             <div class="d-flex gap-2 align-items-center">
                 <span class="text-muted small me-2">Dane z: @(CurrentPanelDataTime?.ToString("HH:mm:ss") ?? "-")</span>
 
-                <button class="btn btn-outline-primary dashboard-refresh-btn" @onclick="HandleManualRefreshAsync" disabled="@IsCurrentPanelLoading">
+                <button class="btn btn-sm btn-outline-primary dashboard-refresh-btn" @onclick="HandleManualRefreshAsync" disabled="@IsCurrentPanelLoading">
                     @if (IsCurrentPanelLoading)
                     {
-                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        <span class="spinner-border spinner-border-sm dashboard-refresh-btn__icon" role="status" aria-hidden="true"></span>
                     }
                     else
                     {
-                        <span class="spinner-placeholder"></span>
+                        <i class="bi bi-arrow-clockwise dashboard-refresh-btn__icon" aria-hidden="true"></i>
                     }
-                    Odśwież panel
+                    <span>Odśwież panel</span>
                 </button>
 
-                <button type="button" class="btn btn-outline-secondary" @onclick="MoveToPreviousPanelAsync" title="Poprzedni panel">
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="MoveToPreviousPanelAsync" title="Poprzedni panel">
                     <span aria-hidden="true">←</span>
                 </button>
 
-                <button type="button" class="btn btn-outline-secondary" @onclick="ToggleSlider">
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ToggleSlider">
                     @(IsSliderRunning ? "Zatrzymaj" : "Wznów")
                 </button>
 
-                <button type="button" class="btn btn-outline-secondary" @onclick="MoveToNextPanelAsync" title="Następny panel">
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="MoveToNextPanelAsync" title="Następny panel">
                     <span aria-hidden="true">→</span>
                 </button>
             </div>
@@ -83,7 +83,7 @@
         <div class="dashboard-track" style="@GetTrackStyle()">
             @foreach (var panel in PanelOrder)
             {
-                <section class="dashboard-slide">
+                <section class="dashboard-slide @(panel == ActivePanel ? "is-active" : null)">
                     @* Safety net for an unattended 24/7 wallboard: a render fault
                        in one panel must not tear down the whole circuit and leave
                        a dead screen until someone notices in the morning. The

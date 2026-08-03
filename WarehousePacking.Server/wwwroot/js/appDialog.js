@@ -4,65 +4,98 @@
 // above every stacking context on the page. That removes a whole class of
 // z-index bugs: sticky table headers, toast overlays and composited layers can
 // no longer show through or paint over a modal, no matter what the page does.
-// Focus the element a modal marked with `autofocus`, retrying across a few
-// frames while its content settles. Selects any existing text so the operator
-// can overtype a pre-filled value.
-function focusMarked(el, attemptsLeft) {
-    const target = el.querySelector('[autofocus]');
-    if (!target) return;
+//
+// Focus is not handled here: scanFocus watches the dialog's open attribute and
+// puts the caret on the modal's [autofocus] field once its content renders —
+// or on the dialog itself when it has no field, so no button lights up.
+window.appDialog = (function () {
+    // Matches the entrance/exit animation in components.css (--dur-slow).
+    const ENTRANCE_MS = 280;
 
-    if (target.isConnected && !target.disabled && !target.readOnly) {
-        try {
-            target.focus({ preventScroll: true });
-            if (typeof target.select === 'function') target.select();
-        } catch {
-            /* element went away mid-frame */
-        }
-        return;
-    }
+    return {
+        /**
+         * Bring the dialog's open state in sync with Blazor.
+         * @param {HTMLDialogElement} el
+         * @param {boolean} shouldBeOpen
+         * @param {any} dotNetRef  notified when the close animation finishes, and on Esc when escDismiss
+         * @param {boolean} escDismiss  whether Esc should dismiss (off for touch screens)
+         */
+        sync: function (el, shouldBeOpen, dotNetRef, escDismiss) {
+            if (!el) return;
 
-    if (attemptsLeft > 0) {
-        requestAnimationFrame(() => focusMarked(el, attemptsLeft - 1));
-    }
-}
-
-window.appDialog = {
-    /**
-     * Bring the dialog's open state in sync with Blazor.
-     * @param {HTMLDialogElement} el
-     * @param {boolean} shouldBeOpen
-     * @param {any} dotNetRef  optional; notified when the user dismisses via Esc
-     */
-    sync: function (el, shouldBeOpen, dotNetRef) {
-        if (!el) return;
-
-        if (shouldBeOpen) {
-            if (!el.open) {
-                // Esc triggers "cancel"; report it so the component can run the
-                // same close logic as the X button (resolving pending tasks).
-                if (dotNetRef && !el.__cancelBound) {
-                    el.__cancelBound = true;
-                    el.addEventListener('cancel', function (e) {
-                        e.preventDefault();
-                        dotNetRef.invokeMethodAsync('NotifyDismissed');
-                    });
+            if (shouldBeOpen) {
+                // Reopened mid-exit: cancel the pending close and drop the class.
+                if (el.__closeTimer) {
+                    clearTimeout(el.__closeTimer);
+                    el.__closeTimer = 0;
+                    el.classList.remove('is-closing');
                 }
 
-                try {
-                    el.showModal();
-                } catch {
-                    // Already open, or not attached yet — nothing to recover.
-                }
+                if (!el.open) {
+                    // Esc triggers "cancel"; report it so the component can run
+                    // the same close logic as the X button (resolving pending
+                    // tasks).
+                    if (escDismiss && dotNetRef && !el.__cancelBound) {
+                        el.__cancelBound = true;
+                        el.addEventListener('cancel', function (e) {
+                            e.preventDefault();
+                            dotNetRef.invokeMethodAsync('NotifyDismissed');
+                        });
+                    }
 
-                // showModal()'s own focusing step lands on the first focusable
-                // element, which is the header's close button — not the input a
-                // form modal wants active. Move focus to the element the modal
-                // marked with `autofocus`. Retried a few frames because Blazor
-                // may still be settling the dialog's content.
-                focusMarked(el, 5);
+                    // Hand the caret back to the browser first. Chrome skips a
+                    // dialog's autofocus when the document already has a focused
+                    // element ("Autofocus processing was blocked because a
+                    // document already has a focused element"), which would leave
+                    // the caret on the page's scan field — a field this dialog is
+                    // about to make inert, so it draws a focus ring, shows no
+                    // caret and swallows every keystroke.
+                    if (window.scanFocus && window.scanFocus.release) {
+                        window.scanFocus.release();
+                    }
+
+                    // Before showModal, so the compositing hint is already in
+                    // place when the dialog is first laid out and painted —
+                    // promoting the layer on the same frame the entrance starts
+                    // is what makes it hitch.
+                    el.classList.add('is-opening');
+
+                    try {
+                        el.showModal();
+                    } catch {
+                        // Already open, or not attached yet — nothing to recover.
+                    }
+
+                    window.setTimeout(function () {
+                        el.classList.remove('is-opening');
+                    }, ENTRANCE_MS);
+                }
+            } else if (el.open && !el.__closeTimer) {
+                // Fade out first, then actually close. The dialog is left in the
+                // DOM (and top layer) for the animation; the caller keeps its
+                // content rendered until NotifyClosed fires at the end.
+                el.classList.remove('is-opening');
+                el.classList.add('is-closing');
+
+                el.__closeTimer = window.setTimeout(function () {
+                    el.__closeTimer = 0;
+                    el.classList.remove('is-closing');
+
+                    try {
+                        el.close();
+                    } catch {
+                        // Detached mid-animation — nothing left to close.
+                    }
+
+                    if (dotNetRef) {
+                        try {
+                            dotNetRef.invokeMethodAsync('NotifyClosed');
+                        } catch {
+                            // Circuit gone; the DOM close above is enough.
+                        }
+                    }
+                }, ENTRANCE_MS);
             }
-        } else if (el.open) {
-            el.close();
         }
-    }
-};
+    };
+})();

@@ -4,6 +4,10 @@
     gap: var(--space-3);
 }
 
+.shipment__notice {
+    min-height: 2.75rem;
+}
+
 .shipment__facts {
     display: grid;
     grid-template-columns: auto 1fr;

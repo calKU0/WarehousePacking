@@ -13,7 +13,8 @@
 
 <div class="app-page app-page--fill pack-control">
 
-    <PackingHeader JlItems="JlItems"
+    <PackingHeader @ref="Header"
+                   JlItems="JlItems"
                    CurrentJl="CurrentJl"
                    Username="@UserSession.Username"
                    IsMainOperator="@IsMainOperator"
@@ -33,7 +34,6 @@
                    CourierConfiguration="CourierConfiguration" 
                    CurrentUsername="@UserSession.Username"
                    IsCollaborativePacking="@(ActiveOperators?.Count > 1)"
-                   OnPackedFilterChanged="HandlePackedFilterChanged"
                    Disabled="@MovedProduct" />
 
     <PackingButtons NextPackage="NextPackage"
@@ -48,7 +48,7 @@
        Declared at page level because each @ref binds to a field on
        PackingPageBase, which the shared packing logic drives directly. *@
 
-    <ProductSelectModal @ref=ProductSelectModal FocusOnClose="ScanInputComponent" OnConfirm="PackItem" />
+    <ProductSelectModal @ref=ProductSelectModal OnConfirm="PackItem" />
     <JlSelectModal @ref="JlSelectModal" />
     <PasswordModal @ref=PasswordModal />
     <ConfirmDialog @ref="ConfirmDialog" />
@@ -71,19 +71,30 @@
     <ShipmentModal @ref="ShipmentModal" OnOk="HandleShipmentOkClick" />
     <MergePackagesModal @ref="MergePackagesModal" />
 
-    <Toast FocusAfterCloseInput="ScanInputComponent" @ref="Toast" />
+    <Toast @ref="Toast" />
 </div>
 
 @code {
     private bool MovedProduct { get; set; } = false;
 
+    private PackingHeader? Header;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            // The manager modal lives inside PackingHeader; point the base's
+            // reference at it so OpenModal() drives the rendered instance rather
+            // than the unrendered placeholder (which throws "render handle not
+            // yet assigned"). Mirrors PackingControl.
+            ManagerModal = Header?.ManagerModal;
+        }
+
         await base.OnAfterRenderAsync(firstRender);
 
         if (firstRender)
         {
-            Toast.Show("Pakowanie pojedyńcze", "Kuweta zawiera towary dla wielu klientów.\nKAŻDY TOWAR NALEŻY SPAKOWAĆ DO OSOBNEJ PACZKI!", ToastType.Info);
+            Toast.ShowBlocking("Pakowanie pojedyńcze", "Kuweta zawiera towary dla wielu klientów.\nKAŻDY TOWAR NALEŻY SPAKOWAĆ DO OSOBNEJ PACZKI!", ToastType.Info);
         }
     }
 
@@ -168,7 +179,6 @@
         finally
         {
             SelectedItem = null;
-            await ScanInputComponent.FocusAsync();
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -192,95 +202,38 @@
 
     private async Task<bool> MoveItemToPackedSingle(JlItemDto item, decimal qty)
     {
-        if (item == null)
-            return false;
+        if (item == null) return false;
+        if (ExceedsWeightLimit(item, qty)) return false;
 
-        if (CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier) && PackedItems.Sum(w => w.ItemWeight * w.JlQuantity) + (item.ItemWeight * qty) > CourierConfiguration.MaxPackageWeight)
-        {
-            Toast.Show("Błąd!", $"Przekroczona waga, dopuszczalna: {CourierConfiguration.MaxPackageWeight}");
-            return false;
-        }
-
-        var request = new AddPackedPositionRequest
-        {
-            PackingDocumentId = PackageId,
-            SourceDocumentId = item.DocumentId,
-            SourceDocumentType = item.DocumentType,
-            PositionNumber = item.ErpPositionNumber,
-            StationNumber = Settings.StationNumber,
-            Username = UserSession.Username,
-            Quantity = qty,
-            Weight = item.ItemWeight,
-            Volume = item.ItemVolume,
-            ScanDate = item.ScanDate,
-            PackDate = DateTime.Now
-        };
-
-        var persisted = await PackingService.AddPackedPosition(request);
+        var persisted = await PackingService.AddPackedPosition(BuildPackedPositionRequest(item, qty));
         if (!persisted)
         {
             Toast.Show("Błąd!", "Nie udało się dodać spakowanej pozycji.");
             return false;
         }
 
-        var existingPacked = PackedItems.FirstOrDefault(p =>
-            p.ItemCode == item.ItemCode
-            && p.DocumentId == item.DocumentId
-            && p.ErpPositionNumber == item.ErpPositionNumber
-            && p.JlCode == item.JlCode);
-
-        if (existingPacked == null)
+        // Single mode keeps its own lists: there is no collaboration session to
+        // hand back a snapshot, because the kuweta is packed by one operator.
+        await AnimateListChangeAsync(() =>
         {
-            existingPacked = new JlItemDto
+            var packedLine = PackedItems.FirstOrDefault(p =>
+                p.ItemCode == item.ItemCode
+                && p.DocumentId == item.DocumentId
+                && p.ErpPositionNumber == item.ErpPositionNumber
+                && p.JlCode == item.JlCode);
+
+            if (packedLine == null)
             {
-                JlCode = item.JlCode,
-                JlEanCode = item.JlEanCode,
-                ItemErpId = item.ItemErpId,
-                ItemWmsId = item.ItemWmsId,
-                ErpPositionNumber = item.ErpPositionNumber,
-                ItemCode = item.ItemCode,
-                ItemName = item.ItemName,
-                ItemEan = item.ItemEan?.ToList() ?? new(),
-                ItemUnit = item.ItemUnit,
-                ItemType = item.ItemType,
-                ItemImage = item.ItemImage,
-                ItemWeight = item.ItemWeight,
-                ItemVolume = item.ItemVolume,
-                PackedWMS = item.PackedWMS,
-                SupplierCode = item.SupplierCode?.ToList() ?? new(),
-                ClientErpId = item.ClientErpId,
-                AddressName = item.AddressName,
-                AddressCity = item.AddressCity,
-                AddressStreet = item.AddressStreet,
-                AddressPostalCode = item.AddressPostalCode,
-                AddressCountry = item.AddressCountry,
-                ClientName = item.ClientName,
-                ClientSymbol = item.ClientSymbol,
-                DestinationCountry = item.DestinationCountry,
-                PackingRequirements = item.PackingRequirements,
-                ScanDate = item.ScanDate,
-                CourierName = item.CourierName,
-                Courier = item.Courier,
-                LogoCourier = item.LogoCourier,
-                ShipmentServices = item.ShipmentServices,
-                BatchId = item.BatchId,
-                BatchNumber = item.BatchNumber,
-                TermValidity = item.TermValidity,
-                ErpDocumentId = item.ErpDocumentId,
-                DocumentId = item.DocumentId,
-                DocumentType = item.DocumentType,
-                DocumentQuantity = item.DocumentQuantity,
-                JlQuantity = 0,
-                PackingUser = UserSession.Username
-            };
-            PackedItems.Add(existingPacked);
-        }
+                packedLine = item.CopyAsPackedLine(UserSession.Username);
+                PackedItems.Add(packedLine);
+            }
 
-        existingPacked.JlQuantity += qty;
-        item.JlQuantity -= qty;
+            packedLine.JlQuantity += qty;
+            item.JlQuantity -= qty;
 
-        if (item.JlQuantity <= 0)
-            JlItems.Remove(item);
+            if (item.JlQuantity <= 0)
+                JlItems.Remove(item);
+        });
 
         return true;
     }
@@ -292,22 +245,10 @@
         if (SelectedPackedItem.PackedWMS)
         {
             Toast.Show("Błąd!", "Nie można usunąć pozycji, która została już wysłana do WMS.", ToastType.Error, 3500);
-            await ScanInputComponent.FocusAsync();
             return;
         }
 
-        var request = new RemovePackedPositionRequest
-        {
-            PackingDocumentId = PackageId,
-            SourceDocumentId = SelectedPackedItem.DocumentId,
-            SourceDocumentType = SelectedPackedItem.DocumentType,
-            PositionNumber = SelectedPackedItem.ErpPositionNumber,
-            Quantity = SelectedPackedItem.JlQuantity,
-            Weight = SelectedPackedItem.ItemWeight,
-            Volume = SelectedPackedItem.ItemVolume
-        };
-
-        var success = await PackingService.RemovePackedPosition(request);
+        var success = await PackingService.RemovePackedPosition(BuildRemovePositionRequest(SelectedPackedItem));
         if (!success)
         {
             Toast.Show("Błąd!", "Nie udało się usunąć spakowanej pozycji.");
@@ -320,17 +261,21 @@
         };
         await PackingService.UpdateJlRealization(jlInProgress);
 
-        var existingLeft = JlItems.FirstOrDefault(j => j.ItemCode == SelectedPackedItem.ItemCode);
-        if (existingLeft != null) existingLeft.JlQuantity += SelectedPackedItem.JlQuantity;
-        else JlItems.Add(SelectedPackedItem);
+        await AnimateListChangeAsync(() =>
+        {
+            var unpacked = SelectedPackedItem!;
+            var existingLeft = JlItems.FirstOrDefault(j => j.ItemCode == unpacked.ItemCode);
 
-        PackedItems.Remove(SelectedPackedItem);
-        HighlightedRows.Remove(SelectedPackedItem.ItemCode);
-        SelectedPackedItem = null;
+            if (existingLeft != null) existingLeft.JlQuantity += unpacked.JlQuantity;
+            else JlItems.Add(unpacked);
 
-        MovedProduct = false;
+            PackedItems.Remove(unpacked);
+            HighlightedRows.Remove(unpacked.ItemCode);
+            SelectedPackedItem = null;
+            MovedProduct = false;
+        });
+
         ClearJlData();
-        await ScanInputComponent.FocusAsync();
     }
 
     protected override async Task HandleShipmentOkClick((string ScannedCode, string TrackingNumber) data)
@@ -354,26 +299,17 @@
                     break;
             }
 
+            // Single mode empties the kuweta one product at a time; once the
+            // last one is gone the kuweta itself is done.
             if (!JlItems.Any())
             {
+                await ReleaseJlsAsync(removeFromPackingList: true);
                 Navigation.NavigateTo("/kontrola-pakowania");
-                foreach (var jl in MergeJls)
-                {
-                    await PackingService.RemoveJlRealization(jl.jlName, UserSession.Username, false);
-                    await PackingService.RemoveJlFromPackingList(jl.jlName);
-                }
-                await PackingService.RemoveJlRealization(Jl, UserSession.Username, false);
-                await PackingService.RemoveJlFromPackingList(Jl);
-            }
-            else
-            {
-                await ScanInputComponent.FocusAsync();
             }
         }
         catch (Exception ex)
         {
             Toast.Show("Błąd!", $"Błąd przy próbie finalizacji pakowania: {ex.Message}");
-            await ScanInputComponent.FocusAsync();
         }
         finally
         {

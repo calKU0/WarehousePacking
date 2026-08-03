@@ -252,12 +252,23 @@
 }
 
 /* Truncate with an ellipsis instead of wrapping or forcing the table wider.
-   `max-width: 0` lets the cell shrink below its content in an auto-layout
-   table; the column still gets its share of the available width. */
+   `width: 100%` claims all the width the fixed columns leave behind, so the
+   column only truncates once its text genuinely outgrows that space (not while
+   there is room to spare); `max-width: 0` is what lets it shrink to truncate.
+   Give the neighbouring content columns `.app-table__fit` so the leftover width
+   flows here rather than being shared out. */
 .app-table__truncate {
+    width: 100%;
     max-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Content-width column: takes exactly what its content needs and no more, so a
+   sibling .app-table__truncate can absorb the rest of the row. */
+.app-table__fit {
+    width: 1%;
     white-space: nowrap;
 }
 
@@ -292,7 +303,16 @@
         font-size: var(--fs-sm);
     }
 
+/* Item and JL codes are the one thing an operator matches against the label in
+   their hand, so they never wrap and never lose characters to an ellipsis.
+   `width: 1%` makes the column take exactly the width of its longest code — an
+   auto-layout table hands the leftovers to the flexible columns next to it. */
 .app-table__code {
+    width: 1%;
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
     font-family: var(--font-mono);
     font-weight: 700;
 }
@@ -451,7 +471,7 @@
 }
 
     .app-actionbar > .btn {
-        min-height: var(--touch-lg);
+        min-height: 4rem; /* 64px — primary tier */
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -500,13 +520,44 @@
     overflow: hidden;
 }
 
+    /* Open and close are symmetric keyframe animations, identical for every
+       modal (all of them are AppModal). The entrance plays on open; the exit
+       plays when appDialog.js adds .is-closing and holds the dialog for the
+       animation before it actually closes. A keyframe alone can only play on
+       the way in, which is why the exit needs the class — but both share the
+       same offset and easing, so opening and closing mirror each other. */
     .app-dialog[open] {
         animation: app-modal-in var(--dur-slow) var(--ease);
     }
 
+    .app-dialog[open].is-closing {
+        animation: app-modal-out var(--dur-slow) var(--ease) forwards;
+        pointer-events: none;
+    }
+
+    /* Promoting the layer up front keeps the entrance from stuttering on its
+       first frame. */
+    .app-dialog.is-opening {
+        will-change: transform, opacity;
+    }
+
+    /* While the dialog is scaling in, its box is briefly smaller than its
+       content — without clipping, a scrollbar flashes in and out for those few
+       frames. */
+    .app-dialog.is-opening .app-modal__body {
+        overflow: hidden;
+    }
+
     .app-dialog::backdrop {
         background: rgba(17, 20, 24, .6);
+    }
+
+    .app-dialog[open]::backdrop {
         animation: app-fade-in var(--dur) var(--ease);
+    }
+
+    .app-dialog[open].is-closing::backdrop {
+        animation: app-fade-out var(--dur) var(--ease) forwards;
     }
 
 .app-dialog--sm {
@@ -607,6 +658,33 @@
     padding: 0;
 }
 
+
+/* Label/value pairs — package facts, address details, anything read rather
+   than edited. */
+.app-facts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-1) var(--space-3);
+    margin: 0;
+    padding: var(--space-3);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+    .app-facts dt {
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .app-facts dd {
+        margin: 0;
+        font-weight: 600;
+        word-break: break-word;
+    }
+
+/* One footer layout everywhere, so no modal reads differently from the next:
+   the buttons split the whole row into equal, full-width segments. */
 .app-modal__footer {
     display: flex;
     gap: var(--space-2);
@@ -617,18 +695,9 @@
 }
 
     .app-modal__footer > .btn {
-        flex: 1;
-        min-height: var(--touch);
+        flex: 1 1 0;
+        min-height: 3rem; /* 48px — footer buttons share the secondary height */
         font-size: var(--fs-base);
-    }
-
-.app-modal__footer--end {
-    justify-content: flex-end;
-}
-
-    .app-modal__footer--end > .btn {
-        flex: 0 0 auto;
-        min-width: 8rem;
     }
 
 /* Phones: modals become bottom sheets — easier to reach one-handed. */
@@ -641,8 +710,14 @@
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     }
 
+        /* Slide up from the bottom edge instead of scaling in; the exit mirrors
+           it, on the same .is-closing class as the desktop dialog. */
         .app-dialog[open] {
             animation: app-sheet-in var(--dur-slow) var(--ease);
+        }
+
+        .app-dialog[open].is-closing {
+            animation: app-sheet-out var(--dur-slow) var(--ease) forwards;
         }
 
     .app-modal__footer {
@@ -711,19 +786,127 @@
     color: var(--secondary-strong);
 }
 
-.app-spinner {
-    width: 2.75rem;
-    height: 2.75rem;
-    border: 4px solid var(--brand-soft);
-    border-top-color: var(--brand-strong);
+/* One loading spinner for the whole app. `.app-spinner` is the canonical ring;
+   Bootstrap's `.spinner-border` is re-skinned to be visually identical, so the
+   many buttons already using it match without being rewritten. Both spin with
+   the same `app-spin` and take their colour from the surrounding text
+   (`currentColor`): brand by default, and the button's own text colour inside a
+   button (see the .btn override) so it always contrasts. */
+.app-spinner,
+.spinner-border {
+    --spinner-size: 2.75rem;
+    --spinner-thickness: 4px;
+    display: inline-block;
+    width: var(--spinner-size);
+    height: var(--spinner-size);
+    vertical-align: -0.2em;
+    color: var(--brand-strong);
+    border: 0;
     border-radius: 50%;
-    animation: app-spin 700ms linear infinite;
+    /* Comet-style trail: solid at the leading edge, fading out over
+       most of the circle, with a soft empty gap — reads as motion
+       even in a single still frame. */
+    background: conic-gradient(from 0deg, currentColor 0deg, color-mix(in srgb, currentColor 35%, transparent) 150deg, transparent 270deg);
+    /* Punch the fill into a ring so it reads as a spinner, not a pie. */
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--spinner-thickness) - 1px), #000 calc(100% - var(--spinner-thickness)));
+    mask: radial-gradient(farthest-side, transparent calc(100% - var(--spinner-thickness) - 1px), #000 calc(100% - var(--spinner-thickness)));
+    animation: app-spin 900ms cubic-bezier(0.6, 0.05, 0.4, 0.95) infinite, app-spinner-in 200ms ease-out;
 }
 
-.app-spinner--sm {
-    width: 1.25rem;
-    height: 1.25rem;
-    border-width: 2px;
+/* Very old browsers without mask support fall back to the classic
+   flat-cap ring instead of rendering a solid disc. */
+@supports not (mask: radial-gradient(#000, #000)) {
+    .app-spinner,
+    .spinner-border {
+        background: none;
+        border: var(--spinner-thickness) solid color-mix(in srgb, currentColor 20%, transparent);
+        border-top-color: currentColor;
+    }
+}
+
+/* Inside a button the spinner takes the button's own text colour so
+   it stays legible on brand/danger/success fills. */
+.btn .app-spinner,
+.btn .spinner-border {
+    color: inherit;
+}
+
+.app-spinner--sm,
+.spinner-border-sm {
+    --spinner-size: 1.25rem;
+    --spinner-thickness: 2px;
+}
+
+.app-spinner--lg {
+    --spinner-size: 3.75rem;
+    --spinner-thickness: 5px;
+}
+
+@keyframes app-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes app-spinner-in {
+    from {
+        opacity: 0;
+        transform: scale(0.6);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Spinner + message, for loading states in tables, cards and sections. */
+.app-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--brand-strong);
+    animation: app-spinner-in 200ms ease-out;
+}
+
+.app-loading__text {
+    color: var(--text-muted);
+    font-weight: 500;
+    animation: app-loading-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes app-loading-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.55;
+    }
+}
+
+.app-loading--block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    width: 100%;
+}
+
+/* Respect reduced-motion preferences: keep the spin (it still
+   communicates "working"), drop the pop-in/pulse embellishments. */
+@media (prefers-reduced-motion: reduce) {
+    .app-spinner,
+    .spinner-border {
+        animation: app-spin 1.1s linear infinite;
+    }
+
+    .app-loading,
+    .app-loading__text {
+        animation: none;
+    }
 }
 
 /* ==========================================================================
@@ -816,6 +999,11 @@
     to { opacity: 1; }
 }
 
+@keyframes app-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
 @keyframes app-fade-up {
     from { opacity: 0; transform: translateY(14px); }
     to { opacity: 1; transform: translateY(0); }
@@ -831,14 +1019,39 @@
     to { opacity: 1; transform: translateX(0); }
 }
 
+/* A row joining one of the packing lists slides in from the side it came from:
+   packed items from the list on the left, unpacked ones back from the right.
+   Only genuinely new rows carry these — the lists are keyed, so a pack or an
+   unpack leaves every other row untouched instead of replaying the whole
+   table. */
+@keyframes app-row-from-left {
+    from { opacity: 0; transform: translateX(-14px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes app-row-from-right {
+    from { opacity: 0; transform: translateX(14px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
 @keyframes app-modal-in {
     from { opacity: 0; transform: translateY(12px) scale(.98); }
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@keyframes app-modal-out {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(12px) scale(.98); }
+}
+
 @keyframes app-sheet-in {
     from { transform: translateY(100%); }
     to { transform: translateY(0); }
+}
+
+@keyframes app-sheet-out {
+    from { transform: translateY(0); }
+    to { transform: translateY(100%); }
 }
 
 @keyframes app-spin {
@@ -877,6 +1090,8 @@
 .app-anim-slide-right { animation: app-slide-right var(--dur-slow) var(--ease) both; }
 .app-anim-pop { animation: app-pop var(--dur-slow) var(--ease-spring); }
 .app-anim-shake { animation: app-shake 400ms var(--ease); }
+.app-row-in-left { animation: app-row-from-left var(--dur-slow) var(--ease) both; }
+.app-row-in-right { animation: app-row-from-right var(--dur-slow) var(--ease) both; }
 
 /* Draws the eye to the "scan now" prompt without being obnoxious. */
 .app-pulse { animation: app-pulse 1.8s var(--ease) infinite; }

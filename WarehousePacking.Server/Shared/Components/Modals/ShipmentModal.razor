@@ -26,12 +26,16 @@
                            autocomplete="off"
                            autofocus />
                 </div>
-            }
 
-            @if (!string.IsNullOrEmpty(ScanErrorMessage))
-            {
-                <div class="alert alert-danger mb-0 py-2" role="alert">
-                    <i class="bi bi-exclamation-triangle me-1"></i>@ScanErrorMessage
+                @* Reserved slot: a rejected scan must not shove the rest of the
+                   dialog down and back up while the operator keeps scanning. *@
+                <div class="shipment__notice">
+                    @if (!string.IsNullOrEmpty(ScanErrorMessage))
+                    {
+                        <div class="alert alert-danger mb-0 py-2" role="alert">
+                            <i class="bi bi-exclamation-triangle me-1"></i>@ScanErrorMessage
+                        </div>
+                    }
                 </div>
             }
 
@@ -56,15 +60,14 @@
     </ChildContent>
 
     <Footer>
+        <button type="button" class="btn btn-secondary" @onclick="OnPrintClicked">
+            <i class="bi bi-printer me-1"></i>Wydrukuj ponownie
+        </button>
         <button type="button"
                 class="btn btn-primary"
-                style="flex: 2;"
                 @onclick="OnOkClicked"
                 disabled="@(IsSubmitting || (string.IsNullOrWhiteSpace(ScannedCode) && ShowScan))">
-            OK
-        </button>
-        <button type="button" class="btn btn-success" style="flex: 1;" @onclick="OnPrintClicked">
-            <i class="bi bi-printer me-1"></i>Wydrukuj ponownie
+            Potwierdź
         </button>
     </Footer>
 </AppModal>
@@ -107,8 +110,6 @@
         string? trackingNumber = null,
         string? labelBase64 = null)
     {
-        // Focusing throws when the scan field is not rendered; that is expected
-        // and harmless, so the whole block is best-effort.
         try
         {
             TrackingNumber = trackingNumber ?? string.Empty;
@@ -122,7 +123,6 @@
             ScannedCode = scannedCode ?? string.Empty;
             IsVisible = true;
             await InvokeAsync(StateHasChanged);
-            await InputRef.FocusAsync();
         }
         catch
         {
@@ -150,7 +150,6 @@
         if (!string.IsNullOrEmpty(LabelBase64))
         {
             await ClientPrinterService.PrintAsync(Printer, LabelType.ToString(), LabelBase64);
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
         }
         else
         {
@@ -228,8 +227,6 @@
     {
         ScanErrorMessage = message;
         ScannedCode = string.Empty;
-
-        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
         StateHasChanged();
         return false;
     }

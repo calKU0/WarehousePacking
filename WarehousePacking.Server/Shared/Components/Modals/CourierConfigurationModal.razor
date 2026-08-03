@@ -7,7 +7,7 @@
 *@
 
 <AppModal IsVisible="IsVisible" Title="Konfiguracja kurierów" Icon="bi bi-gear" Size="xl"
-          FlushBody="true" FooterAlignEnd="true" OnClose="HandleCancel">
+          FlushBody="true" OnClose="HandleCancel">
     <ChildContent>
         @if (IsLoading)
         {
@@ -30,7 +30,7 @@
                 @foreach (var config in Configurations)
                 {
                     <tr @key="config.Courier">
-                        <td class="fw-bold">@config.Courier</td>
+                        <td class="fw-bold"><CourierLabel Name="@config.Courier" /></td>
                         <td>
                             <div class="form-check form-switch m-0">
                                 <input class="form-check-input" type="checkbox" @bind="config.AutomaticFvGeneration" disabled="@IsLoading" />
@@ -67,7 +67,7 @@
     </ChildContent>
 
     <Footer>
-        <button type="button" class="btn btn-outline-secondary" @onclick="HandleCancel" disabled="@IsLoading">Anuluj</button>
+        <button type="button" class="btn btn-secondary" @onclick="HandleCancel" disabled="@IsLoading">Zamknij</button>
         <button type="button" class="btn btn-primary" @onclick="HandleConfirm" disabled="@IsLoading">
             @if (IsLoading)
             {

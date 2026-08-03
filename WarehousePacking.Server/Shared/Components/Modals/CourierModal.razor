@@ -13,10 +13,9 @@
             @foreach (var courier in Couriers)
             {
                 <button type="button"
-                        class="btn @(SelectedCourier == courier ? "btn-primary" : "btn-outline-secondary") text-start"
-                        style="min-height: var(--touch);"
+                        class="btn @(SelectedCourier == courier ? "btn-primary" : "btn-outline-secondary") courier-modal__option"
                         @onclick="() => SelectedCourier = courier">
-                    <i class="bi bi-box-seam me-2"></i>@courier.GetDescription()
+                    <CourierLabel Courier="courier" />
                 </button>
             }
         </div>
@@ -24,7 +23,7 @@
 
 
     <Footer>
-        <button type="button" class="btn btn-secondary" @onclick="Cancel">Anuluj</button>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Zamknij</button>
         <button type="button" class="btn btn-primary" @onclick="Confirm" disabled="@(!SelectedCourier.HasValue)">
             Zatwierdź
         </button>

@@ -18,32 +18,58 @@ namespace WarehousePacking.Server.Shared.Base
     /// </summary>
     public partial class PackingPageBase
     {
+        /// <summary>
+        /// Whether packing this quantity would push the package past the
+        /// courier's limit. Tells the operator when it would, so callers can
+        /// just bail out on true.
+        /// </summary>
+        protected bool ExceedsWeightLimit(JlItemDto item, decimal qty)
+        {
+            if (!CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier))
+                return false;
+
+            var afterPacking = PackedItems.Sum(w => w.ItemWeight * w.JlQuantity) + (item.ItemWeight * qty);
+            if (afterPacking <= CourierConfiguration.MaxPackageWeight)
+                return false;
+
+            Toast.Show("Błąd!", $"Przekroczona waga, dopuszczalna: {CourierConfiguration.MaxPackageWeight}");
+            return true;
+        }
+
+        /// <summary>The ERP call is identical for both packing modes.</summary>
+        protected AddPackedPositionRequest BuildPackedPositionRequest(JlItemDto item, decimal qty) => new()
+        {
+            PackingDocumentId = PackageId,
+            SourceDocumentId = item.DocumentId,
+            SourceDocumentType = item.DocumentType,
+            PositionNumber = item.ErpPositionNumber,
+            StationNumber = Settings.StationNumber,
+            Username = UserSession.Username,
+            Quantity = qty,
+            Weight = item.ItemWeight,
+            Volume = item.ItemVolume,
+            ScanDate = item.ScanDate,
+            PackDate = DateTime.Now
+        };
+
+        /// <summary>The ERP call is identical for both packing modes.</summary>
+        protected RemovePackedPositionRequest BuildRemovePositionRequest(JlItemDto packed) => new()
+        {
+            PackingDocumentId = PackageId,
+            SourceDocumentId = packed.DocumentId,
+            SourceDocumentType = packed.DocumentType,
+            PositionNumber = packed.ErpPositionNumber,
+            Quantity = packed.JlQuantity,
+            Weight = packed.ItemWeight,
+            Volume = packed.ItemVolume
+        };
+
         protected virtual async Task<bool> MoveItemToPacked(JlItemDto item, decimal qty)
         {
             if (item == null) return false;
+            if (ExceedsWeightLimit(item, qty)) return false;
 
-            // Check weight limit
-            if (CourierHelper.AllowedCouriersForLabel.Contains(CurrentJl.Courier) && PackedItems.Sum(w => w.ItemWeight * w.JlQuantity) + (item.ItemWeight * qty) > CourierConfiguration.MaxPackageWeight)
-            {
-                Toast.Show("Błąd!", $"Przekroczona waga, dopuszczalna: {CourierConfiguration.MaxPackageWeight}");
-                return false;
-            }
-
-            // Add to ERP package
-            var request = new AddPackedPositionRequest
-            {
-                PackingDocumentId = PackageId,
-                SourceDocumentId = item.DocumentId,
-                SourceDocumentType = item.DocumentType,
-                PositionNumber = item.ErpPositionNumber,
-                StationNumber = Settings.StationNumber,
-                Username = UserSession.Username,
-                Quantity = qty,
-                Weight = item.ItemWeight,
-                Volume = item.ItemVolume,
-                ScanDate = item.ScanDate,
-                PackDate = DateTime.Now
-            };
+            var request = BuildPackedPositionRequest(item, qty);
 
             var result = await CollaborationService.PackAsync(
                 packageId: PackageId,
@@ -63,7 +89,7 @@ namespace WarehousePacking.Server.Shared.Base
                 return false;
             }
 
-            ApplySnapshot(result.Snapshot);
+            await AnimateListChangeAsync(() => ApplySnapshot(result.Snapshot));
             return true;
         }
 
@@ -85,27 +111,16 @@ namespace WarehousePacking.Server.Shared.Base
             if (SelectedPackedItem.PackedWMS)
             {
                 Toast.Show("Błąd!", "Nie można usunąć pozycji, która została już wysłana do WMS.", ToastType.Error, 3500);
-                await ScanInputComponent.FocusAsync();
                 return;
             }
 
             if (!string.Equals(SelectedPackedItem.PackingUser, UserSession.Username, StringComparison.OrdinalIgnoreCase))
             {
                 Toast.Show("Brak uprawnień", "Możesz usunąć tylko pozycje spakowane przez siebie.", ToastType.Error, 3500);
-                await ScanInputComponent.FocusAsync();
                 return;
             }
 
-            var request = new RemovePackedPositionRequest
-            {
-                PackingDocumentId = PackageId,
-                SourceDocumentId = SelectedPackedItem.DocumentId,
-                SourceDocumentType = SelectedPackedItem.DocumentType,
-                PositionNumber = SelectedPackedItem.ErpPositionNumber,
-                Quantity = SelectedPackedItem.JlQuantity,
-                Weight = SelectedPackedItem.ItemWeight,
-                Volume = SelectedPackedItem.ItemVolume
-            };
+            var request = BuildRemovePositionRequest(SelectedPackedItem);
 
             var result = await CollaborationService.UnpackAsync(
                 packageId: PackageId,
@@ -125,10 +140,11 @@ namespace WarehousePacking.Server.Shared.Base
                 return;
             }
 
-            ApplySnapshot(result.Snapshot);
-
-            SelectedPackedItem = null;
-            await ScanInputComponent.FocusAsync();
+            await AnimateListChangeAsync(() =>
+            {
+                ApplySnapshot(result.Snapshot);
+                SelectedPackedItem = null;
+            });
         }
 
         protected virtual async Task HandleCodeInput(KeyboardEventArgs e)
@@ -206,11 +222,6 @@ namespace WarehousePacking.Server.Shared.Base
             SelectedPackedItem = packed;
         }
 
-        protected virtual async Task HandlePackedFilterChanged()
-        {
-            await ScanInputComponent.FocusAsync();
-        }
-
         protected virtual async Task PackItem(decimal qty)
         {
             try
@@ -233,7 +244,6 @@ namespace WarehousePacking.Server.Shared.Base
             finally
             {
                 SelectedItem = null;
-                await ScanInputComponent.FocusAsync();
                 await InvokeAsync(StateHasChanged);
             }
         }

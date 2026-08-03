@@ -9,7 +9,7 @@
     afterwards.
 *@
 
-<AppModal IsVisible="IsVisible" Title="Wybierz adres i (opcjonalnie) fakturę" Icon="bi bi-geo-alt" Size="xl" FooterAlignEnd="true" OnClose="Hide">
+<AppModal IsVisible="IsVisible" Title="Wybierz adres i (opcjonalnie) fakturę" Icon="bi bi-geo-alt" Size="xl" OnClose="Hide">
     <ChildContent>
         <div class="address-invoice">
 
@@ -29,10 +29,13 @@
                            autofocus />
                 </div>
 
-                @if (IsAddressLoading)
-                {
-                    <div class="text-muted small mb-2"><span class="app-spinner app-spinner--sm me-1"></span>Ładowanie...</div>
-                }
+                <div class="address-invoice__status">
+                    @if (IsAddressLoading)
+                    {
+                        <span class="app-spinner app-spinner--sm me-1"></span>
+                        <span>Ładowanie...</span>
+                    }
+                </div>
 
                 <div class="app-card app-card--flush">
                     <div class="address-invoice__scroll">
@@ -63,12 +66,14 @@
                     </div>
                 </div>
 
-                @if (SelectedRecipient != null)
-                {
-                    <div class="alert alert-success mt-3 mb-0 py-2">
-                        <i class="bi bi-check-circle me-1"></i>Wybrano adres: <strong>@SelectedRecipient.Name</strong>
-                    </div>
-                }
+                <div class="address-invoice__chosen">
+                    @if (SelectedRecipient != null)
+                    {
+                        <div class="alert alert-success mb-0 py-2">
+                            <i class="bi bi-check-circle me-1"></i>Wybrano adres: <strong>@SelectedRecipient.Name</strong>
+                        </div>
+                    }
+                </div>
             </section>
 
             @* ----- Invoice ------------------------------------------------ *@
@@ -86,10 +91,13 @@
                            autocomplete="off" />
                 </div>
 
-                @if (IsInvoiceLoading)
-                {
-                    <div class="text-muted small mb-2"><span class="app-spinner app-spinner--sm me-1"></span>Ładowanie...</div>
-                }
+                <div class="address-invoice__status">
+                    @if (IsInvoiceLoading)
+                    {
+                        <span class="app-spinner app-spinner--sm me-1"></span>
+                        <span>Ładowanie...</span>
+                    }
+                </div>
 
                 <div class="app-card app-card--flush">
                     <div class="address-invoice__scroll">
@@ -116,18 +124,20 @@
                     </div>
                 </div>
 
-                @if (SelectedInvoice != null)
-                {
-                    <div class="alert alert-info mt-3 mb-0 py-2">
-                        <i class="bi bi-receipt me-1"></i>Wybrano fakturę: <strong>@SelectedInvoice.InvoiceName</strong>
-                    </div>
-                }
+                <div class="address-invoice__chosen">
+                    @if (SelectedInvoice != null)
+                    {
+                        <div class="alert alert-info mb-0 py-2">
+                            <i class="bi bi-receipt me-1"></i>Wybrano fakturę: <strong>@SelectedInvoice.InvoiceName</strong>
+                        </div>
+                    }
+                </div>
             </section>
         </div>
     </ChildContent>
 
     <Footer>
-        <button type="button" class="btn btn-secondary" @onclick="Hide">Anuluj</button>
+        <button type="button" class="btn btn-secondary" @onclick="Hide">Zamknij</button>
         <button type="button" class="btn btn-primary" @onclick="Confirm" disabled="@(!CanConfirm)">Zatwierdź</button>
     </Footer>
 </AppModal>
@@ -168,8 +178,6 @@
         ResetState();
         IsVisible = true;
         await InvokeAsync(StateHasChanged);
-        await Task.Yield();
-        await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", AddressInputRef);
     }
 
     private void Hide()

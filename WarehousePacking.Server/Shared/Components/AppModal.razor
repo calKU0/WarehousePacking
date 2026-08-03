@@ -20,15 +20,16 @@
                 ...body...
             </ChildContent>
             <Footer>
-                <button class="btn btn-secondary" @onclick="Cancel">Anuluj</button>
+                <button class="btn btn-secondary" @onclick="Cancel">Zamknij</button>
                 <button class="btn btn-primary" @onclick="Confirm">Zatwierdź</button>
             </Footer>
         </AppModal>
 *@
 
 <dialog @ref="_dialog" class="app-dialog @DialogSizeClass" aria-label="@Title">
-    @* Content is only built while open, so closed modals cost nothing. *@
-    @if (IsVisible)
+    @* Content is built while open, and kept for the length of the close
+       animation (_closing) so the dialog does not empty before it fades. *@
+    @if (IsVisible || _closing)
     {
         @if (ShowHeader)
         {
@@ -57,7 +58,7 @@
 
         @if (Footer is not null)
         {
-            <div class="app-modal__footer @(FooterAlignEnd ? "app-modal__footer--end" : null)">
+            <div class="app-modal__footer">
                 @Footer
             </div>
         }
@@ -69,6 +70,8 @@
     private DotNetObjectReference<AppModal>? _selfRef;
     private bool _syncedState;
     private bool _rendered;
+    private bool _closing;
+    private bool _wasVisible;
 
     /// <summary>Controls whether the dialog is open.</summary>
     [Parameter] public bool IsVisible { get; set; }
@@ -90,9 +93,6 @@
     /// <summary>Removes body padding — for edge-to-edge tables and lists.</summary>
     [Parameter] public bool FlushBody { get; set; }
 
-    /// <summary>Right-aligns footer buttons instead of stretching them equally.</summary>
-    [Parameter] public bool FooterAlignEnd { get; set; }
-
     /// <summary>
     /// Allows dismissing with the Esc key. Off by default: on a touch screen an
     /// accidental dismissal must never discard an operator's work.
@@ -110,6 +110,22 @@
         ? null
         : $"app-dialog--{Size}";
 
+    protected override void OnParametersSet()
+    {
+        // Hold the content mounted through the exit animation; the JS close
+        // helper calls NotifyClosed when it has finished and the dialog is gone.
+        if (_wasVisible && !IsVisible)
+        {
+            _closing = true;
+        }
+        else if (IsVisible)
+        {
+            _closing = false;
+        }
+
+        _wasVisible = IsVisible;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -124,12 +140,13 @@
 
         _syncedState = IsVisible;
 
-        // Only hand a callback reference over when Esc should dismiss.
+        // Passed on every sync so JS can report the close is finished; Esc
+        // dismissal is bound separately, only when CloseOnBackdrop allows it.
         _selfRef ??= DotNetObjectReference.Create(this);
 
         try
         {
-            await JS.InvokeVoidAsync("appDialog.sync", _dialog, IsVisible, CloseOnBackdrop ? _selfRef : null);
+            await JS.InvokeVoidAsync("appDialog.sync", _dialog, IsVisible, _selfRef, CloseOnBackdrop);
         }
         catch (JSDisconnectedException)
         {
@@ -140,6 +157,19 @@
     /// <summary>Invoked from JS when the user presses Esc.</summary>
     [JSInvokable]
     public Task NotifyDismissed() => InvokeCloseAsync();
+
+    /// <summary>Invoked from JS once the close animation has run and the dialog is closed.</summary>
+    [JSInvokable]
+    public void NotifyClosed()
+    {
+        if (!_closing)
+        {
+            return;
+        }
+
+        _closing = false;
+        StateHasChanged();
+    }
 
     private Task InvokeCloseAsync()
         => OnClose.HasDelegate ? OnClose.InvokeAsync() : Task.CompletedTask;

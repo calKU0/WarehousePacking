@@ -1,4 +1,5 @@
 @inject IJSRuntime JSRuntime
+@inherits ModalBase<List<string>>
 
 @*
     Generic multi-dropdown prompt. Can be opened in a loading state
@@ -42,24 +43,18 @@
     </ChildContent>
 
     <Footer>
-        <button type="button" class="btn btn-primary" style="flex: 7;" disabled="@(!CanConfirm)" @onclick="Confirm">
-            Potwierdź
-        </button>
-        <button type="button" class="btn btn-secondary" style="flex: 3;" @onclick="Cancel">Anuluj</button>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Zamknij</button>
+        <button type="button" class="btn btn-primary" disabled="@(!CanConfirm)" @onclick="ConfirmSelection">Potwierdź</button>
     </Footer>
 </AppModal>
 
 @code {
     [Parameter] public string Title { get; set; } = "Wybierz wartości";
     [Parameter] public string Message { get; set; } = "Wybierz z listy";
-    [Parameter] public EventCallback OnClose { get; set; }
 
-    public bool IsVisible { get; set; }
     public bool IsLoading { get; set; }
     public string LoadingMessage { get; set; } = "Ładowanie danych...";
     public List<ComboBoxDefinition> ComboBoxes { get; set; } = new();
-
-    private TaskCompletionSource<List<string>?>? _tcs;
 
     private bool CanConfirm =>
         !IsLoading &&
@@ -74,10 +69,7 @@
 
         SetSelections(comboBoxes);
 
-        IsVisible = true;
-        StateHasChanged();
-
-        return StartRequest();
+        return OpenAsync();
     }
 
     /// <summary>
@@ -91,10 +83,8 @@
         LoadingMessage = loadingMessage;
         ComboBoxes = new List<ComboBoxDefinition>();
         IsLoading = true;
-        IsVisible = true;
-        StateHasChanged();
 
-        return StartRequest();
+        return OpenAsync();
     }
 
     public void SetData(List<ComboBoxDefinition> comboBoxes)
@@ -104,13 +94,7 @@
         StateHasChanged();
     }
 
-    public void CloseModal() => Complete(null);
-
-    private Task<List<string>?> StartRequest()
-    {
-        _tcs = new TaskCompletionSource<List<string>?>();
-        return _tcs.Task;
-    }
+    public void CloseModal() => Cancel();
 
     private void SetSelections(List<ComboBoxDefinition> comboBoxes)
     {
@@ -123,22 +107,13 @@
     private static void OnValueChanged(ComboBoxDefinition combo, string? value)
         => combo.SelectedValue = value ?? string.Empty;
 
-    private void Confirm() => Complete(ComboBoxes.Select(c => c.SelectedValue).ToList());
-
-    private void Cancel() => Complete(null);
-
-    private void Complete(List<string>? result)
-    {
-        _tcs?.TrySetResult(result);
-        IsVisible = false;
-        StateHasChanged();
-    }
+    private void ConfirmSelection() => Confirm(ComboBoxes.Select(c => c.SelectedValue).ToList());
 
     private void HandleKeyDown(KeyboardEventArgs e)
     {
         if (!IsLoading && e.Key == "Enter" && CanConfirm)
         {
-            Confirm();
+            ConfirmSelection();
         }
     }
 }

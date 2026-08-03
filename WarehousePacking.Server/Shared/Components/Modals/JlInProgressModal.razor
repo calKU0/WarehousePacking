@@ -12,7 +12,7 @@
 *@
 
 <AppModal IsVisible="Show" Title="Kuwety podjęte do realizacji" Icon="bi bi-hand-index"
-          Size="xl" FlushBody="true" FooterAlignEnd="true" OnClose="Close">
+          Size="xl" FlushBody="true" OnClose="Close">
     <ChildContent>
         @if (IsLoading)
         {
@@ -56,7 +56,7 @@
                             <td class="app-table__code">@jl.Name</td>
                             <td>@jl.User</td>
                             <td>@jl.StationNumber</td>
-                            <td>@jl.Courier.GetDescription()</td>
+                            <td><CourierLabel Courier="jl.Courier" /></td>
                             <td>@jl.ClientName</td>
                             <td class="text-end text-nowrap">
                                 <button type="button" class="btn btn-sm btn-outline-primary me-1" @onclick="() => ShowPreview(jl)">
@@ -71,16 +71,19 @@
                 </tbody>
             </table>
         }
+
+        @* Kept inside the dialog so its close button stays interactive while the modal is open. *@
+        <Toast @ref="Toast"/>
     </ChildContent>
 
     <Footer>
+        <button type="button" class="btn btn-secondary" @onclick="Close">Zamknij</button>
         @if (SelectedJlKeys.Any())
         {
             <button type="button" class="btn btn-danger" @onclick="ConfirmRemoveSelected">
                 <i class="bi bi-trash me-1"></i>Usuń zaznaczone (@SelectedJlKeys.Count)
             </button>
         }
-        <button type="button" class="btn btn-secondary" @onclick="Close">Zamknij</button>
     </Footer>
 </AppModal>
 
@@ -168,8 +171,6 @@
 </AppModal>
 
 <ConfirmDialog @ref="ConfirmDialog" />
-
-<Toast @ref="Toast"/>
 
 @code {
     [Parameter] public bool Show { get; set; }

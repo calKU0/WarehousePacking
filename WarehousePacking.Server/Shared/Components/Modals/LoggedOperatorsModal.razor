@@ -51,6 +51,9 @@
                 </tbody>
             </table>
         }
+
+        @* Kept inside the dialog so its close button stays interactive while the modal is open. *@
+        <Toast @ref="Toast" />
     </ChildContent>
 
     <Footer>
@@ -59,7 +62,6 @@
 </AppModal>
 
 <ConfirmDialog @ref="ConfirmDialog" />
-<Toast @ref="Toast" />
 
 @code {
     private bool IsVisible { get; set; }

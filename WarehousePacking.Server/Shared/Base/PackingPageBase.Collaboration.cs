@@ -41,7 +41,7 @@ namespace WarehousePacking.Server.Shared.Base
             _sessionInitialized = true;
 
             if (!IsMainOperator)
-                Toast.Show("Współdzielenie", $"Dołączono do pakowania. Główny operator: {MainOperator}.", ToastType.Info, 3500);
+                Toast.ShowBlocking("Dołączono do pakowania", $"Dołączyłeś do pakowania współdzielonego.\nGłówny operator: {MainOperator}.", ToastType.Info);
 
             await UpdateRealizationsPackageId();
             await InvokeAsync(StateHasChanged);
@@ -97,7 +97,7 @@ namespace WarehousePacking.Server.Shared.Base
             MainOperator = snapshot.MainOperator;
             IsMainOperator = string.Equals(MainOperator, UserSession.Username, StringComparison.OrdinalIgnoreCase);
             ActiveOperators = snapshot.ActiveOperators;
-            JlItems = snapshot.JlItems;
+            JlItems = MergeDuplicateLines(snapshot.JlItems);
             PackedItems = snapshot.PackedItems;
             SelectedPackedItem = null;
         }

@@ -179,9 +179,26 @@
 }
 
 /* --- Buttons ------------------------------------------------------------ */
+/* The app deliberately uses TWO button heights, on screens that run on large
+   wall and desk monitors:
+     • Secondary (48px) — the default .btn: side/rare actions, modal cancels,
+       inline helpers. Present but not shouting.
+     • Primary   (64px) — .btn-lg and the main action containers
+       (.app-actionbar, finish-packing): the actions the operator is there to
+       press. Bigger target, heavier presence.
+   .btn-sm (40px) stays for genuinely dense spots such as table-row actions. */
 .btn {
     --bs-btn-border-radius: var(--radius);
+    --bs-btn-padding-y: 0.55rem;
+    --bs-btn-padding-x: 1.05rem;
+    --bs-btn-font-size: 1rem;
+    min-height: 3rem; /* 48px — secondary baseline */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
     font-weight: 600;
+    line-height: 1.2;
     transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
 }
 
@@ -193,6 +210,39 @@
 
     .btn:focus-visible {
         box-shadow: var(--focus-ring);
+    }
+
+/* Dense controls: table-row actions, inline helpers. */
+.btn-sm {
+    --bs-btn-padding-y: 0.4rem;
+    --bs-btn-padding-x: 0.8rem;
+    --bs-btn-font-size: 0.9rem;
+    min-height: 2.5rem; /* 40px */
+    gap: 0.35rem;
+}
+
+/* Primary tier — the main actions. */
+.btn-lg {
+    --bs-btn-padding-y: 0.85rem;
+    --bs-btn-padding-x: 1.5rem;
+    --bs-btn-font-size: var(--fs-lg);
+    min-height: 4rem; /* 64px */
+}
+
+/* Icon-only square buttons keep a 1:1 footprint at each tier's height. */
+.btn-icon {
+    min-width: 3rem;
+    padding-left: 0;
+    padding-right: 0;
+    gap: 0;
+}
+
+    .btn-lg.btn-icon {
+        min-width: 4rem;
+    }
+
+    .btn-sm.btn-icon {
+        min-width: 2.5rem;
     }
 
 .btn-primary {
@@ -280,95 +330,6 @@
     --bs-btn-disabled-color: var(--brand-contrast);
     --bs-btn-disabled-bg: #f0a92b;
     --bs-btn-disabled-border-color: #f0a92b;
-}
-
-/* --- Courier buttons -----------------------------------------------------
-   Carrier-specific actions cannot use .btn-primary (now brand yellow) or the
-   semantic variants, because the colour itself identifies the carrier.
-   Built on Bootstrap's own button variables so every state behaves normally.
-   Each has a matching -outline variant for the "already done" state.        */
-.btn-dpd {
-    --bs-btn-color: #fff;
-    --bs-btn-bg: var(--courier-dpd);
-    --bs-btn-border-color: var(--courier-dpd);
-    --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: var(--courier-dpd-strong);
-    --bs-btn-hover-border-color: var(--courier-dpd-strong);
-    --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: var(--courier-dpd-strong);
-    --bs-btn-active-border-color: var(--courier-dpd-strong);
-    --bs-btn-disabled-color: #fff;
-    --bs-btn-disabled-bg: var(--courier-dpd);
-    --bs-btn-disabled-border-color: var(--courier-dpd);
-}
-
-.btn-outline-dpd {
-    --bs-btn-color: var(--courier-dpd);
-    --bs-btn-border-color: var(--courier-dpd);
-    --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: var(--courier-dpd);
-    --bs-btn-hover-border-color: var(--courier-dpd);
-    --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: var(--courier-dpd-strong);
-    --bs-btn-active-border-color: var(--courier-dpd-strong);
-    --bs-btn-disabled-color: var(--courier-dpd);
-    --bs-btn-disabled-border-color: var(--courier-dpd);
-}
-
-.btn-gls {
-    --bs-btn-color: #fff;
-    --bs-btn-bg: var(--courier-gls);
-    --bs-btn-border-color: var(--courier-gls);
-    --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: var(--courier-gls-strong);
-    --bs-btn-hover-border-color: var(--courier-gls-strong);
-    --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: var(--courier-gls-strong);
-    --bs-btn-active-border-color: var(--courier-gls-strong);
-    --bs-btn-disabled-color: #fff;
-    --bs-btn-disabled-bg: var(--courier-gls);
-    --bs-btn-disabled-border-color: var(--courier-gls);
-}
-
-.btn-outline-gls {
-    --bs-btn-color: var(--courier-gls);
-    --bs-btn-border-color: var(--courier-gls);
-    --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: var(--courier-gls);
-    --bs-btn-hover-border-color: var(--courier-gls);
-    --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: var(--courier-gls-strong);
-    --bs-btn-active-border-color: var(--courier-gls-strong);
-    --bs-btn-disabled-color: var(--courier-gls);
-    --bs-btn-disabled-border-color: var(--courier-gls);
-}
-
-.btn-fedex {
-    --bs-btn-color: #fff;
-    --bs-btn-bg: var(--courier-fedex);
-    --bs-btn-border-color: var(--courier-fedex);
-    --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: var(--courier-fedex-strong);
-    --bs-btn-hover-border-color: var(--courier-fedex-strong);
-    --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: var(--courier-fedex-strong);
-    --bs-btn-active-border-color: var(--courier-fedex-strong);
-    --bs-btn-disabled-color: #fff;
-    --bs-btn-disabled-bg: var(--courier-fedex);
-    --bs-btn-disabled-border-color: var(--courier-fedex);
-}
-
-.btn-outline-fedex {
-    --bs-btn-color: var(--courier-fedex);
-    --bs-btn-border-color: var(--courier-fedex);
-    --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: var(--courier-fedex);
-    --bs-btn-hover-border-color: var(--courier-fedex);
-    --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: var(--courier-fedex-strong);
-    --bs-btn-active-border-color: var(--courier-fedex-strong);
-    --bs-btn-disabled-color: var(--courier-fedex);
-    --bs-btn-disabled-border-color: var(--courier-fedex);
 }
 
 /* --- Utility colour remaps ---------------------------------------------- */

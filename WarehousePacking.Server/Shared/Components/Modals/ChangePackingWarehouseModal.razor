@@ -46,20 +46,21 @@
                 </select>
             </div>
         }
+
+        @* Kept inside the dialog so its close button stays interactive while the modal is open. *@
+        <Toast @ref="Toast" />
     </ChildContent>
 
     <Footer>
+        <button type="button" class="btn btn-secondary" @onclick="Close" disabled="@IsLoading">Zamknij</button>
         @if (ShowSelect)
         {
             <button type="button" class="btn btn-primary" @onclick="Save" disabled="@IsLoading">
                 <i class="bi bi-save me-1"></i>Zapisz
             </button>
         }
-        <button type="button" class="btn btn-secondary" @onclick="Close" disabled="@IsLoading">Wyjdź</button>
     </Footer>
 </AppModal>
-
-<Toast @ref="Toast" />
 
 @code {
     private bool IsVisible { get; set; }
@@ -68,7 +69,6 @@
     private PackingWarehouse SelectedWarehouse { get; set; }
     private Toast Toast = new();
     private ElementReference InputRef;
-    private bool _shouldFocus;
     private bool IsLoading { get; set; }
 
     public async Task Show()
@@ -76,17 +76,7 @@
         IsVisible = true;
         ShowSelect = false;
         InputText = string.Empty;
-        _shouldFocus = true;
         await InvokeAsync(StateHasChanged);
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (_shouldFocus)
-        {
-            _shouldFocus = false;
-            await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", InputRef);
-        }
     }
 
     private async Task OnEnterKey(KeyboardEventArgs e)
