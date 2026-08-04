@@ -11,7 +11,7 @@
             <label class="form-label app-section-label" for="mergeInitial">Kod kreskowy pierwszej paczki</label>
             <input id="mergeInitial"
                    type="text"
-                   class="form-control form-control-lg"
+                   class="form-control"
                    @bind="InitialBarcode"
                    @ref="_initialBarcodeRef"
                    @onkeydown="e => FocusNextOnEnter(e, _mergingBarcodeRef)"
@@ -23,7 +23,7 @@
             <label class="form-label app-section-label" for="mergeSecond">Kod kreskowy drugiej paczki</label>
             <input id="mergeSecond"
                    type="text"
-                   class="form-control form-control-lg"
+                   class="form-control"
                    @bind="MergingBarcode"
                    @ref="_mergingBarcodeRef"
                    @onkeydown="e => FocusNextOnEnter(e, _lengthRef)"
@@ -33,19 +33,19 @@
         <div class="merge-packages__dimensions">
             <div>
                 <label class="form-label app-section-label" for="mergeLength">Długość (cm)</label>
-                <input id="mergeLength" type="number" inputmode="numeric" class="form-control form-control-lg"
+                <input id="mergeLength" type="number" inputmode="numeric" class="form-control"
                        @bind="Length" @ref="_lengthRef" min="0"
                        @onkeydown="e => FocusNextOnEnter(e, _widthRef)" />
             </div>
             <div>
                 <label class="form-label app-section-label" for="mergeWidth">Szerokość (cm)</label>
-                <input id="mergeWidth" type="number" inputmode="numeric" class="form-control form-control-lg"
+                <input id="mergeWidth" type="number" inputmode="numeric" class="form-control"
                        @bind="Width" @ref="_widthRef" min="0"
                        @onkeydown="e => FocusNextOnEnter(e, _heightRef)" />
             </div>
             <div>
                 <label class="form-label app-section-label" for="mergeHeight">Wysokość (cm)</label>
-                <input id="mergeHeight" type="number" inputmode="numeric" class="form-control form-control-lg"
+                <input id="mergeHeight" type="number" inputmode="numeric" class="form-control"
                        @bind="Height" @ref="_heightRef" min="0"
                        @onkeydown="ConfirmOnEnter" />
             </div>

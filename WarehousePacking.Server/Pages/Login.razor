@@ -35,12 +35,13 @@
                         <span class="visually-hidden">Ładowanie...</span>
                     </div>
                 </div>
-            }
+            } 
 
             <EditForm Model="loginDto" OnValidSubmit="HandleLogin" autocomplete="off">
                 <div class="mb-3">
                     <label class="form-label">Nazwa użytkownika</label>
                     <input @ref="UsernameInput"
+                           id="username-input"
                            class="form-control form-control-lg"
                            @bind="loginDto.Username"
                            @onkeydown="HandleUsernameKeyDown"
@@ -83,7 +84,6 @@
     private WorkstationSettings Settings = new();
     private ElementReference UsernameInput;
     private ElementReference PasswordInput;
-    private string scannedUsername = "";
     private bool IsLoading = false;
     private bool _usernameFocused;
 
@@ -104,19 +104,17 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Focus once, on the first render where the field actually exists and is
-        // enabled. Doing it only on firstRender missed the case where the input
-        // is still disabled behind the loading spinner at that point.
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("blazorFocus.preventEnterSubmit", UsernameInput);
+        }
+
         if (!_usernameFocused && !UserSession.IsLoggedIn && !IsLoading)
         {
+            //await JSRuntime.InvokeVoidAsync("blazorFocus.preventEnterSubmit", UsernameInput); 
             _usernameFocused = true;
             await JSRuntime.InvokeVoidAsync("blazorFocus.focusElement", UsernameInput);
         }
-    }
-
-    private void OnUsernameInput(ChangeEventArgs e)
-    {
-        scannedUsername = e.Value?.ToString() ?? "";
     }
 
     private async Task HandleUsernameKeyDown(KeyboardEventArgs e)

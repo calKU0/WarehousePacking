@@ -229,12 +229,12 @@
                     <CourierRouteButton Courier="Courier.DPD" LogoSrc="@DpdLogo" Label="DPD"
                                         Closed="RoutesStatus.DPDClosed" Busy="ClosingRoutes.Contains(Courier.DPD)"
                                         OnClose="() => CloseRoute(Courier.DPD)" />
-                    <CourierRouteButton Courier="Courier.GLS" LogoSrc="@GlsLogo" Label="GLS"
-                                        Closed="RoutesStatus.GLSClosed" Busy="ClosingRoutes.Contains(Courier.GLS)"
-                                        OnClose="() => CloseRoute(Courier.GLS)" />
                     <CourierRouteButton Courier="Courier.Fedex" LogoSrc="@FedexLogo" Label="Fedex"
                                         Closed="RoutesStatus.FedexClosed" Busy="ClosingRoutes.Contains(Courier.Fedex)"
                                         OnClose="() => CloseRoute(Courier.Fedex)" />
+                    <CourierRouteButton Courier="Courier.GLS" LogoSrc="@GlsLogo" Label="GLS"
+                                        Closed="RoutesStatus.GLSClosed" Busy="ClosingRoutes.Contains(Courier.GLS)"
+                                        OnClose="() => CloseRoute(Courier.GLS)" />
                 </div>
                 <div class="mb-4 d-flex flex-column">
                     <button class="btn @(Package.Id == 0 ? "btn-outline-info" : "btn-info")" disabled="@(Package.Id == 0)" @onclick=SendEmail>Wyślij mail do opiekuna</button>

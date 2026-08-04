@@ -27,7 +27,7 @@
             {
                 <div class="mb-3">
                     <label class="form-label app-section-label">@combo.Label</label>
-                    <select class="form-select form-select-lg"
+                    <select class="form-select"
                             value="@combo.SelectedValue"
                             @onchange="e => OnValueChanged(combo, e.Value?.ToString())"
                             @onkeydown="HandleKeyDown">

@@ -8,12 +8,22 @@
     clearValue: function (element) {
         element.value = '';
     },
+
     focusOnEnter: function (fromElement, toElement) {
         if (!fromElement || !toElement) return;
         fromElement.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 toElement.focus();
+            }
+        });
+    },
+
+    preventEnterSubmit: function (element) {
+        if (!element) return;
+        element.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
             }
         });
     }
@@ -70,3 +80,4 @@ window.dashboardNavigation = {
         delete this.listeners[listenerId];
     }
 };
+

@@ -12,7 +12,7 @@
 
         <div class="mb-3">
             <label class="form-label app-section-label" for="jlSelect">Wybierz kuwetę</label>
-            <select id="jlSelect" class="form-select form-select-lg" value="@SelectedJl" @onchange="HandleSelectChanged">
+            <select id="jlSelect" class="form-select" value="@SelectedJl" @onchange="HandleSelectChanged">
                 <option value="" disabled selected hidden>Wybierz JL</option>
                 @foreach (var jl in JlCodes)
                 {
