@@ -59,6 +59,20 @@ namespace WarehousePacking.API.Controllers
             }
         }
 
+        [HttpGet("personal-collections")]
+        public async Task<IActionResult> GetPersonalCollections()
+        {
+            try
+            {
+                var list = await _dashboardService.GetPersonalCollectionsAsync();
+                return Ok(list);
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
+        }
+
         [HttpGet("lus")]
         public async Task<IActionResult> GetLus([FromQuery] GetLusRequest request)
         {

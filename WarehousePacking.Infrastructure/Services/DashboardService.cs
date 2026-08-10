@@ -28,14 +28,19 @@ namespace WarehousePacking.Infrastructure.Services
             return await _dashboardRepository.GetWarehouseTasksAsync(request);
         }
 
-        public async Task<DashboardColorConfiguration> GetColorConfigurationAsync()
-        {
-            return await _dashboardRepository.GetColorConfigurationAsync();
-        }
-
         public async Task<IEnumerable<WarehouseLu>> GetLusAsync(GetLusRequest request)
         {
             return await _dashboardRepository.GetLusAsync(request);
+        }
+
+        public async Task<IEnumerable<PersonalCollection>> GetPersonalCollectionsAsync()
+        {
+            return await _dashboardRepository.GetPersonalCollectionsAsync();
+        }
+
+        public async Task<DashboardColorConfiguration> GetColorConfigurationAsync()
+        {
+            return await _dashboardRepository.GetColorConfigurationAsync();
         }
     }
 }

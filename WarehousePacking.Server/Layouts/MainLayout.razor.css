@@ -1,3 +1,12 @@
+/* Scoped to MainLayout.razor — the app shell only: the .page grid, the sidebar
+   shell and its collapse toggle, and Blazor's error bar.
+
+   What is NOT here: anything inside the sidebar (nav links, brand, status,
+   logout). Those elements are rendered by NavMenu, so Blazor's scope attribute
+   never lands on them and rules written here could not match — they live in
+   NavMenu.razor.css instead. Only `.sidebar.collapsed` crosses the boundary,
+   and it does so from the NavMenu side, where the target element actually is. */
+
 .page {
     min-height: 100vh;
     position: relative;
@@ -9,124 +18,56 @@ main {
     flex: 1;
 }
 
-/* Sidebar base */
+/* --- Sidebar shell ------------------------------------------------------
+   MainLayout owns the collapsed/expanded state, so it owns the width; NavMenu
+   reads `.sidebar.collapsed` to reflow its own contents. */
 .sidebar {
-    width: 220px;
-    transition: width 0.3s ease;
+    width: var(--nav-width);
     position: relative;
-    background-color: rgba(0,0,0,0.85);
-    color: white;
+    background-color: var(--nav-bg);
+    color: var(--nav-fg-active);
     overflow-x: hidden;
     white-space: nowrap;
+    transition: width 0.3s ease;
 }
 
-    /* Collapsed sidebar */
-    .sidebar.collapsed {
-        width: 70px;
-    }
+/* Higher specificity than the wide-screen width below, so collapsing works at
+   every breakpoint. */
+.sidebar.collapsed {
+    width: var(--nav-width-collapsed);
+}
 
-    /* Nav links */
-    .sidebar .nav-link {
-        display: flex;
-        align-items: center;
-        padding: 0.75rem;
-        color: #d7d7d7;
-        text-decoration: none;
-        transition: all 0.3s ease;
-    }
-
-    /* Hide text when collapsed */
-    .sidebar.collapsed .nav-text {
-        display: none;
-    }
-
-    .sidebar.collapsed ~ main .navbar .brand-text {
-        display: none;
-    }
-
-    /* When collapsed, center icons */
-    .sidebar.collapsed .nav-icon {
-        margin-right: 0;
-        flex: 1;
-        text-align: center;
-    }
-
-/* Collapse button */
 .collapse-btn {
     position: absolute;
     bottom: 1rem;
     right: 0.5rem;
     border: none;
     background: transparent;
-    color: white;
+    color: var(--nav-fg-active);
     font-size: 1.2rem;
     cursor: pointer;
 }
 
-.top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
-    display: flex;
-    align-items: center;
-}
-
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
-
-        .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-            text-decoration: underline;
-        }
-
-        .top-row ::deep a:first-child {
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-@media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
-    }
-
-        .top-row ::deep a, .top-row ::deep .btn-link {
-            margin-left: 0;
-        }
-}
-
+/* Tablet and up: sidebar becomes a real side column. */
 @media (min-width: 641px) {
     .page {
         flex-direction: row;
     }
 
     .sidebar {
-        width: 250px;
+        width: var(--nav-width-wide);
         height: 100vh;
         position: sticky;
         top: 0;
     }
 
-    .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
-
-        .top-row.auth ::deep a:first-child {
-            flex: 1;
-            text-align: right;
-            width: 0;
-        }
-
-    .top-row, article {
+    article {
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
     }
 }
 
+/* --- Blazor error bar ---------------------------------------------------- */
 #blazor-error-ui {
     background: lightyellow;
     bottom: 0;

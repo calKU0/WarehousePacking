@@ -123,6 +123,12 @@
                                                 ColorConfig="ColorConfig"
                                                 IsLoading="IsReceivingLoading" />
                             break;
+                        case DashboardPanel.PersonalCollection:
+                            <DashboardPersonalCollectionPanel PersonalCollections="PersonalCollections"
+                                                RecentOperations="PersonalCollectionOperations"
+                                                ColorConfig="ColorConfig"
+                                                IsLoading="IsPersonalCollectionLoading" />
+                            break;
                         case DashboardPanel.Stocking:
                             <DashboardStockingPanel />
                             break;
@@ -174,6 +180,7 @@
     private bool IsLoadingLoading;
     private bool IsSortingLoading;
     private bool IsReceivingLoading;
+    private bool IsPersonalCollectionLoading;
     private bool _isDisposed;
     private DateTime? LastRefresh;
 
@@ -193,6 +200,8 @@
     private List<WarehouseDocument> ReceivingDocuments = new();
     private List<WarehouseOperation> ReceivingRecentOperations = new();
 
+    private List<PersonalCollection> PersonalCollections = new();
+    private List<WarehouseOperation> PersonalCollectionOperations = new();
 
     private bool IsCurrentPanelLoading => ActivePanel switch
     {
@@ -201,8 +210,10 @@
         DashboardPanel.Packing => IsPackingLoading,
         DashboardPanel.Loading => IsLoadingLoading,
         DashboardPanel.Receiving => IsReceivingLoading,
+        DashboardPanel.PersonalCollection => IsPersonalCollectionLoading,
         _ => false
     };
+
     private int ActivePanelIndex => Array.IndexOf(PanelOrder, ActivePanel);
     private DateTime? CurrentPanelDataTime => ActivePanel switch
     {
@@ -432,6 +443,11 @@
                 await LoadReceivingDataAsync(force);
             }
 
+            if (ActivePanel == DashboardPanel.PersonalCollection)
+            {
+                await LoadPersonalCollectionDataAsync(force);
+            }
+
             // Give a panel that previously faulted a chance to render again now
             // that fresh data has arrived.
             RecoverPanelBoundary(ActivePanel);
@@ -579,7 +595,7 @@
         {
             var lusTask = DashboardService.GetLus(new GetLusRequest
             {
-                Status = LogisticUnitStatus.ReadyForLoading,
+                Status = [LogisticUnitStatus.ReadyForLoading],
                 PreviousOperationId = WarehouseDocumentType.Packing
             });
 
@@ -625,7 +641,7 @@
         {
             var jlsTask = DashboardService.GetLus(new GetLusRequest
             {
-                Status = LogisticUnitStatus.ReadyForSorting,
+                Status = [LogisticUnitStatus.ReadyForSorting],
                 PreviousOperationId = WarehouseDocumentType.Task
             });
 
@@ -689,7 +705,7 @@
 
             await Task.WhenAll(documentsTask, operationsTask);
 
-            ReceivingDocuments = documentsTask.Result ?? new List<WarehouseDocument>();
+            ReceivingDocuments = documentsTask.Result ?? new List<WarehouseDocument>(); 
             ReceivingRecentOperations = operationsTask.Result ?? new List<WarehouseOperation>();
             var excludedErpTypes = new HashSet<int>
             {
@@ -703,6 +719,48 @@
         finally
         {
             IsReceivingLoading = false;
+            if (!_isDisposed)
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private async Task LoadPersonalCollectionDataAsync(bool force)
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        if (!force && PersonalCollections.Any())
+        {
+            return;
+        }
+
+        IsPersonalCollectionLoading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var documents = DashboardService.GetPersonalCollections();
+
+            var operations = DashboardService.GetWarehouseOperations(new GetWarehouseOperationsRequest
+            {
+                Types = [WarehouseDocumentType.Task],
+                Date = DateTime.UtcNow.AddMinutes(-5)
+            });
+
+            await Task.WhenAll(documents, operations);
+
+            PersonalCollections = documents.Result ?? new List<PersonalCollection>();
+            PersonalCollectionOperations = operations.Result ?? new List<WarehouseOperation>();
+
+            LastRefresh = DateTime.Now;
+        }
+        finally
+        {
+            IsPersonalCollectionLoading = false;
             if (!_isDisposed)
             {
                 await InvokeAsync(StateHasChanged);

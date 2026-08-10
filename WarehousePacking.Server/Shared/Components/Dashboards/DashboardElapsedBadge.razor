@@ -1,0 +1,42 @@
+@using WarehousePacking.Server.Helpers
+@implements IDisposable
+
+@*
+    "How long since" badge, colour-coded against the panel's thresholds.
+
+    The digits animate: only the part of "3m 42s" that actually changed rolls
+    over, exactly like the "Odświeżenie za" countdown in the dashboard header.
+
+    The badge drives itself off DashboardClock rather than relying on its panel
+    to re-render it. That is not a nicety — Blazor skips re-rendering a child
+    component whose parameter values are unchanged, and `Since` is a fixed
+    timestamp, so a badge that waited for its parent would render once and then
+    sit frozen while the panel around it kept ticking.
+*@
+
+<span class="badge @BadgeClass dashboard-elapsed-badge dashboard-time-text">
+    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(Since)" CssClass="dashboard-time-text" />
+</span>
+
+@code {
+    /// <summary>Timestamp the elapsed time is measured from.</summary>
+    [Parameter, EditorRequired] public DateTime Since { get; set; }
+
+    /// <summary>Minutes after which the badge turns red.</summary>
+    [Parameter] public int RedThresholdMinutes { get; set; } = 4;
+
+    /// <summary>Minutes after which the badge turns amber. Omit to go straight to red.</summary>
+    [Parameter] public int? YellowThresholdMinutes { get; set; }
+
+    private string BadgeClass => ElapsedClassHelper.GetBadgeClass(Since, RedThresholdMinutes, YellowThresholdMinutes);
+
+    protected override void OnInitialized()
+    {
+        DashboardClock.EnsureStarted();
+        DashboardClock.Tick += OnTick;
+    }
+
+    private void OnTick() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => DashboardClock.Tick -= OnTick;
+}

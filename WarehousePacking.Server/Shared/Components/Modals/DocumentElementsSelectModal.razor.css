@@ -1,0 +1,12 @@
+/* Scoped to DocumentElementsSelectModal.razor. */
+
+/* The checkbox column takes only what the header word needs, so the name
+   column keeps the rest. */
+.doc-elements__select-col {
+    width: 80px;
+}
+
+/* Quantity inputs stay narrow; the row's free space belongs to the name. */
+.doc-elements__qty-col {
+    max-width: 150px;
+}

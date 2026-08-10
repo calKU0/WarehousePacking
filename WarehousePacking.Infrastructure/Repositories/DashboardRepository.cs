@@ -102,19 +102,18 @@ namespace WarehousePacking.Infrastructure.Repositories
             return tasks.Values;
         }
 
-        public async Task<DashboardColorConfiguration> GetColorConfigurationAsync()
-        {
-            const string procedure = "kp.GetDashboardColorConfiguration";
-
-            var result = await _context.QuerySingleOrDefaultAsync<DashboardColorConfiguration>(procedure);
-            return result;
-        }
-
         public async Task<IEnumerable<WarehouseLu>> GetLusAsync(GetLusRequest request)
         {
             const string procedure = "kp.GetJls";
 
-            var rows = await _context.QueryAsync<LusRow>(procedure, new { Status = request.Status.GetDescription(), PreviousOperationId = request.PreviousOperationId });
+            var rows = await _context.QueryAsync<LusRow>(procedure, new
+            {
+                Statuses = request.Status is { Count: > 0 }
+                    ? string.Join(",", request.Status.Select(x => x.GetDescription()))
+                    : null,
+
+                PreviousOperationId = request.PreviousOperationId
+            });
 
             return rows.Select(r => new WarehouseLu
             {
@@ -135,6 +134,20 @@ namespace WarehousePacking.Infrastructure.Repositories
                         .Select(x => (Courier)int.Parse(x))
                         .ToList()
             });
+        }
+
+        public Task<IEnumerable<PersonalCollection>> GetPersonalCollectionsAsync()
+        {
+            const string procedure = "kp.GetDashboardPersonalCollection";
+            return _context.QueryAsync<PersonalCollection>(procedure);
+        }
+
+        public async Task<DashboardColorConfiguration> GetColorConfigurationAsync()
+        {
+            const string procedure = "kp.GetDashboardColorConfiguration";
+
+            var result = await _context.QuerySingleOrDefaultAsync<DashboardColorConfiguration>(procedure);
+            return result;
         }
     }
 }

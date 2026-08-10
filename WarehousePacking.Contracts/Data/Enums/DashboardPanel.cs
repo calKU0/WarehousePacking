@@ -19,7 +19,10 @@ namespace WarehousePacking.Contracts.Data.Enums
         [Description("Przyjęcie")]
         Receiving = 4,
 
+        [Description("Odbiór Własny")]
+        PersonalCollection = 5,
+
         [Description("Zatowarowanie")]
-        Stocking = 5,
+        Stocking = 6,
     }
 }

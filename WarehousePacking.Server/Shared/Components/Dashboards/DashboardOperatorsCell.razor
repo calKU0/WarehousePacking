@@ -1,67 +1,38 @@
 @*
-    Operators shown as chips on a single line that never wraps. As many names as
-    the character budget allows are shown; the rest collapse into a "+N" chip so
-    the row keeps its height on the wallboard. Hovering the "+N" reveals the
-    full list.
+    The operators working on a row, listed in full and comma-separated — the
+    same plain treatment the logistic-unit codes get in the personal-collection
+    panel.
+
+    Deliberately NOT chips with a "+N" overflow counter. This is read from
+    across the warehouse, and an operator hidden behind "+3" may as well not be
+    on the screen at all. The cell wraps onto another line instead and the row
+    grows to fit; pair it with `.dashboard-wrap-col` on both the <th> and the
+    <td> so the column takes the leftover width and is allowed to wrap.
+
+    The list still gets normalised here rather than in six panels: the API uses
+    a bare "-" for "nobody", and entries arrive with stray whitespace.
 *@
 
-<div class="dashboard-operators" title="@FullList">
-    @if (_names.Count == 0)
-    {
-        <span class="text-muted">-</span>
-    }
-    else
-    {
-        @foreach (var name in _visible)
-        {
-            <span class="dashboard-operator-chip">@name</span>
-        }
-
-        @if (_overflow > 0)
-        {
-            <span class="dashboard-operator-chip dashboard-operator-chip--more" title="@FullList">+@_overflow</span>
-        }
-    }
-</div>
+@if (_names.Count == 0)
+{
+    <span class="text-muted">-</span>
+}
+else
+{
+    @string.Join(", ", _names)
+}
 
 @code {
     /// <summary>Comma-separated operator list, exactly as the panels already build it.</summary>
     [Parameter] public string? Operators { get; set; }
 
-    /// <summary>
-    /// Rough width budget in characters. Names are added until the budget is
-    /// spent; whatever is left over becomes the "+N" chip. At least one name is
-    /// always shown so the cell is never just a counter.
-    /// </summary>
-    [Parameter] public int MaxChars { get; set; } = 30;
-
     private List<string> _names = new();
-    private List<string> _visible = new();
-    private int _overflow;
-
-    private string FullList => _names.Count > 0 ? string.Join(", ", _names) : "-";
 
     protected override void OnParametersSet()
     {
         _names = (Operators ?? string.Empty)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(n => n != "-")
+            .Where(name => name != "-")
             .ToList();
-
-        _visible = new List<string>();
-        var used = 0;
-
-        foreach (var name in _names)
-        {
-            // Always keep the first name; after that, stop once the budget is spent.
-            var wouldUse = used + name.Length + (_visible.Count > 0 ? 2 : 0);
-            if (_visible.Count > 0 && wouldUse > MaxChars)
-                break;
-
-            _visible.Add(name);
-            used = wouldUse;
-        }
-
-        _overflow = _names.Count - _visible.Count;
     }
 }

@@ -1,0 +1,272 @@
+/* ==========================================================================
+   bootstrap-overrides.css — vendor bridge
+   --------------------------------------------------------------------------
+   The ONLY file allowed to select Bootstrap's own classes (.btn*, .form-*,
+   .badge, .progress-bar, .text-primary, …). Everything else styles our own
+   .app-* primitives instead, so if Bootstrap is ever swapped out or dropped,
+   this is the single file that has to change.
+
+   Bootstrap 5.3 bakes literal colour values into each component's local custom
+   properties (e.g. `.btn-primary { --bs-btn-bg: #0d6efd }`), so overriding
+   `--bs-primary` alone is not enough. We remap the component-level variables
+   instead, which keeps every Bootstrap behaviour (disabled, active, focus)
+   intact while adopting the brand.
+   ========================================================================== */
+
+/* ==========================================================================
+   1. Global variable remaps
+   ========================================================================== */
+
+:root {
+    --bs-primary: var(--brand);
+    --bs-primary-rgb: var(--brand-rgb);
+    --bs-secondary: var(--secondary);
+    --bs-secondary-rgb: var(--secondary-rgb);
+    --bs-body-color: var(--text);
+    --bs-body-font-family: var(--font-sans);
+    --bs-border-color: var(--border);
+    --bs-border-radius: var(--radius);
+    --bs-link-color: var(--brand-ink);
+    --bs-link-hover-color: var(--brand-deep);
+    --bs-focus-ring-color: rgba(var(--brand-rgb), .45);
+}
+
+/* ==========================================================================
+   2. Buttons
+   --------------------------------------------------------------------------
+   The app deliberately uses THREE button heights, on screens that run on large
+   wall and desk monitors:
+     • Dense     (--btn-height-sm) — .btn-sm: table-row actions, inline helpers.
+     • Secondary (--btn-height)    — the default .btn: side/rare actions, modal
+       cancels. Present but not shouting.
+     • Primary   (--btn-height-lg) — .btn-lg and the main action containers
+       (.app-actionbar, finish-packing): the actions the operator is there to
+       press. Bigger target, heavier presence.
+   ========================================================================== */
+
+.btn {
+    --bs-btn-border-radius: var(--radius);
+    --bs-btn-padding-y: 0.55rem;
+    --bs-btn-padding-x: 1.05rem;
+    --bs-btn-font-size: 1rem;
+    min-height: var(--btn-height);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    font-weight: 600;
+    line-height: 1.2;
+    transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+
+    /* Tactile press feedback — a clear scale-down that reads under a finger
+       on a touch panel (not just a 1px nudge). */
+    .btn:active:not(:disabled) {
+        transform: scale(.95);
+    }
+
+/* Dense controls: table-row actions, inline helpers. */
+.btn-sm {
+    --bs-btn-padding-y: 0.4rem;
+    --bs-btn-padding-x: 0.8rem;
+    --bs-btn-font-size: 0.9rem;
+    min-height: var(--btn-height-sm);
+    gap: 0.35rem;
+}
+
+/* Primary tier — the main actions. */
+.btn-lg {
+    --bs-btn-padding-y: 0.85rem;
+    --bs-btn-padding-x: 1.5rem;
+    --bs-btn-font-size: var(--fs-lg);
+    min-height: var(--btn-height-lg);
+}
+
+/* Icon-only square buttons keep a 1:1 footprint at each tier's height. */
+.btn-icon {
+    min-width: var(--btn-height);
+    padding-left: 0;
+    padding-right: 0;
+    gap: 0;
+}
+
+    .btn-lg.btn-icon {
+        min-width: var(--btn-height-lg);
+    }
+
+    .btn-sm.btn-icon {
+        min-width: var(--btn-height-sm);
+    }
+
+/* --- Variants ----------------------------------------------------------- */
+
+.btn-primary {
+    --bs-btn-color: var(--brand-contrast);
+    --bs-btn-bg: var(--brand);
+    --bs-btn-border-color: var(--brand);
+    --bs-btn-hover-color: var(--brand-contrast);
+    --bs-btn-hover-bg: var(--brand-strong);
+    --bs-btn-hover-border-color: var(--brand-strong);
+    --bs-btn-active-color: var(--brand-contrast);
+    --bs-btn-active-bg: var(--brand-deep);
+    --bs-btn-active-border-color: var(--brand-deep);
+    --bs-btn-disabled-color: var(--brand-contrast);
+    --bs-btn-disabled-bg: var(--brand);
+    --bs-btn-disabled-border-color: var(--brand);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--brand-ink);
+    --bs-btn-border-color: var(--brand-strong);
+    --bs-btn-hover-color: var(--brand-contrast);
+    --bs-btn-hover-bg: var(--brand);
+    --bs-btn-hover-border-color: var(--brand);
+    --bs-btn-active-color: var(--brand-contrast);
+    --bs-btn-active-bg: var(--brand-deep);
+    --bs-btn-active-border-color: var(--brand-deep);
+    --bs-btn-disabled-color: var(--text-subtle);
+    --bs-btn-disabled-border-color: var(--border-strong);
+}
+
+.btn-secondary {
+    --bs-btn-bg: var(--secondary);
+    --bs-btn-border-color: var(--secondary);
+    --bs-btn-hover-bg: var(--secondary-strong);
+    --bs-btn-hover-border-color: var(--secondary-strong);
+    --bs-btn-active-bg: var(--secondary-strong);
+    --bs-btn-active-border-color: var(--secondary-strong);
+    --bs-btn-disabled-bg: var(--secondary);
+    --bs-btn-disabled-border-color: var(--secondary);
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: var(--secondary-strong);
+    --bs-btn-border-color: var(--border-strong);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--secondary);
+    --bs-btn-hover-border-color: var(--secondary);
+    --bs-btn-active-bg: var(--secondary-strong);
+    --bs-btn-active-border-color: var(--secondary-strong);
+}
+
+/* Semantic actions keep their conventional meaning — operators rely on
+   red = destructive and green = confirm far more than on brand colour. */
+.btn-success {
+    --bs-btn-bg: var(--success);
+    --bs-btn-border-color: var(--success);
+    --bs-btn-hover-bg: var(--success-strong);
+    --bs-btn-hover-border-color: var(--success-strong);
+    --bs-btn-active-bg: var(--success-deep);
+    --bs-btn-active-border-color: var(--success-deep);
+    --bs-btn-disabled-bg: var(--success);
+    --bs-btn-disabled-border-color: var(--success);
+}
+
+.btn-danger {
+    --bs-btn-bg: var(--danger);
+    --bs-btn-border-color: var(--danger);
+    --bs-btn-hover-bg: var(--danger-strong);
+    --bs-btn-hover-border-color: var(--danger-strong);
+    --bs-btn-active-bg: var(--danger-deep);
+    --bs-btn-active-border-color: var(--danger-deep);
+    --bs-btn-disabled-bg: var(--danger);
+    --bs-btn-disabled-border-color: var(--danger);
+}
+
+.btn-warning {
+    --bs-btn-color: var(--brand-contrast);
+    --bs-btn-bg: var(--warning-fill);
+    --bs-btn-border-color: var(--warning-fill);
+    --bs-btn-hover-color: var(--brand-contrast);
+    --bs-btn-hover-bg: var(--warning-fill-strong);
+    --bs-btn-hover-border-color: var(--warning-fill-strong);
+    --bs-btn-active-bg: var(--warning-fill-deep);
+    --bs-btn-active-border-color: var(--warning-fill-deep);
+    --bs-btn-disabled-color: var(--brand-contrast);
+    --bs-btn-disabled-bg: var(--warning-fill);
+    --bs-btn-disabled-border-color: var(--warning-fill);
+}
+
+/* ==========================================================================
+   3. Form controls
+   ========================================================================== */
+
+.form-control,
+.form-select {
+    border-radius: var(--radius);
+    border-color: var(--border-strong);
+    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--brand-strong);
+        box-shadow: var(--focus-ring);
+    }
+
+.form-check-input:checked {
+    background-color: var(--brand-strong);
+    border-color: var(--brand-strong);
+}
+
+.form-check-input:focus {
+    border-color: var(--brand-strong);
+}
+
+/* One brand focus ring everywhere, replacing Bootstrap's blue one. */
+.btn:focus,
+.btn:focus-visible,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+    box-shadow: var(--focus-ring);
+}
+
+/* ==========================================================================
+   4. Utility & component colour remaps
+   ========================================================================== */
+
+.text-primary {
+    color: var(--brand-ink) !important; /* readable, unlike raw #f9c211 */
+}
+
+.bg-primary {
+    background-color: var(--brand) !important;
+    color: var(--brand-contrast) !important;
+}
+
+    .bg-primary.text-white,
+    .bg-primary .text-white {
+        color: var(--brand-contrast) !important; /* white on yellow is unreadable */
+    }
+
+.border-primary {
+    border-color: var(--brand) !important;
+}
+
+.bg-primary-subtle {
+    background-color: var(--brand-soft) !important;
+}
+
+.text-primary-emphasis {
+    color: var(--brand-ink) !important;
+}
+
+.badge.bg-primary {
+    background-color: var(--brand) !important;
+    color: var(--brand-contrast) !important;
+}
+
+.badge.bg-secondary {
+    background-color: var(--secondary) !important;
+}
+
+.spinner-border.text-primary,
+.spinner-grow.text-primary {
+    color: var(--brand-strong) !important;
+}
+
+.progress-bar {
+    background-color: var(--brand-strong);
+}

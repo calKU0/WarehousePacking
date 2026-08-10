@@ -23,7 +23,7 @@
     padding: 0.5rem 0.75rem;
     text-align: left;
     border-left: 4px solid var(--route-accent);
-    box-shadow: 0 1px 2px rgba(16, 24, 40, .06);
+    box-shadow: var(--shadow-sm);
 }
 
 .route-btn--dpd {
@@ -39,25 +39,17 @@
 }
 
 /* White tile keeps every logo on the same clean background regardless of the
-   button's hover tint, and reserves its space so the row never reflows. */
+   button's hover tint, and reserves its space so the row never reflows. Layout
+   comes from the shared .app-thumb primitive; only the size and the white
+   plate are local. */
 .route-btn__logo {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    --thumb-w: 3rem;
+    --thumb-h: 1.9rem;
     flex: 0 0 auto;
-    width: 3rem;
-    height: 1.9rem;
     padding: 0.15rem 0.25rem;
     background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
 }
-
-    .route-btn__logo img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-    }
 
     .route-btn__logo i {
         color: var(--route-accent);

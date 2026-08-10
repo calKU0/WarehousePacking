@@ -1,10 +1,19 @@
 /* ==========================================================================
-   theme.css — design tokens + Bootstrap bridge
+   theme.css — design tokens
    --------------------------------------------------------------------------
-   Single source of truth for brand, surfaces, spacing, touch sizing and
-   motion. Everything else in the app (app.css, components.css, scoped
-   .razor.css) should consume these variables instead of hard-coded values,
-   so a new page inherits the design system for free.
+   LAYER 1 of the stylesheet stack (see App.razor for the load order):
+
+     theme.css              tokens — this file, the only place raw values live
+     bootstrap-overrides.css  vendor bridge: re-skins Bootstrap with the tokens
+     base.css               document/element defaults + framework leftovers
+     components.css         .app-* UI primitives
+     animations.css         shared keyframes + motion
+     pages/*.css            one file per page-sized feature
+     *.razor.css            scoped styles owned by a single component
+
+   Nothing in this file selects an element: it only declares custom properties.
+   Everything downstream consumes them instead of hard-coding values, so a new
+   page inherits the design system for free and a rebrand happens here alone.
 
    Brand colours come from the company logo (wwwroot/images/logo.png):
      primary   #f9c211   secondary #646363
@@ -35,32 +44,71 @@
     --surface: #ffffff;
     --surface-sunken: #f6f7f8;
     --surface-raised: #ffffff;
+
+    /* Divider band for section headings inside a sectioned table (packing
+       areas, picking warehouses). Deliberately a real grey — clearly darker
+       than the zebra stripe AND than every status tint — because at wallboard
+       distance a near-white band just reads as one more data row. */
+    --surface-section: #d6dbe0;
     --border: #e6e8ea;
     --border-strong: #d3d7db;
     --text: #22262a;
     --text-muted: #6b7280;
     --text-subtle: #99a1ab;
 
+    /* --- App shell ------------------------------------------------------
+       The navigation rail is the one dark surface in the app, so it has its
+       own small palette. Shared by MainLayout (the rail itself) and NavMenu
+       (its contents), which is why it lives here rather than in either
+       scoped stylesheet. */
+    --nav-bg: rgba(0, 0, 0, .85);
+    --nav-bg-top: rgba(0, 0, 0, .4);
+    --nav-fg: #d7d7d7;
+    --nav-fg-active: #ffffff;
+    --nav-hover: rgba(255, 255, 255, .1);
+    --nav-active: rgba(255, 255, 255, .37);
+    --nav-border: rgba(255, 255, 255, .1);
+    --nav-width: 220px;
+    --nav-width-wide: 250px;
+    --nav-width-collapsed: 70px;
+
     /* --- Status (semantic — deliberately NOT brand coloured) ------------ */
     --success: #17864a;
+    --success-strong: #12703c;
+    --success-deep: #0f5f33;
     --success-soft: #dcfce7;
     --success-border: #86efac;
     --danger: #c62828;
+    --danger-strong: #a92020;
+    --danger-deep: #911c1c;
     --danger-soft: #fee2e2;
     --danger-border: #fca5a5;
     --warning: #b26a00;
+    --warning-fill: #f0a92b; /* readable amber for warning BUTTON fills */
+    --warning-fill-strong: #dd9a1f;
+    --warning-fill-deep: #c9891a;
     --warning-soft: #fef3c7;
     --warning-border: #fcd34d;
     --info: #0b6f8a;
     --info-soft: #e0f4fa;
 
     /* Table row-state fills — deliberately more vivid/saturated than the
-       "-soft" status tints, so status rows read clearly across a busy list. */
+       "-soft" status tints, so status rows read clearly across a busy list.
+
+       Three steps per state, and all three are needed:
+         base    the row's normal fill
+         -alt    one shade down, for every other row. Without it a run of rows
+                 in the same state merges into one solid block and an operator
+                 can no longer tell where one row ends and the next begins.
+         -strong hover / emphasis, a clearly bigger step than -alt. */
     --row-ready: #bbf7d0;
+    --row-ready-alt: #abf5c5;
     --row-ready-strong: #86efac;
     --row-error: #fecaca;
+    --row-error-alt: #fdbfbf;
     --row-error-strong: #fca5a5;
     --row-warning: #fde68a;
+    --row-warning-alt: #fde078;
     --row-warning-strong: #fcd34d;
 
     /* --- Courier brand colours ------------------------------------------
@@ -74,6 +122,7 @@
     --courier-fedex-strong: #3c0f6d;
 
     /* --- Radius --------------------------------------------------------- */
+    --radius-xs: 5px;
     --radius-sm: 6px;
     --radius: 10px;
     --radius-lg: 14px;
@@ -101,12 +150,20 @@
     --touch-lg: 72px; /* primary action bar buttons      */
     --row-height: 56px;
 
+    /* The three button heights used app-wide. Secondary is the default .btn
+       (side actions, modal cancels); primary is .btn-lg and the main action
+       containers; dense is .btn-sm, for table-row actions. */
+    --btn-height-sm: 2.5rem; /* 40px */
+    --btn-height: 3rem; /* 48px */
+    --btn-height-lg: 4rem; /* 64px */
+
     /* The scan field is driven by a hardware scanner, not by tapping, so it
        does not need a finger-sized target — keeping it slim buys vertical
        room for the item lists, which is what operators actually read. */
     --scan-height: 44px;
 
-    /* Thumbnails in list views. */
+    /* Thumbnails in list views. --thumb-w/-h are what .app-thumb actually
+       reads, so a component can resize one tile without redefining it. */
     --thumb: 56px;
     --thumb-wide-w: 76px;
     --thumb-wide-h: 48px;
@@ -152,294 +209,5 @@
 }
 
 /* Motion is intentionally always on for this kiosk app (per product decision),
-   so the OS "reduce motion" setting is deliberately not honoured here. */
-
-/* ==========================================================================
-   Bootstrap bridge
-   --------------------------------------------------------------------------
-   Bootstrap 5.3 bakes literal colour values into each component's local
-   custom properties (e.g. `.btn-primary { --bs-btn-bg: #0d6efd }`), so
-   overriding `--bs-primary` alone is not enough. We remap the component-level
-   variables instead, which keeps every Bootstrap behaviour (disabled, active,
-   focus) intact while adopting the brand.
-   ========================================================================== */
-
-:root {
-    --bs-primary: var(--brand);
-    --bs-primary-rgb: var(--brand-rgb);
-    --bs-secondary: var(--secondary);
-    --bs-secondary-rgb: var(--secondary-rgb);
-    --bs-body-color: var(--text);
-    --bs-body-font-family: var(--font-sans);
-    --bs-border-color: var(--border);
-    --bs-border-radius: var(--radius);
-    --bs-link-color: var(--brand-ink);
-    --bs-link-hover-color: var(--brand-deep);
-    --bs-focus-ring-color: rgba(var(--brand-rgb), .45);
-}
-
-/* --- Buttons ------------------------------------------------------------ */
-/* The app deliberately uses TWO button heights, on screens that run on large
-   wall and desk monitors:
-     • Secondary (48px) — the default .btn: side/rare actions, modal cancels,
-       inline helpers. Present but not shouting.
-     • Primary   (64px) — .btn-lg and the main action containers
-       (.app-actionbar, finish-packing): the actions the operator is there to
-       press. Bigger target, heavier presence.
-   .btn-sm (40px) stays for genuinely dense spots such as table-row actions. */
-.btn {
-    --bs-btn-border-radius: var(--radius);
-    --bs-btn-padding-y: 0.55rem;
-    --bs-btn-padding-x: 1.05rem;
-    --bs-btn-font-size: 1rem;
-    min-height: 3rem; /* 48px — secondary baseline */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    font-weight: 600;
-    line-height: 1.2;
-    transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
-}
-
-    /* Tactile press feedback — a clear scale-down that reads under a finger
-       on a touch panel (not just a 1px nudge). */
-    .btn:active:not(:disabled) {
-        transform: scale(.95);
-    }
-
-    .btn:focus-visible {
-        box-shadow: var(--focus-ring);
-    }
-
-/* Dense controls: table-row actions, inline helpers. */
-.btn-sm {
-    --bs-btn-padding-y: 0.4rem;
-    --bs-btn-padding-x: 0.8rem;
-    --bs-btn-font-size: 0.9rem;
-    min-height: 2.5rem; /* 40px */
-    gap: 0.35rem;
-}
-
-/* Primary tier — the main actions. */
-.btn-lg {
-    --bs-btn-padding-y: 0.85rem;
-    --bs-btn-padding-x: 1.5rem;
-    --bs-btn-font-size: var(--fs-lg);
-    min-height: 4rem; /* 64px */
-}
-
-/* Icon-only square buttons keep a 1:1 footprint at each tier's height. */
-.btn-icon {
-    min-width: 3rem;
-    padding-left: 0;
-    padding-right: 0;
-    gap: 0;
-}
-
-    .btn-lg.btn-icon {
-        min-width: 4rem;
-    }
-
-    .btn-sm.btn-icon {
-        min-width: 2.5rem;
-    }
-
-.btn-primary {
-    --bs-btn-color: var(--brand-contrast);
-    --bs-btn-bg: var(--brand);
-    --bs-btn-border-color: var(--brand);
-    --bs-btn-hover-color: var(--brand-contrast);
-    --bs-btn-hover-bg: var(--brand-strong);
-    --bs-btn-hover-border-color: var(--brand-strong);
-    --bs-btn-active-color: var(--brand-contrast);
-    --bs-btn-active-bg: var(--brand-deep);
-    --bs-btn-active-border-color: var(--brand-deep);
-    --bs-btn-disabled-color: var(--brand-contrast);
-    --bs-btn-disabled-bg: var(--brand);
-    --bs-btn-disabled-border-color: var(--brand);
-}
-
-.btn-outline-primary {
-    --bs-btn-color: var(--brand-ink);
-    --bs-btn-border-color: var(--brand-strong);
-    --bs-btn-hover-color: var(--brand-contrast);
-    --bs-btn-hover-bg: var(--brand);
-    --bs-btn-hover-border-color: var(--brand);
-    --bs-btn-active-color: var(--brand-contrast);
-    --bs-btn-active-bg: var(--brand-deep);
-    --bs-btn-active-border-color: var(--brand-deep);
-    --bs-btn-disabled-color: var(--text-subtle);
-    --bs-btn-disabled-border-color: var(--border-strong);
-}
-
-.btn-secondary {
-    --bs-btn-bg: var(--secondary);
-    --bs-btn-border-color: var(--secondary);
-    --bs-btn-hover-bg: var(--secondary-strong);
-    --bs-btn-hover-border-color: var(--secondary-strong);
-    --bs-btn-active-bg: var(--secondary-strong);
-    --bs-btn-active-border-color: var(--secondary-strong);
-    --bs-btn-disabled-bg: var(--secondary);
-    --bs-btn-disabled-border-color: var(--secondary);
-}
-
-.btn-outline-secondary {
-    --bs-btn-color: var(--secondary-strong);
-    --bs-btn-border-color: var(--border-strong);
-    --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: var(--secondary);
-    --bs-btn-hover-border-color: var(--secondary);
-    --bs-btn-active-bg: var(--secondary-strong);
-    --bs-btn-active-border-color: var(--secondary-strong);
-}
-
-/* Semantic actions keep their conventional meaning — operators rely on
-   red = destructive and green = confirm far more than on brand colour. */
-.btn-success {
-    --bs-btn-bg: var(--success);
-    --bs-btn-border-color: var(--success);
-    --bs-btn-hover-bg: #12703c;
-    --bs-btn-hover-border-color: #12703c;
-    --bs-btn-active-bg: #0f5f33;
-    --bs-btn-active-border-color: #0f5f33;
-    --bs-btn-disabled-bg: var(--success);
-    --bs-btn-disabled-border-color: var(--success);
-}
-
-.btn-danger {
-    --bs-btn-bg: var(--danger);
-    --bs-btn-border-color: var(--danger);
-    --bs-btn-hover-bg: #a92020;
-    --bs-btn-hover-border-color: #a92020;
-    --bs-btn-active-bg: #911c1c;
-    --bs-btn-active-border-color: #911c1c;
-    --bs-btn-disabled-bg: var(--danger);
-    --bs-btn-disabled-border-color: var(--danger);
-}
-
-.btn-warning {
-    --bs-btn-color: var(--brand-contrast);
-    --bs-btn-bg: #f0a92b;
-    --bs-btn-border-color: #f0a92b;
-    --bs-btn-hover-color: var(--brand-contrast);
-    --bs-btn-hover-bg: #dd9a1f;
-    --bs-btn-hover-border-color: #dd9a1f;
-    --bs-btn-active-bg: #c9891a;
-    --bs-btn-active-border-color: #c9891a;
-    --bs-btn-disabled-color: var(--brand-contrast);
-    --bs-btn-disabled-bg: #f0a92b;
-    --bs-btn-disabled-border-color: #f0a92b;
-}
-
-/* --- Utility colour remaps ---------------------------------------------- */
-.text-primary {
-    color: var(--brand-ink) !important; /* readable, unlike raw #f9c211 */
-}
-
-.bg-primary {
-    background-color: var(--brand) !important;
-    color: var(--brand-contrast) !important;
-}
-
-    .bg-primary.text-white,
-    .bg-primary .text-white {
-        color: var(--brand-contrast) !important; /* white on yellow is unreadable */
-    }
-
-.border-primary {
-    border-color: var(--brand) !important;
-}
-
-.bg-primary-subtle {
-    background-color: var(--brand-soft) !important;
-}
-
-.text-primary-emphasis {
-    color: var(--brand-ink) !important;
-}
-
-.badge.bg-primary {
-    background-color: var(--brand) !important;
-    color: var(--brand-contrast) !important;
-}
-
-.badge.bg-secondary {
-    background-color: var(--secondary) !important;
-}
-
-.spinner-border.text-primary,
-.spinner-grow.text-primary {
-    color: var(--brand-strong) !important;
-}
-
-.form-check-input:checked {
-    background-color: var(--brand-strong);
-    border-color: var(--brand-strong);
-}
-
-.form-check-input:focus {
-    border-color: var(--brand-strong);
-    box-shadow: var(--focus-ring);
-}
-
-.progress-bar {
-    background-color: var(--brand-strong);
-}
-
-/* --- Form controls ------------------------------------------------------ */
-.form-control,
-.form-select {
-    border-radius: var(--radius);
-    border-color: var(--border-strong);
-    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
-}
-
-    .form-control:focus,
-    .form-select:focus {
-        border-color: var(--brand-strong);
-        box-shadow: var(--focus-ring);
-    }
-
-/* Replaces the old global blue focus ring from app.css. */
-.btn:focus,
-.btn:active:focus,
-.btn-link.nav-link:focus,
-.form-control:focus,
-.form-check-input:focus {
-    box-shadow: var(--focus-ring);
-}
-
-/* --- Base document ------------------------------------------------------ */
-
-/* Fluid root font size: everything sized in rem (font tokens --fs-*, spacing
-   --space-*) scales DOWN on compact touch panels so more fits without
-   overflow. Capped at the normal 16px browser default — desktop/FullHD keeps
-   the standard size, it is never scaled up.
-   Touch targets stay usable because --touch* are in px, not rem. */
-html {
-    font-size: clamp(13.5px, 0.35vw + 12px, 16px);
-}
-
-html,
-body {
-    font-family: var(--font-sans);
-    color: var(--text);
-}
-
-/* Touch panels: never show a text caret/selection where it isn't useful,
-   and kill the 300ms tap delay + tap highlight. */
-body {
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-}
-
-a,
-.btn-link {
-    color: var(--brand-ink);
-}
-
-    a:hover,
-    .btn-link:hover {
-        color: var(--brand-deep);
-    }
+   so the OS "reduce motion" setting is deliberately not honoured, except for
+   the decorative spinner embellishments in animations.css. */

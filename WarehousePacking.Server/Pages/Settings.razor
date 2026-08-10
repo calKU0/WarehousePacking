@@ -1,4 +1,4 @@
-﻿@page "/settings"
+@page "/settings"
 @using WarehousePacking.Contracts.DTOs
 @using WarehousePacking.Server.Helpers
 @using WarehousePacking.Server.Services
@@ -158,11 +158,11 @@ else
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <input type="number" class="form-control form-control-sm" style="width: 80px;"
+                                                    <input type="number" class="form-control form-control-sm settings-interval"
                                                            @bind="config.RefreshIntervalSeconds" min="5" />
                                                 </td>
                                                 <td>
-                                                    <input type="number" class="form-control form-control-sm" style="width: 80px;"
+                                                    <input type="number" class="form-control form-control-sm settings-interval"
                                                            @bind="config.SlideIntervalSeconds" min="5" />
                                                 </td>
                                             </tr>

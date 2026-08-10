@@ -16,7 +16,7 @@
                         <table class="table table-striped table-hover mb-0">
                             <thead class="table-dark">
                                 <tr>
-                                    <th style="width: 80px;">Wybór</th>
+                                    <th class="doc-elements__select-col">Wybór</th>
                                     <th>Lp</th>
                                     <th>Kod</th>
                                     <th>Nazwa</th>
@@ -38,7 +38,7 @@
                                         <td>@element.Code</td>
                                         <td>@element.Name</td>
                                         <td>@GetMaxQuantity(element)</td>
-                                        <td style="max-width: 150px;">
+                                        <td class="doc-elements__qty-col">
                                             <InputNumber TValue="decimal"
                                                          Value="element.Quantity"
                                                          ValueChanged="@( (decimal value) => OnQuantityChanged(element, value) )"

@@ -1,4 +1,4 @@
-﻿@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs
 @using WarehousePacking.Contracts.DTOs.Dashboards
 @using WarehousePacking.Contracts.Data.Enums
 @using WarehousePacking.Server.Helpers
@@ -11,14 +11,14 @@
             <DashboardStatCard Title="Jl / Towary"
                              Subtitle="Do załadowania"
                              Value="@($"{FormatHelper.FormatQuantity(LusTotal)} / {FormatHelper.FormatQuantity(ProductsCountTotal)}")"
-                             IconClass="bi bi-file-earmark-text"
+                             IconClass="bi bi-box-seam"
                              AccentClass="dashboard-kpi-primary" />
         </div>
         <div class="col-12 col-md-3">
             <DashboardStatCard Title="Paczki / Palety"
                              Subtitle="Do załadowania"
                              Value="@($"{FormatHelper.FormatQuantity(ParcelsCount)} / {FormatHelper.FormatQuantity(PaletsCount)}")"
-                             IconClass="bi bi-file-earmark-text"
+                             IconClass="bi bi-stack"
                              AccentClass="dashboard-kpi-primary" />
         </div>
         <div class="col-12 col-md-3">
@@ -39,12 +39,7 @@
     
     <div class="row g-3 dashboard-main-row flex-grow-1">
         <div class="col-12 col-xl-6 d-flex">
-            <div class="card shadow-sm h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-truck me-2"></i>@DashboardPanel.Loading.GetDescription() - Kurierzy</span>
-                </div>
-                <div class="card-body p-0 mb-0 dashboard-scroll-host">
-                    <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
+            <DashboardCard Icon="bi bi-truck" Title="@($"{DashboardPanel.Loading.GetDescription()} - Kurierzy")">
                         <table class="table table-striped table-hover mb-0 dashboard-table dashboard-table-auto">
                             <thead class="table-dark">
                                 <tr>
@@ -52,24 +47,16 @@
                                     <th>Ilość jl</th>
                                     <th>Towary (Il.)</th>
                                     <th>Waga</th>
-                                    <th>Operatorzy</th>
+                                    <th class="dashboard-wrap-col">Operatorzy</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @if (!CourierRows.Any())
                                 {
-                                    <tr>
-                                        <td colspan="6" class="text-center text-muted py-3">
-                                            @if (IsLoading)
-                                            {
-                                                <AppSpinner Size="lg" Label="Ładowanie danych..." Block="true" />
-                                            }
-                                            else
-                                            {
-                                                <span>Brak danych załadunku.</span>
-                                            }
-                                        </td>
-                                    </tr>
+                                    <DashboardEmptyRow Columns="5"
+                                                       IsLoading="IsLoading"
+                                                       Icon="bi bi-truck"
+                                                       Message="Brak danych załadunku." />
                                 }
                                 else
                                 {
@@ -80,7 +67,7 @@
                                                 <div class="d-flex align-items-center gap-2">
                                                     @if (!string.IsNullOrWhiteSpace(row.Data.CourierSrc))
                                                     {
-                                                        <img src="@row.Data.CourierSrc" alt="@row.Data.CourierName" style="max-height: 48px; max-width: 60px; object-fit: contain;" />
+                                                        <img src="@row.Data.CourierSrc" alt="@row.Data.CourierName" class="dashboard-logo" />
                                                     }
                                                     else
                                                     {
@@ -92,24 +79,17 @@
                                             <td><DashboardAnimatedValue Text="@row.Data.LusCount.ToString()" /></td>
                                             <td><DashboardAnimatedValue Text="@($"{FormatHelper.FormatQuantity(row.Data.ProductsCount)} ({FormatHelper.FormatQuantity(row.Data.ProductsSum, format: "F0")})")" /></td>
                                             <td><DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.Data.Weight, "kg", "F0")" /></td>
-                                            <td class="dashboard-operators-cell" title="@row.Data.OperatorsList">@row.Data.OperatorsList</td>
+                                            <td class="dashboard-wrap-col"><DashboardOperatorsCell Operators="@row.Data.OperatorsList" /></td>
                                         </tr>
                                     }
                                 }
                             </tbody>
                         </table>
-                    </div>
-                </div>
-            </div>
+            </DashboardCard>
         </div>
 
         <div class="col-12 col-xl-6 d-flex">
-            <div class="card shadow-sm h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-list-check me-2"></i>@DashboardPanel.Loading.GetDescription() - Jl</span>
-                </div>
-                <div class="card-body p-0 mb-0 dashboard-scroll-host">
-                    <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
+            <DashboardCard Icon="bi bi-list-check" Title="@($"{DashboardPanel.Loading.GetDescription()} - Jl")">
                         <table class="table table-striped table-hover mb-0 dashboard-table dashboard-table-auto">
                             <thead class="table-dark">
                                 <tr>
@@ -118,24 +98,16 @@
                                     <th>Towary (Il.)</th>
                                     <th>Waga</th>
                                     <th>Data pak.</th>
-                                    <th>Operatorzy</th>
+                                    <th class="dashboard-wrap-col">Operatorzy</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @if (!LuRows.Any())
                                 {
-                                    <tr>
-                                        <td colspan="7" class="text-center text-muted py-3">
-                                            @if (IsLoading)
-                                            {
-                                                <AppSpinner Size="lg" Label="Ładowanie danych..." Block="true" />
-                                            }
-                                            else
-                                            {
-                                                <span>Brak dokumentów załadunku.</span>
-                                            }
-                                        </td>
-                                    </tr>
+                                    <DashboardEmptyRow Columns="6"
+                                                       IsLoading="IsLoading"
+                                                       Icon="bi bi-box-seam"
+                                                       Message="Brak dokumentów załadunku." />
                                 }
                                 else
                                 {
@@ -147,7 +119,7 @@
                                                 <div class="d-flex align-items-center gap-2">
                                                     @if (!string.IsNullOrWhiteSpace(row.Data.CourierSrc))
                                                     {
-                                                        <img src="@row.Data.CourierSrc" alt="@row.Data.CourierName" style="max-height: 48px; max-width: 60px; object-fit: contain;" />
+                                                        <img src="@row.Data.CourierSrc" alt="@row.Data.CourierName" class="dashboard-logo" />
                                                     }
                                                     else
                                                     {
@@ -159,23 +131,19 @@
                                             <td><DashboardAnimatedValue Text="@($"{FormatHelper.FormatQuantity(row.Data.ProductsCount)} ({FormatHelper.FormatQuantity(row.Data.ProductsSum, format: "F0")})")" /></td>
                                             <td><DashboardAnimatedValue Text="@FormatHelper.FormatQuantity(row.Data.Weight, "kg", "F0")" /></td>
                                             <td>@(row.Data.LastPackingDate == null || row.Data.LastPackingDate == DateTime.MinValue ? "-" : row.Data.LastPackingDate.Value.ToString("yyyy-MM-dd HH:mm"))</td>
-                                            <td class="dashboard-operators-cell" title="@row.Data.OperatorsList">@row.Data.OperatorsList</td>
+                                            <td class="dashboard-wrap-col"><DashboardOperatorsCell Operators="@row.Data.OperatorsList" /></td>
                                         </tr>
                                     }
                                 }
                             </tbody>
                         </table>
-                    </div>
-                </div>
-            </div>
+            </DashboardCard>
         </div>
     </div>
 </div>
 
 
 @code {
-    private const int RowAnimationDelayMs = 280;
-
     private sealed record LoadingCourierSummary(
         Courier Courier,
         string CourierName,
@@ -186,14 +154,6 @@
         decimal Weight,
         int OperatorsCount,
         string OperatorsList);
-
-    private sealed class LoadingRowView
-    {
-        public string Key { get; set; } = string.Empty;
-        public LoadingCourierSummary Data { get; set; } = null!;
-        public string AnimationClass { get; set; } = string.Empty;
-        public bool IsLeaving { get; set; }
-    }
 
     private sealed record LoadingLuSummary(
         string Key,
@@ -207,21 +167,23 @@
         DateTime? LastPackingDate,
         string OperatorsList);
 
-    private sealed class LoadingLuRowView
-    {
-        public string Key { get; set; } = string.Empty;
-        public LoadingLuSummary Data { get; set; } = null!;
-        public string AnimationClass { get; set; } = string.Empty;
-        public bool IsLeaving { get; set; }
-    }
-
     [Parameter] public List<WarehouseLu> LusToLoad { get; set; } = new();
     [Parameter] public List<WarehouseOperation> RecentOperations { get; set; } = new();
     [Parameter] public DashboardColorConfiguration ColorConfig { get; set; } = new();
     [Parameter] public bool IsLoading { get; set; }
 
-    private List<LoadingRowView> CourierRows { get; set; } = new();
-    private List<LoadingLuRowView> LuRows { get; set; } = new();
+    // Rows animate only as they join or leave; see DashboardRowSync.
+    private readonly DashboardRowSync<LoadingCourierSummary> _courierSync;
+    private readonly DashboardRowSync<LoadingLuSummary> _luSync;
+
+    public DashboardLoadingPanel()
+    {
+        _courierSync = new DashboardRowSync<LoadingCourierSummary>(() => InvokeAsync(StateHasChanged));
+        _luSync = new DashboardRowSync<LoadingLuSummary>(() => InvokeAsync(StateHasChanged));
+    }
+
+    private List<DashboardRow<LoadingCourierSummary>> CourierRows => _courierSync.Rows;
+    private List<DashboardRow<LoadingLuSummary>> LuRows => _luSync.Rows;
 
     private int LusTotal => LuRows.Count(x => x.Data.Code != null);
     private decimal ProductsSumTotal => LuRows.Sum(x => x.Data.ProductsSum);
@@ -238,53 +200,8 @@
 
     protected override void OnParametersSet()
     {
-        SyncRows();
-        SyncLuRows();
-    }
-
-    private void SyncRows()
-    {
-        var latest = BuildSummaries();
-        var latestKeys = latest.Select(GetRowKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var item in latest)
-        {
-            var itemKey = GetRowKey(item);
-            var existing = CourierRows.FirstOrDefault(x => string.Equals(x.Key, itemKey, StringComparison.OrdinalIgnoreCase));
-            if (existing is null)
-            {
-                var added = new LoadingRowView
-                {
-                    Key = itemKey,
-                    Data = item,
-                    AnimationClass = "dashboard-row-enter"
-                };
-
-                CourierRows.Add(added);
-                _ = ClearEnterClassAsync(added);
-            }
-            else
-            {
-                existing.Data = item;
-                if (existing.IsLeaving)
-                {
-                    existing.IsLeaving = false;
-                    existing.AnimationClass = "dashboard-row-enter";
-                    _ = ClearEnterClassAsync(existing);
-                }
-            }
-        }
-
-        foreach (var row in CourierRows.Where(x => !x.IsLeaving && !latestKeys.Contains(x.Key)).ToList())
-        {
-            row.IsLeaving = true;
-            row.AnimationClass = "dashboard-row-leave";
-            _ = RemoveRowAsync(row);
-        }
-
-        var orderedActive = latest.Select(x => CourierRows.FirstOrDefault(r => string.Equals(r.Key, GetRowKey(x), StringComparison.OrdinalIgnoreCase))).Where(r => r is not null)!.ToList();
-        var leaving = CourierRows.Where(x => x.IsLeaving).ToList();
-        CourierRows = orderedActive.Concat(leaving).ToList();
+        _courierSync.Sync(BuildSummaries(), GetRowKey);
+        _luSync.Sync(BuildLuSummaries(), x => x.Key);
     }
 
     private List<LoadingCourierSummary> BuildSummaries()
@@ -358,100 +275,10 @@
             .ToList();
     }
 
-    private void SyncLuRows()
-    {
-        var latest = BuildLuSummaries();
-        var latestKeys = latest.Select(x => x.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var item in latest)
-        {
-            var existing = LuRows.FirstOrDefault(x => string.Equals(x.Key, item.Key, StringComparison.OrdinalIgnoreCase));
-            if (existing is null)
-            {
-                var added = new LoadingLuRowView
-                {
-                    Key = item.Key,
-                    Data = item,
-                    AnimationClass = "dashboard-row-enter"
-                };
-
-                LuRows.Add(added);
-                _ = ClearLuEnterClassAsync(added);
-            }
-            else
-            {
-                existing.Data = item;
-                if (existing.IsLeaving)
-                {
-                    existing.IsLeaving = false;
-                    existing.AnimationClass = "dashboard-row-enter";
-                    _ = ClearLuEnterClassAsync(existing);
-                }
-            }
-        }
-
-        foreach (var row in LuRows.Where(x => !x.IsLeaving && !latestKeys.Contains(x.Key)).ToList())
-        {
-            row.IsLeaving = true;
-            row.AnimationClass = "dashboard-row-leave";
-            _ = RemoveLuRowAsync(row);
-        }
-
-        var orderedActive = latest.Select(x => LuRows.FirstOrDefault(r => string.Equals(r.Key, x.Key, StringComparison.OrdinalIgnoreCase))).Where(r => r is not null)!.ToList();
-        var leaving = LuRows.Where(x => x.IsLeaving).ToList();
-        LuRows = orderedActive.Concat(leaving).ToList();
-    }
-
-    private async Task ClearLuEnterClassAsync(LoadingLuRowView row)
-    {
-        await Task.Delay(RowAnimationDelayMs);
-        if (row.IsLeaving)
-        {
-            return;
-        }
-
-        row.AnimationClass = string.Empty;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task RemoveLuRowAsync(LoadingLuRowView row)
-    {
-        await Task.Delay(RowAnimationDelayMs);
-        if (!row.IsLeaving)
-        {
-            return;
-        }
-
-        LuRows = LuRows.Where(x => !ReferenceEquals(x, row)).ToList();
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task ClearEnterClassAsync(LoadingRowView row)
-    {
-        await Task.Delay(RowAnimationDelayMs);
-        if (row.IsLeaving)
-        {
-            return;
-        }
-
-        row.AnimationClass = string.Empty;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task RemoveRowAsync(LoadingRowView row)
-    {
-        await Task.Delay(RowAnimationDelayMs);
-        if (!row.IsLeaving)
-        {
-            return;
-        }
-
-        CourierRows = CourierRows.Where(x => !ReferenceEquals(x, row)).ToList();
-        await InvokeAsync(StateHasChanged);
-    }
-
     public ValueTask DisposeAsync()
     {
+        _courierSync.Dispose();
+        _luSync.Dispose();
         return ValueTask.CompletedTask;
     }
 }

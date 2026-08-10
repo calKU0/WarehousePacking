@@ -1,16 +1,14 @@
-﻿/* Container for settings page */
+/* Scoped to Settings.razor. A single centred column — everything else is
+   Bootstrap plus the shared theme. */
+
 .settings-container {
-    max-width: 600px; /* center card and limit width */
+    max-width: 600px;
     margin: 0 auto;
 }
 
-/* Optional: subtle card shadow and spacing handled by Bootstrap */
-.card {
-    border-radius: 0.5rem;
-}
-
-/* Enhance input spacing */
-.form-control {
-    padding: 0.5rem 0.75rem;
-    font-size: 1rem;
+/* Interval inputs in the dashboard-panel table. Narrow on purpose — they hold
+   at most three digits, and a full-width field would push the table wider than
+   the column it lives in. */
+.settings-interval {
+    width: 80px;
 }

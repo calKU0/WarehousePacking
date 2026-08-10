@@ -65,12 +65,8 @@
 
     <div class="row g-3 dashboard-main-row flex-grow-1">
         <div class="col-12 col-xl-8 d-flex">
-            <div class="card shadow-sm h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-list-check me-2"></i>@DashboardPanel.Picking.GetDescription() - Strefy (Dokumeny zapalowane / Wszystkie)</span>
-                </div>
-                <div class="card-body p-0 mb-0 dashboard-scroll-host">
-                    <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
+            <DashboardCard Icon="bi bi-list-check"
+                           Title="@($"{DashboardPanel.Picking.GetDescription()} - Strefy (Dokumenty zaplanowane / Wszystkie)")">
                         <table class="table table-striped mb-0 dashboard-table dashboard-table-auto">
                             <thead class="table-dark">
                                 <tr>
@@ -80,7 +76,7 @@
                                         <div class="d-flex align-items-center gap-2">
                                             @if (!string.IsNullOrWhiteSpace(DpdLogo))
                                             {
-                                                <img src="@DpdLogo" alt="DPD" style="max-height: 32px; max-width: 48px; object-fit: contain;" />
+                                                <img src="@DpdLogo" alt="DPD" class="dashboard-logo dashboard-logo--sm" />
                                             }
                                             else
                                             {
@@ -93,7 +89,7 @@
                                         <div class="d-flex align-items-center gap-2">
                                             @if (!string.IsNullOrWhiteSpace(FedexLogo))
                                             {
-                                                <img src="@FedexLogo" alt="Fedex" style="max-height: 32px; max-width: 48px; object-fit: contain;" />
+                                                <img src="@FedexLogo" alt="Fedex" class="dashboard-logo dashboard-logo--sm" />
                                             }
                                             else
                                             {
@@ -106,7 +102,7 @@
                                         <div class="d-flex align-items-center gap-2">
                                             @if (!string.IsNullOrWhiteSpace(GlsLogo))
                                             {
-                                                <img src="@GlsLogo" alt="GLS" style="max-height: 32px; max-width: 48px; object-fit: contain;" />
+                                                <img src="@GlsLogo" alt="GLS" class="dashboard-logo dashboard-logo--sm" />
                                             }
                                             else
                                             {
@@ -128,31 +124,23 @@
                                         </div>
                                     </th>
                                     <!-- <th>Data zlc.</th> -->
-                                    <th class="dashboard-operators-cell">Operatorzy</th>
+                                    <th class="dashboard-wrap-col">Operatorzy</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @if (!ZoneRows.Any())
                                 {
-                                    <tr>
-                                        <td colspan="9" class="text-center text-muted py-3">
-                                            @if (IsLoading)
-                                            {
-                                                <AppSpinner Size="lg" Label="Ładowanie danych..." Block="true" />
-                                            }
-                                            else
-                                            {
-                                                <span>Brak danych kompletacji.</span>
-                                            }
-                                        </td>
-                                    </tr>
+                                    <DashboardEmptyRow Columns="8"
+                                                       IsLoading="IsLoading"
+                                                       Icon="bi bi-list-check"
+                                                       Message="Brak danych kompletacji." />
                                 }
                                 else
                                 {
                                     @foreach (var section in GetZoneSections())
                                     {
-                                        <tr class="table-secondary">
-                                            <td colspan="9">
+                                        <tr class="dashboard-table__section">
+                                            <td colspan="8">
                                                 <div class="d-flex justify-content-between align-items-center">
 
                                                     <div class="fw-semibold">
@@ -177,11 +165,7 @@
 
                                         @if (!section.Rows.Any())
                                         {
-                                            <tr>
-                                                <td colspan="9" class="text-center text-muted py-2">
-                                                    Brak zadań
-                                                </td>
-                                            </tr>
+                                            <DashboardEmptyRow Columns="8" Icon="bi bi-check2-circle" Message="Brak zadań" />
                                         }
                                         else
                                         {
@@ -226,7 +210,7 @@
                                                         }
                                                         
                                                     </td>  *@
-                                                    <td class="dashboard-operators-cell"><DashboardOperatorsCell Operators="@row.OperatorsList" /></td>
+                                                    <td class="dashboard-wrap-col"><DashboardOperatorsCell Operators="@row.OperatorsList" /></td>
                                                 </tr>
                                             }
                                         }
@@ -234,69 +218,55 @@
                                 }
                             </tbody>
                         </table>
-                    </div>
-                </div>
-            </div>
+            </DashboardCard>
         </div>
 
         <div class="col-12 col-xl-4 d-flex">
-            <div class="card shadow-sm h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-person-workspace me-2"></i>Aktywni operatorzy</span>
-                    <span class="small text-muted dashboard-time-text">Najdłużej: <DashboardAnimatedValue Text="@LongestActiveElapsed" CssClass="dashboard-time-text" Animate="false" /></span>
-                </div>
-                <div class="card-body p-0 mb-0 dashboard-scroll-host">
-                    <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
-                        <table class="table table-striped mb-0 dashboard-table dashboard-table-auto">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Operator</th>
-                                    <th>Strefa</th>
-                                    <th>Od ost. operacji</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @if (!OperatorRows.Any())
+            <DashboardCard Icon="bi bi-person-workspace" Title="Aktywni operatorzy">
+                <Meta>
+                    <span class="dashboard-time-text">Najdłużej: <DashboardAnimatedValue Text="@LongestActiveElapsed" CssClass="dashboard-time-text" /></span>
+                </Meta>
+                <ChildContent>
+                    <table class="table table-striped mb-0 dashboard-table dashboard-table-auto">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Operator</th>
+                                <th>Strefa</th>
+                                <th>Od ost. operacji</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!OperatorRows.Any())
+                            {
+                                <DashboardEmptyRow Columns="3"
+                                                   IsLoading="IsLoading"
+                                                   Icon="bi bi-person-x"
+                                                   Message="Brak aktywnych operatorów (ostatnie 5 min)." />
+                            }
+                            else
+                            {
+                                @foreach (var row in OperatorRows)
                                 {
-                                    <tr>
-                                        <td colspan="3" class="text-center text-muted py-3">
-                                            @if (IsLoading)
-                                            {
-                                                <AppSpinner Size="lg" Label="Ładowanie danych..." Block="true" />
-                                            }
-                                            else
-                                            {
-                                                <span>Brak aktywnych operatorów (ostatnie 5 min).</span>
-                                            }
+                                    <tr class="@($"{ElapsedClassHelper.GetRowClass(row.Data.LastOperationDate, ColorConfig.OperatorLastActivityRedThresholdMinutes, ColorConfig.OperatorLastActivityYellowThresholdMinutes)} {row.AnimationClass}".Trim())" @key="row.Key">
+                                        <td>@row.Data.Operator</td>
+                                        <td>@row.Data.SourceZone</td>
+                                        <td class="dashboard-elapsed-cell">
+                                            <DashboardElapsedBadge Since="row.Data.LastOperationDate"
+                                                                   RedThresholdMinutes="ColorConfig.OperatorLastActivityRedThresholdMinutes"
+                                                                   YellowThresholdMinutes="ColorConfig.OperatorLastActivityYellowThresholdMinutes" />
                                         </td>
                                     </tr>
                                 }
-                                else
-                                {
-                                    @foreach (var row in OperatorRows)
-                                    {
-                                        <tr class="@($"{ElapsedClassHelper.GetRowClass(row.Data.LastOperationDate, ColorConfig.OperatorLastActivityRedThresholdMinutes, ColorConfig.OperatorLastActivityYellowThresholdMinutes)} {row.AnimationClass}".Trim())" @key="row.Key">
-                                            <td>@row.Data.Operator</td>
-                                            <td>@row.Data.SourceZone</td>
-                                            <td class="dashboard-elapsed-cell">
-                                                <span class="badge @ElapsedClassHelper.GetBadgeClass(row.Data.LastOperationDate, ColorConfig.OperatorLastActivityRedThresholdMinutes, ColorConfig.OperatorLastActivityYellowThresholdMinutes) dashboard-elapsed-badge dashboard-time-text">
-                                                    <DashboardAnimatedValue Text="@FormatHelper.FormatElapsed(row.Data.LastOperationDate)" CssClass="dashboard-time-text" Animate="false" />
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    }
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+                            }
+                        </tbody>
+                    </table>
+                </ChildContent>
+            </DashboardCard>
         </div>
     </div>
 </div>
 
 @code{
-    private const int RowAnimationDelayMs = 280;
     private sealed record ZoneTaskSummary(
         int ZoneId,
         string ZoneName,
@@ -310,14 +280,6 @@
         PackingWarehouse Warehouse,
         DateTime OldestDocumentDate,
         DateTime LatestDocumentDate);
-
-    private sealed class ZoneTaskRowView
-    {
-        public string Key { get; set; } = string.Empty;
-        public ZoneTaskSummary Data { get; set; } = null!;
-        public string AnimationClass { get; set; } = string.Empty;
-        public bool IsLeaving { get; set; }
-    }
 
     private sealed class ZoneSegmentTableSection
     {
@@ -355,22 +317,25 @@
 
     private sealed record OperatorSummary(string Operator, string SourceZone, DateTime LastOperationDate);
 
-    private sealed class OperatorRowView
-    {
-        public string Key { get; set; } = string.Empty;
-        public OperatorSummary Data { get; set; } = null!;
-        public string AnimationClass { get; set; } = string.Empty;
-        public bool IsLeaving { get; set; }
-    }
-
     [Parameter] public List<WarehouseTask> Tasks { get; set; } = new();
     [Parameter] public List<WarehouseDocument> Documents { get; set; } = new();
     [Parameter] public List<WarehouseOperation> RecentOperations { get; set; } = new();
     [Parameter] public DashboardColorConfiguration ColorConfig { get; set; } = new();
     [Parameter] public bool IsLoading { get; set; }
 
-    private List<ZoneTaskRowView> ZoneRows { get; set; } = new();
-    private List<OperatorRowView> OperatorRows { get; set; } = new();
+    // Rows animate only as they join or leave; see DashboardRowSync.
+    private readonly DashboardRowSync<ZoneTaskSummary> _zoneSync;
+    private readonly DashboardRowSync<OperatorSummary> _operatorSync;
+
+    public DashboardPickingPanel()
+    {
+        _zoneSync = new DashboardRowSync<ZoneTaskSummary>(() => InvokeAsync(StateHasChanged));
+        _operatorSync = new DashboardRowSync<OperatorSummary>(() => InvokeAsync(StateHasChanged));
+    }
+
+    private List<DashboardRow<ZoneTaskSummary>> ZoneRows => _zoneSync.Rows;
+    private List<DashboardRow<OperatorSummary>> OperatorRows => _operatorSync.Rows;
+
     private List<(Courier Courier, DateTime CreatedDate, int DocumentId)> _taskDocumentsNormalized = new();
     private List<Courier> _documentsCouriers = new();
 
@@ -441,8 +406,8 @@
         ))
         .ToList();
 
-        SyncZoneRows();
-        SyncOperatorRows();
+        _zoneSync.Sync(BuildZoneSummaries(), x => x.ZoneId.ToString());
+        _operatorSync.Sync(BuildOperatorSummaries(), x => x.Operator);
     }
 
     private IReadOnlyList<ZoneSegmentTableSection> GetZoneSections()
@@ -501,51 +466,6 @@
         };
     }
 
-    private void SyncZoneRows()
-    {
-        var latest = BuildZoneSummaries();
-        var latestKeys = latest.Select(x => x.ZoneId.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var item in latest)
-        {
-            var itemKey = item.ZoneId.ToString();
-            var existing = ZoneRows.FirstOrDefault(x => string.Equals(x.Key, itemKey, StringComparison.OrdinalIgnoreCase));
-            if (existing is null)
-            {
-                var added = new ZoneTaskRowView
-                {
-                    Key = itemKey,
-                    Data = item,
-                    AnimationClass = "dashboard-row-enter"
-                };
-
-                ZoneRows.Add(added);
-                _ = ClearZoneEnterClassAsync(added);
-            }
-            else
-            {
-                existing.Data = item;
-                if (existing.IsLeaving)
-                {
-                    existing.IsLeaving = false;
-                    existing.AnimationClass = "dashboard-row-enter";
-                    _ = ClearZoneEnterClassAsync(existing);
-                }
-            }
-        }
-
-        foreach (var row in ZoneRows.Where(x => !x.IsLeaving && !latestKeys.Contains(x.Key)).ToList())
-        {
-            row.IsLeaving = true;
-            row.AnimationClass = "dashboard-row-leave";
-            _ = RemoveZoneRowAsync(row);
-        }
-
-        var orderedActive = latest.Select(x => ZoneRows.FirstOrDefault(r => string.Equals(r.Key, x.ZoneId.ToString(), StringComparison.OrdinalIgnoreCase))).Where(r => r is not null)!.ToList();
-        var leaving = ZoneRows.Where(x => x.IsLeaving).ToList();
-        ZoneRows = orderedActive.Concat(leaving).ToList();
-    }
-
     private List<ZoneTaskSummary> BuildZoneSummaries()
     {
         return Tasks
@@ -600,51 +520,6 @@
             .ToList();
     }
 
-    private void SyncOperatorRows()
-    {
-        var latest = BuildOperatorSummaries();
-        var latestKeys = latest.Select(x => x.Operator).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var item in latest)
-        {
-            var itemKey = item.Operator;
-            var existing = OperatorRows.FirstOrDefault(x => string.Equals(x.Key, itemKey, StringComparison.OrdinalIgnoreCase));
-            if (existing is null)
-            {
-                var added = new OperatorRowView
-                {
-                    Key = itemKey,
-                    Data = item,
-                    AnimationClass = "dashboard-row-enter"
-                };
-
-                OperatorRows.Add(added);
-                _ = ClearOperatorEnterClassAsync(added);
-            }
-            else
-            {
-                existing.Data = item;
-                if (existing.IsLeaving)
-                {
-                    existing.IsLeaving = false;
-                    existing.AnimationClass = "dashboard-row-enter";
-                    _ = ClearOperatorEnterClassAsync(existing);
-                }
-            }
-        }
-
-        foreach (var row in OperatorRows.Where(x => !x.IsLeaving && !latestKeys.Contains(x.Key)).ToList())
-        {
-            row.IsLeaving = true;
-            row.AnimationClass = "dashboard-row-leave";
-            _ = RemoveOperatorRowAsync(row);
-        }
-
-        var orderedActive = latest.Select(x => OperatorRows.FirstOrDefault(r => string.Equals(r.Key, x.Operator, StringComparison.OrdinalIgnoreCase))).Where(r => r is not null)!.ToList();
-        var leaving = OperatorRows.Where(x => x.IsLeaving).ToList();
-        OperatorRows = orderedActive.Concat(leaving).ToList();
-    }
-
     private List<OperatorSummary> BuildOperatorSummaries()
     {
         return RecentOperations
@@ -676,57 +551,11 @@
         return operation.SourceZoneId == zoneId;
     }
 
-    private async Task ClearZoneEnterClassAsync(ZoneTaskRowView row)
-    {
-        await Task.Delay(RowAnimationDelayMs);
-        if (row.IsLeaving)
-        {
-            return;
-        }
-
-        row.AnimationClass = string.Empty;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task RemoveZoneRowAsync(ZoneTaskRowView row)
-    {
-        await Task.Delay(RowAnimationDelayMs);
-        if (!row.IsLeaving)
-        {
-            return;
-        }
-
-        ZoneRows = ZoneRows.Where(x => !ReferenceEquals(x, row)).ToList();
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task ClearOperatorEnterClassAsync(OperatorRowView row)
-    {
-        await Task.Delay(RowAnimationDelayMs);
-        if (row.IsLeaving)
-        {
-            return;
-        }
-
-        row.AnimationClass = string.Empty;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task RemoveOperatorRowAsync(OperatorRowView row)
-    {
-        await Task.Delay(RowAnimationDelayMs);
-        if (!row.IsLeaving)
-        {
-            return;
-        }
-
-        OperatorRows = OperatorRows.Where(x => !ReferenceEquals(x, row)).ToList();
-        await InvokeAsync(StateHasChanged);
-    }
-
     public ValueTask DisposeAsync()
     {
         DashboardClock.Tick -= OnClockTick;
+        _zoneSync.Dispose();
+        _operatorSync.Dispose();
         return ValueTask.CompletedTask;
     }
 

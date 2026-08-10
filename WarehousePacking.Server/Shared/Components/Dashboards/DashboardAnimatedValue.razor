@@ -12,6 +12,16 @@
     }
 </span>
 
+@*
+    A value that animates the part of itself that changed, and nothing else.
+
+    "3m 42s" ticking to "3m 43s" shares the prefix "3m 4" and the suffix "s", so
+    only the "2"→"3" digit is re-keyed and rolls; the rest of the string is
+    patched in place. That is what lets an elapsed timer animate every second
+    without the whole value flickering, and it is the same treatment the
+    "Odświeżenie za" countdown in the dashboard header gets.
+*@
+
 @code {
     private sealed record AnimatedPart(string Text, bool Animate, string Key);
 
@@ -19,8 +29,9 @@
     [Parameter] public string CssClass { get; set; } = string.Empty;
 
     /// <summary>
-    /// Set false for values that tick continuously (elapsed timers). Animating
-    /// every single second reads as flicker rather than as a change cue.
+    /// Escape hatch for a value that should swap silently. Left in place because
+    /// the diffing below is what makes per-second animation cheap — but nothing
+    /// currently needs it, so prefer leaving it on.
     /// </summary>
     [Parameter] public bool Animate { get; set; } = true;
 

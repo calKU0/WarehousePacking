@@ -1,0 +1,196 @@
+/* ==========================================================================
+   animations.css — shared motion
+   --------------------------------------------------------------------------
+   Every keyframe used by more than one component, the opt-in utility classes
+   that play them, and the automatic micro-interactions that make the whole app
+   feel alive without per-page work.
+
+   Loaded AFTER components.css on purpose: the micro-interactions and the
+   reduced-motion block at the bottom refine what the primitives declare.
+   Motion that only one screen uses stays with that screen (see
+   pages/dashboard.css) or with its component (Toast.razor.css, …).
+
+   Rules of the house:
+     - Animate only transform / opacity (compositor-friendly on kiosk GPUs).
+     - Durations/easings come from tokens, so timing is tuned in one place.
+     - Hover effects are gated behind `@media (hover: hover)` — the 1024x768
+       touch panels report no hover, so a tap must never leave a stuck state.
+     - Motion is always on (kiosk product decision): the OS "reduce motion"
+       setting is intentionally NOT honoured, except for the purely decorative
+       spinner embellishments at the bottom of this file.
+   ========================================================================== */
+
+/* ==========================================================================
+   1. Keyframes
+   ========================================================================== */
+
+@keyframes app-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes app-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes app-fade-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes app-scale-in {
+    from { opacity: 0; transform: scale(.96); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* A row joining one of the packing lists slides in from the side it came from:
+   packed items from the list on the left, unpacked ones back from the right.
+   Only genuinely new rows carry these — the lists are keyed, so a pack or an
+   unpack leaves every other row untouched instead of replaying the whole
+   table. */
+@keyframes app-row-from-left {
+    from { opacity: 0; transform: translateX(-14px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes app-row-from-right {
+    from { opacity: 0; transform: translateX(14px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* Modal open/close — desktop dialog. */
+@keyframes app-modal-in {
+    from { opacity: 0; transform: translateY(12px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes app-modal-out {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(12px) scale(.98); }
+}
+
+/* Modal open/close — phone bottom sheet. */
+@keyframes app-sheet-in {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+@keyframes app-sheet-out {
+    from { transform: translateY(0); }
+    to { transform: translateY(100%); }
+}
+
+/* Spinner: the ring itself, and its pop-in so it does not snap into place. */
+@keyframes app-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes app-spinner-in {
+    from { opacity: 0; transform: scale(0.6); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes app-loading-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
+/* An error nudge for rejected input. */
+@keyframes app-shake {
+    10%, 90% { transform: translateX(-1px); }
+    20%, 80% { transform: translateX(2px); }
+    30%, 50%, 70% { transform: translateX(-4px); }
+    40%, 60% { transform: translateX(4px); }
+}
+
+/* ==========================================================================
+   2. Opt-in utilities
+   ========================================================================== */
+
+.app-fade-in { animation: app-fade-in var(--dur-slow) var(--ease) both; }
+.app-anim-fade-up { animation: app-fade-up var(--dur-slow) var(--ease) both; }
+.app-anim-shake { animation: app-shake 400ms var(--ease); }
+.app-row-in-left { animation: app-row-from-left var(--dur-slow) var(--ease) both; }
+.app-row-in-right { animation: app-row-from-right var(--dur-slow) var(--ease) both; }
+
+/* Stagger direct children of a container as they enter. Each item starts a
+   beat after the last, up to a sensible cap, for a cascading list reveal.
+   Usage: <div class="app-stagger">…rows/cards…</div> */
+.app-stagger > * {
+    animation: app-fade-up var(--dur-slow) var(--ease) both;
+}
+
+    .app-stagger > *:nth-child(1) { animation-delay: 0ms; }
+    .app-stagger > *:nth-child(2) { animation-delay: 40ms; }
+    .app-stagger > *:nth-child(3) { animation-delay: 80ms; }
+    .app-stagger > *:nth-child(4) { animation-delay: 120ms; }
+    .app-stagger > *:nth-child(5) { animation-delay: 160ms; }
+    .app-stagger > *:nth-child(6) { animation-delay: 200ms; }
+    .app-stagger > *:nth-child(7) { animation-delay: 240ms; }
+    .app-stagger > *:nth-child(8) { animation-delay: 280ms; }
+    .app-stagger > *:nth-child(n+9) { animation-delay: 320ms; }
+
+/* ==========================================================================
+   3. Automatic micro-interactions
+   ========================================================================== */
+
+/* Pages arrive on mount (Blazor keeps the element across renders, so it reads
+   as "the screen arrived", not churn). Full-viewport, overflow-hidden screens
+   fade only — a translate would clip against their clipped edges — while the
+   scrolling page and headers get a soft rise. */
+.app-page,
+.dashboard-page {
+    animation: app-fade-in var(--dur-slow) var(--ease) both;
+}
+
+.package-send,
+.app-page-header {
+    animation: app-fade-up 360ms var(--ease-spring) both;
+}
+
+/* Icons inside buttons transition smoothly for the hover nudge below. */
+.btn i {
+    transition: transform var(--dur) var(--ease);
+}
+
+.app-thumb img {
+    transition: transform var(--dur) var(--ease);
+}
+
+/* Hover flourishes: desktop/mouse only. Touch panels (hover: none) skip these
+   entirely so a tap never sticks in a hovered state. */
+@media (hover: hover) {
+    .btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+    }
+
+        .btn:hover:not(:disabled) i {
+            transform: scale(1.08);
+        }
+
+    /* Product/courier thumbnails gently zoom on row hover. */
+    .app-table--interactive tbody tr:hover .app-thumb img {
+        transform: scale(1.06);
+    }
+}
+
+/* ==========================================================================
+   4. Reduced motion
+   --------------------------------------------------------------------------
+   The single exception to "motion is always on": the spinner keeps spinning
+   (it still communicates "working"), but its pop-in and the pulsing label are
+   decoration and are dropped.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .app-spinner,
+    .spinner-border {
+        animation: app-spin 1.1s linear infinite;
+    }
+
+    .app-loading,
+    .app-loading__text {
+        animation: none;
+    }
+}

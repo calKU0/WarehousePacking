@@ -3,8 +3,22 @@
    --------------------------------------------------------------------------
    Global, page-agnostic building blocks built on the tokens in theme.css.
    Prefix: .app-*   BEM-ish: .app-block__element  .app-block--modifier
+   State:  .is-*    (.is-active, .is-selected, .is-disabled, .is-closing)
 
    Adding a new page should mean composing these classes, not writing new CSS.
+   A rule belongs here only if it is used by, or is meant to be used by, more
+   than one page; anything page-specific goes in pages/*.css, anything a single
+   component owns goes in that component's .razor.css.
+
+   Shared keyframes referenced below (app-fade-in, app-modal-in, app-spin, …)
+   are defined once in animations.css.
+
+   Contents
+     1. Page shell        6. Action bar
+     2. Card              7. Modal
+     3. Scroll region     8. Feedback states
+     4. Table             9. Small pieces
+     5. Scan input
    ========================================================================== */
 
 /* ==========================================================================
@@ -53,19 +67,6 @@
     font-size: var(--fs-xl);
     color: var(--text);
     line-height: 1.2;
-}
-
-.app-page-header__subtitle {
-    margin: 0;
-    font-size: var(--fs-sm);
-    color: var(--text-muted);
-}
-
-.app-page-header__actions {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
 }
 
 /* ==========================================================================
@@ -231,45 +232,11 @@
         }
     }
 
-    /* Zebra striping stays subtle so status colours remain legible. */
-    .app-table--striped tbody tr:nth-child(even) td {
-        background: var(--surface-sunken);
-    }
+/* --- Variants ----------------------------------------------------------- */
 
 .app-table--center thead th,
 .app-table--center tbody td {
     text-align: center;
-}
-
-/* Numeric column: header and cells must align together.
-   Qualified with the element so it outranks the base `.app-table thead th`
-   (and `.app-table--center …`) alignment rules — without that the header
-   stayed left/centre while only the cells moved right. */
-.app-table th.app-table__num,
-.app-table td.app-table__num {
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-}
-
-/* Truncate with an ellipsis instead of wrapping or forcing the table wider.
-   `width: 100%` claims all the width the fixed columns leave behind, so the
-   column only truncates once its text genuinely outgrows that space (not while
-   there is room to spare); `max-width: 0` is what lets it shrink to truncate.
-   Give the neighbouring content columns `.app-table__fit` so the leftover width
-   flows here rather than being shared out. */
-.app-table__truncate {
-    width: 100%;
-    max-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* Content-width column: takes exactly what its content needs and no more, so a
-   sibling .app-table__truncate can absorb the rest of the row. */
-.app-table__fit {
-    width: 1%;
-    white-space: nowrap;
 }
 
 /* Denser variant for compact panels: tighter cells so every column stays
@@ -303,6 +270,39 @@
         font-size: var(--fs-sm);
     }
 
+/* --- Column helpers ------------------------------------------------------ */
+
+/* Numeric column: header and cells must align together.
+   Qualified with the element so it outranks the base `.app-table thead th`
+   (and `.app-table--center …`) alignment rules — without that the header
+   stayed left/centre while only the cells moved right. */
+.app-table th.app-table__num,
+.app-table td.app-table__num {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+/* Truncate with an ellipsis instead of wrapping or forcing the table wider.
+   `width: 100%` claims all the width the fixed columns leave behind, so the
+   column only truncates once its text genuinely outgrows that space (not while
+   there is room to spare); `max-width: 0` is what lets it shrink to truncate.
+   Give the neighbouring content columns `.app-table__fit` so the leftover width
+   flows here rather than being shared out. */
+.app-table__truncate {
+    width: 100%;
+    max-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Content-width column: takes exactly what its content needs and no more, so a
+   sibling .app-table__truncate can absorb the rest of the row. */
+.app-table__fit {
+    width: 1%;
+    white-space: nowrap;
+}
+
 /* Item and JL codes are the one thing an operator matches against the label in
    their hand, so they never wrap and never lose characters to an ellipsis.
    `width: 1%` makes the column take exactly the width of its longest code — an
@@ -317,47 +317,120 @@
     font-weight: 700;
 }
 
-/* --- Interactive rows --------------------------------------------------- */
+/* --- Interactive rows ---------------------------------------------------
+   Only the affordance here; the hover FILL lives with the row states below,
+   because it has to be declared after striping to outrank it. */
 .app-table--interactive tbody tr {
     cursor: pointer;
     transition: background-color var(--dur) var(--ease);
 }
 
-    .app-table--interactive tbody tr:hover td {
-        background: var(--brand-softer);
-    }
+/* --- Row states & zebra striping ----------------------------------------
+   Deliberately vivid: an operator reads these from across the warehouse, not
+   from a desk. ONE definition serves every table in the app, so "ready" is the
+   same green on the packing list and on the wallboard.
 
-    .app-table--interactive tbody tr:active td {
-        background: var(--brand-soft);
-    }
+   Every row alternates between its fill and one shade down (`--row-stripe`),
+   INCLUDING coloured rows. That is the whole point of the `-alt` tokens: five
+   consecutive green rows used to merge into a single green block with no
+   visible boundary between them. Plain rows fall back to the surface pair.
 
-/* --- Row states (semantic, override striping and hover) ----------------- */
-.app-table tbody tr.is-ready td {
-    background: var(--row-ready);
+   A state only names its three colours; the paint rules apply them. There are
+   two sets because the app has two kinds of table:
+
+     • .app-table — ours. The fill goes straight onto the cells.
+     • .table     — Bootstrap's, used by the dashboard panels. Bootstrap paints
+       cells from its own custom properties (an inset box-shadow), so a plain
+       `background` on the <td> would be painted over. We set its variables
+       instead, and on the CELLS rather than the row: striping sets
+       --bs-table-bg-type per cell, and a value inherited from the row would
+       always lose to the cell's own declaration.
+
+   Order matters throughout this block — base fill, then stripe, then hover,
+   then selected. The selectors tie on specificity, so later wins.
+
+   Apply to a <tr>: class="is-ready" | "is-warning" | "is-error"
+   …and "is-selected" for a row the operator has picked, which is a selection
+   rather than a status: it takes the brand fill and does not alternate.
+
+   There is deliberately ONE yellow. A third, paler `is-highlight` used to
+   exist and it drifted: two of its callers meant "selected" (already covered
+   by is-selected) and one meant "partly packed" (that is is-warning). Adding
+   another tint here means adding another colour an operator has to learn.
+   ------------------------------------------------------------------------ */
+.is-ready {
+    --row-state: var(--row-ready);
+    --row-stripe: var(--row-ready-alt);
+    --row-state-strong: var(--row-ready-strong);
 }
 
+.is-warning {
+    --row-state: var(--row-warning);
+    --row-stripe: var(--row-warning-alt);
+    --row-state-strong: var(--row-warning-strong);
+}
+
+.is-error {
+    --row-state: var(--row-error);
+    --row-stripe: var(--row-error-alt);
+    --row-state-strong: var(--row-error-strong);
+}
+
+/* --- Paint: our tables --------------------------------------------------- */
+
+.app-table tbody tr.is-ready td,
+.app-table tbody tr.is-warning td,
 .app-table tbody tr.is-error td {
-    background: var(--row-error);
+    background: var(--row-state);
 }
 
-.app-table tbody tr.is-warning td {
-    background: var(--row-warning);
+/* Striping is not opt-in: every table in the app alternates. Plain rows use
+   the surface pair, coloured rows their own `-alt` shade. */
+.app-table tbody tr:nth-child(even) td {
+    background: var(--row-stripe, var(--surface-sunken));
 }
 
-.app-table tbody tr.is-highlight td {
+/* --- Paint: Bootstrap tables (dashboard panels) -------------------------- */
+
+.table > tbody > tr.is-ready > *,
+.table > tbody > tr.is-warning > *,
+.table > tbody > tr.is-error > * {
+    --bs-table-bg-type: var(--row-state);
+    --bs-table-accent-bg: var(--row-state); /* pre-5.3 name, harmless duplicate */
+    color: var(--text);
+}
+
+/* Bootstrap's own striping only knows about plain rows, so it is switched off
+   and replaced with the state-aware rule below. Leaving both on would tint odd
+   rows Bootstrap's way and even rows ours — i.e. every row. */
+.table.table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-bg-type: initial;
+}
+
+.table > tbody > tr:nth-of-type(even) > * {
+    --bs-table-bg-type: var(--row-stripe, var(--surface-sunken));
+}
+
+/* --- Hover (after striping, so it wins on every row) --------------------- */
+
+.app-table--interactive tbody tr:hover td {
+    background: var(--brand-softer);
+}
+
+.app-table--interactive tbody tr:active td {
     background: var(--brand-soft);
 }
 
-.app-table--interactive tbody tr.is-ready:hover td {
-    background: var(--row-ready-strong);
-}
-
+.app-table--interactive tbody tr.is-ready:hover td,
+.app-table--interactive tbody tr.is-warning:hover td,
 .app-table--interactive tbody tr.is-error:hover td {
-    background: var(--row-error-strong);
+    background: var(--row-state-strong);
 }
 
-.app-table--interactive tbody tr.is-warning:hover td {
-    background: var(--row-warning-strong);
+.table-hover > tbody > tr.is-ready:hover > *,
+.table-hover > tbody > tr.is-warning:hover > *,
+.table-hover > tbody > tr.is-error:hover > * {
+    --bs-table-bg-state: var(--row-state-strong);
 }
 
 /* Selected wins over every other row state. */
@@ -366,6 +439,7 @@
     background: var(--brand);
     color: var(--brand-contrast);
     font-weight: 600;
+    transition: background-color var(--dur) var(--ease);
 }
 
 .app-table tbody.is-disabled {
@@ -373,13 +447,16 @@
     pointer-events: none;
 }
 
-/* --- Thumbnail cell ----------------------------------------------------- */
+/* --- Thumbnail tile -----------------------------------------------------
+   The one "image in a bordered box" primitive: product photos in list views
+   and courier logos alike. Components that need a different size set
+   --thumb-w / --thumb-h rather than re-declaring the layout. */
 .app-thumb {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: var(--thumb);
-    height: var(--thumb);
+    width: var(--thumb-w, var(--thumb));
+    height: var(--thumb-h, var(--thumb));
     padding: 2px;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -395,8 +472,8 @@
 
 /* Landscape variant for courier logos, which are wider than they are tall. */
 .app-thumb--wide {
-    width: var(--thumb-wide-w);
-    height: var(--thumb-wide-h);
+    --thumb-w: var(--thumb-wide-w);
+    --thumb-h: var(--thumb-wide-h);
 }
 
 /* ==========================================================================
@@ -471,7 +548,7 @@
 }
 
     .app-actionbar > .btn {
-        min-height: 4rem; /* 64px — primary tier */
+        min-height: var(--btn-height-lg); /* primary tier */
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -560,6 +637,7 @@
         animation: app-fade-out var(--dur) var(--ease) forwards;
     }
 
+/* Sizes — AppModal composes these from its Size parameter. */
 .app-dialog--sm {
     max-width: 420px;
 }
@@ -578,6 +656,7 @@
     height: calc(100dvh - 2 * var(--space-4));
 }
 
+/* --- Header ------------------------------------------------------------- */
 .app-modal__header {
     display: flex;
     align-items: center;
@@ -644,6 +723,7 @@
         background: rgba(0, 0, 0, .08);
     }
 
+/* --- Body --------------------------------------------------------------- */
 .app-modal__body {
     position: relative; /* anchor for .app-overlay--local */
     flex: 1;
@@ -658,32 +738,8 @@
     padding: 0;
 }
 
-
-/* Label/value pairs — package facts, address details, anything read rather
-   than edited. */
-.app-facts {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: var(--space-1) var(--space-3);
-    margin: 0;
-    padding: var(--space-3);
-    background: var(--surface-sunken);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-}
-
-    .app-facts dt {
-        color: var(--text-muted);
-        font-weight: 500;
-    }
-
-    .app-facts dd {
-        margin: 0;
-        font-weight: 600;
-        word-break: break-word;
-    }
-
-/* One footer layout everywhere, so no modal reads differently from the next:
+/* --- Footer -------------------------------------------------------------
+   One footer layout everywhere, so no modal reads differently from the next:
    the buttons split the whole row into equal, full-width segments. */
 .app-modal__footer {
     display: flex;
@@ -696,7 +752,7 @@
 
     .app-modal__footer > .btn {
         flex: 1 1 0;
-        min-height: 3rem; /* 48px — footer buttons share the secondary height */
+        min-height: var(--btn-height); /* footer buttons share the secondary height */
         font-size: var(--fs-base);
     }
 
@@ -730,6 +786,7 @@
    8. Feedback states
    ========================================================================== */
 
+/* --- Empty / error placeholder ------------------------------------------ */
 .app-empty {
     display: flex;
     flex-direction: column;
@@ -740,12 +797,24 @@
     padding: var(--space-5);
     text-align: center;
     color: var(--text-muted);
+    animation: app-scale-in var(--dur-slow) var(--ease-spring) both;
+}
+
+/* Inside a table cell or a short block, where "fill the parent" would leave a
+   crater instead of a placeholder. */
+.app-empty--inline {
+    height: auto;
+    padding: var(--space-4) var(--space-3);
 }
 
 .app-empty__icon {
     font-size: 2.5rem;
     opacity: .35;
     line-height: 1;
+}
+
+.app-empty--inline .app-empty__icon {
+    font-size: 1.75rem;
 }
 
 .app-empty__title {
@@ -759,6 +828,15 @@
     margin: 0;
     font-size: var(--fs-sm);
 }
+
+/* Inline placeholders sit inside a table on a wall-mounted screen — the small
+   size is unreadable at that distance. */
+.app-empty--inline .app-empty__text {
+    font-size: var(--fs-lg);
+    color: var(--secondary-strong);
+}
+
+/* --- Busy overlay ------------------------------------------------------- */
 
 /* Full-screen blocking overlay (page-level busy state). */
 .app-overlay {
@@ -786,7 +864,8 @@
     color: var(--secondary-strong);
 }
 
-/* One loading spinner for the whole app. `.app-spinner` is the canonical ring;
+/* --- Spinner ------------------------------------------------------------
+   One loading spinner for the whole app. `.app-spinner` is the canonical ring;
    Bootstrap's `.spinner-border` is re-skinned to be visually identical, so the
    many buttons already using it match without being rewritten. Both spin with
    the same `app-spin` and take their colour from the surrounding text
@@ -842,25 +921,7 @@
     --spinner-thickness: 5px;
 }
 
-@keyframes app-spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes app-spinner-in {
-    from {
-        opacity: 0;
-        transform: scale(0.6);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* Spinner + message, for loading states in tables, cards and sections. */
+/* --- Spinner + message, for loading states in tables, cards, sections. --- */
 .app-loading {
     display: inline-flex;
     align-items: center;
@@ -875,16 +936,6 @@
     animation: app-loading-pulse 1.8s ease-in-out infinite;
 }
 
-@keyframes app-loading-pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.55;
-    }
-}
-
 .app-loading--block {
     display: flex;
     flex-direction: column;
@@ -893,20 +944,6 @@
     gap: var(--space-3);
     padding: var(--space-4);
     width: 100%;
-}
-
-/* Respect reduced-motion preferences: keep the spin (it still
-   communicates "working"), drop the pop-in/pulse embellishments. */
-@media (prefers-reduced-motion: reduce) {
-    .app-spinner,
-    .spinner-border {
-        animation: app-spin 1.1s linear infinite;
-    }
-
-    .app-loading,
-    .app-loading__text {
-        animation: none;
-    }
 }
 
 /* ==========================================================================
@@ -940,18 +977,45 @@
     border-color: var(--brand-strong);
 }
 
-.app-chip--danger {
-    background: var(--danger-soft);
-    border-color: var(--danger-border);
-    color: var(--danger);
-}
-
+/* Small caps heading above a group of controls or a summary block. */
 .app-section-label {
     font-size: var(--fs-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: .06em;
     color: var(--text-muted);
+}
+
+/* Label/value pairs — package facts, address details, anything read rather
+   than edited. */
+.app-facts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-1) var(--space-3);
+    margin: 0;
+    padding: var(--space-3);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+    .app-facts dt {
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .app-facts dd {
+        margin: 0;
+        font-weight: 600;
+        word-break: break-word;
+    }
+
+/* Values that are the point of the dialog (a tracking number, a package code):
+   bigger and heavier, and broken anywhere rather than overflowing. */
+.app-facts--strong dd {
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    word-break: break-all;
 }
 
 /* Company logo lockup. */
@@ -968,221 +1032,6 @@
         object-fit: contain;
     }
 
-.app-logo--sm img {
-    height: 1.5rem;
-}
-
 .app-logo--lg img {
     height: 3rem;
 }
-
-/* ==========================================================================
-   10. Animations
-   --------------------------------------------------------------------------
-   Two things live here:
-     a) keyframes + opt-in utility classes  (.app-anim-*, .app-stagger, …)
-     b) automatic micro-interactions on the shared primitives, so the whole
-        app feels alive without per-page work.
-
-   Rules of the house:
-     - Animate only transform / opacity (compositor-friendly on kiosk GPUs).
-     - Durations/easings come from tokens, so timing is tuned in one place.
-     - Hover effects are gated behind `@media (hover: hover)` — the 1024x768
-       touch panels report no hover, so a tap must never leave a stuck state.
-     - Motion is always on (kiosk product decision): the OS "reduce motion"
-       setting is intentionally NOT honoured.
-   ========================================================================== */
-
-/* --- Keyframes ---------------------------------------------------------- */
-@keyframes app-fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes app-fade-out {
-    from { opacity: 1; }
-    to { opacity: 0; }
-}
-
-@keyframes app-fade-up {
-    from { opacity: 0; transform: translateY(14px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes app-scale-in {
-    from { opacity: 0; transform: scale(.96); }
-    to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes app-slide-right {
-    from { opacity: 0; transform: translateX(-10px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-/* A row joining one of the packing lists slides in from the side it came from:
-   packed items from the list on the left, unpacked ones back from the right.
-   Only genuinely new rows carry these — the lists are keyed, so a pack or an
-   unpack leaves every other row untouched instead of replaying the whole
-   table. */
-@keyframes app-row-from-left {
-    from { opacity: 0; transform: translateX(-14px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes app-row-from-right {
-    from { opacity: 0; transform: translateX(14px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes app-modal-in {
-    from { opacity: 0; transform: translateY(12px) scale(.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes app-modal-out {
-    from { opacity: 1; transform: translateY(0) scale(1); }
-    to { opacity: 0; transform: translateY(12px) scale(.98); }
-}
-
-@keyframes app-sheet-in {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
-}
-
-@keyframes app-sheet-out {
-    from { transform: translateY(0); }
-    to { transform: translateY(100%); }
-}
-
-@keyframes app-spin {
-    to { transform: rotate(360deg); }
-}
-
-@keyframes app-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: .45; }
-}
-
-/* A quick emphasis "pop" — good for a value that just changed. */
-@keyframes app-pop {
-    0% { transform: scale(1); }
-    40% { transform: scale(1.12); }
-    100% { transform: scale(1); }
-}
-
-/* An error nudge for rejected input. */
-@keyframes app-shake {
-    10%, 90% { transform: translateX(-1px); }
-    20%, 80% { transform: translateX(2px); }
-    30%, 50%, 70% { transform: translateX(-4px); }
-    40%, 60% { transform: translateX(4px); }
-}
-
-/* Loading-placeholder sheen. */
-@keyframes app-shimmer {
-    to { background-position: -200% 0; }
-}
-
-/* --- Opt-in utilities --------------------------------------------------- */
-.app-fade-in { animation: app-fade-in var(--dur-slow) var(--ease) both; }
-.app-anim-fade-up { animation: app-fade-up var(--dur-slow) var(--ease) both; }
-.app-anim-scale-in { animation: app-scale-in var(--dur-slow) var(--ease-spring) both; }
-.app-anim-slide-right { animation: app-slide-right var(--dur-slow) var(--ease) both; }
-.app-anim-pop { animation: app-pop var(--dur-slow) var(--ease-spring); }
-.app-anim-shake { animation: app-shake 400ms var(--ease); }
-.app-row-in-left { animation: app-row-from-left var(--dur-slow) var(--ease) both; }
-.app-row-in-right { animation: app-row-from-right var(--dur-slow) var(--ease) both; }
-
-/* Draws the eye to the "scan now" prompt without being obnoxious. */
-.app-pulse { animation: app-pulse 1.8s var(--ease) infinite; }
-
-/* Stagger direct children of a container as they enter. Each item starts a
-   beat after the last, up to a sensible cap, for a cascading list reveal.
-   Usage: <div class="app-stagger">…rows/cards…</div> */
-.app-stagger > * {
-    animation: app-fade-up var(--dur-slow) var(--ease) both;
-}
-
-    .app-stagger > *:nth-child(1) { animation-delay: 0ms; }
-    .app-stagger > *:nth-child(2) { animation-delay: 40ms; }
-    .app-stagger > *:nth-child(3) { animation-delay: 80ms; }
-    .app-stagger > *:nth-child(4) { animation-delay: 120ms; }
-    .app-stagger > *:nth-child(5) { animation-delay: 160ms; }
-    .app-stagger > *:nth-child(6) { animation-delay: 200ms; }
-    .app-stagger > *:nth-child(7) { animation-delay: 240ms; }
-    .app-stagger > *:nth-child(8) { animation-delay: 280ms; }
-    .app-stagger > *:nth-child(n+9) { animation-delay: 320ms; }
-
-/* Reusable skeleton block for loading states. */
-.app-skeleton {
-    background: linear-gradient(100deg, var(--surface-sunken) 30%, var(--border) 50%, var(--surface-sunken) 70%);
-    background-size: 200% 100%;
-    animation: app-shimmer 1.2s linear infinite;
-    border-radius: var(--radius-sm);
-}
-
-/* --- Automatic micro-interactions --------------------------------------- */
-
-/* Pages arrive on mount (Blazor keeps the element across renders, so it reads
-   as "the screen arrived", not churn). Full-viewport, overflow-hidden screens
-   fade only — a translate would clip against their clipped edges — while the
-   scrolling page and headers get a soft rise. */
-.app-page,
-.dashboard-page {
-    animation: app-fade-in var(--dur-slow) var(--ease) both;
-}
-
-.package-send,
-.app-page-header {
-    animation: app-fade-up 360ms var(--ease-spring) both;
-}
-
-/* Empty/feedback states ease in rather than snapping. */
-.app-empty {
-    animation: app-scale-in var(--dur-slow) var(--ease-spring) both;
-}
-
-/* Cards flagged interactive lift toward the pointer. */
-.app-card--interactive {
-    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
-    cursor: pointer;
-}
-
-/* Icons inside buttons transition smoothly for the hover nudge below. */
-.btn i {
-    transition: transform var(--dur) var(--ease);
-}
-
-/* Selected/active table row settles in. */
-.app-table tbody tr.is-selected td {
-    transition: background-color var(--dur) var(--ease);
-}
-
-/* Hover flourishes: desktop/mouse only. Touch panels (hover: none) skip these
-   entirely so a tap never sticks in a hovered state. */
-@media (hover: hover) {
-    .btn:hover:not(:disabled) {
-        transform: translateY(-1px);
-    }
-
-        .btn:hover:not(:disabled) i {
-            transform: scale(1.08);
-        }
-
-    .app-card--interactive:hover {
-        transform: translateY(-3px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    /* Product/courier thumbnails gently zoom on row hover. */
-    .app-table--interactive tbody tr:hover .app-thumb img {
-        transform: scale(1.06);
-    }
-
-    .app-thumb img {
-        transition: transform var(--dur) var(--ease);
-    }
-}
-
-/* Note: motion is intentionally always on here (kiosk product decision), so
-   there is deliberately no prefers-reduced-motion override. */

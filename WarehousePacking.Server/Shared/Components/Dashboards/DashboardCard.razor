@@ -1,0 +1,44 @@
+@*
+    The panel card every dashboard table lives in: titled header, optional
+    right-aligned meta slot, and a body that scrolls internally (and is picked up
+    by the auto-scroller) instead of growing the panel.
+
+    Every panel used to repeat this eight-line wrapper by hand, which is how the
+    headers drifted apart. One component now means one look.
+*@
+
+<div class="card shadow-sm h-100 w-100 dashboard-card">
+    <div class="card-header dashboard-card__header">
+        <span class="dashboard-card__title">
+            @if (!string.IsNullOrWhiteSpace(Icon))
+            {
+                <i class="@Icon" aria-hidden="true"></i>
+            }
+            <span class="dashboard-card__title-text">@Title</span>
+        </span>
+
+        @if (Meta is not null)
+        {
+            <span class="dashboard-card__meta">@Meta</span>
+        }
+    </div>
+
+    <div class="card-body p-0 mb-0 dashboard-scroll-host">
+        <div class="table-responsive dashboard-auto-scroll dashboard-scroll-fill flex-grow-1">
+            @ChildContent
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+
+    /// <summary>Bootstrap icon class shown before the title, e.g. "bi bi-list-check".</summary>
+    [Parameter] public string Icon { get; set; } = string.Empty;
+
+    /// <summary>Optional right-hand slot — a "longest running" counter, a total, a badge.</summary>
+    [Parameter] public RenderFragment? Meta { get; set; }
+
+    /// <summary>A table, placed in the standard internally-scrolling wrapper.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

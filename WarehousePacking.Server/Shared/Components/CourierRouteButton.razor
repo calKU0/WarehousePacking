@@ -14,7 +14,7 @@
         class="btn route-btn route-btn--@CssKey @(Closed ? "route-btn--done" : null)"
         @onclick="OnClose"
         disabled="@(Closed || Busy)">
-    <span class="route-btn__logo">
+    <span class="app-thumb route-btn__logo">
         @if (!string.IsNullOrEmpty(LogoSrc))
         {
             <img src="@LogoSrc" alt="@Label" />

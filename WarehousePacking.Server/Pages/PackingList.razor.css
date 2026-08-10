@@ -1,9 +1,10 @@
-/* Page-specific only. Cards, tables, row states, empty states, scrollbars and
-   thumbnails now come from the shared layer (css/components.css). */
+/* Scoped to PackingList.razor — page-specific layout only. Cards, tables, row
+   states, empty states, scrollbars, thumbnails and the scan field all come
+   from the shared layer (css/components.css).
 
-.tracking-wide {
-    letter-spacing: 0.05em;
-}
+   Contents: table columns · sidebar · stats panel · courier summary · legend */
+
+/* --- Table columns ------------------------------------------------------ */
 
 /* Fill the viewport minus the page header, so the list scrolls internally
    rather than growing the page. */
@@ -22,7 +23,7 @@
     display: none;
 }
 
-@media (min-width: 1920px) {
+@media (min-width: 1620px) {
     .packing-list__date-col {
         display: table-cell;
     }
@@ -36,8 +37,8 @@
     }
 
         .packing-list__logo-cell ::deep .app-thumb--wide {
-            width: 52px;
-            height: 34px;
+            --thumb-w: 52px;
+            --thumb-h: 34px;
         }
 }
 
@@ -56,10 +57,7 @@
     padding: clamp(0.75rem, 1.2vw, 1.25rem);
 }
 
-.scanner-input-group:focus-within {
-    box-shadow: var(--focus-ring);
-}
-
+/* --- Stats panel -------------------------------------------------------- */
 .stats-panel {
     background-color: var(--surface-sunken);
     border: 1px solid var(--border);
@@ -121,30 +119,14 @@
     min-width: 0; /* lets the name actually shrink */
 }
 
-.summary-logo-wrapper,
-.summary-icon-fallback {
-    width: 34px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* The shared .app-thumb primitive at summary-row scale; the fallback variant
+   adds bg-primary-subtle in the markup and so paints over the tile's surface. */
+.summary-logo-tile {
+    --thumb-w: 34px;
+    --thumb-h: 22px;
     flex-shrink: 0;
-    border-radius: var(--radius-sm);
-}
-
-.summary-logo-wrapper {
-    background-color: var(--surface-sunken);
-    border: 1px solid var(--border);
-}
-
-.summary-logo-img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
     padding: 1px;
-}
-
-.summary-icon-fallback {
+    background-color: var(--surface-sunken);
     font-size: 0.9rem;
 }
 

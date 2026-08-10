@@ -1,28 +1,22 @@
+/* Scoped to CourierLabel.razor. The tile is the shared .app-thumb primitive
+   resized through its --thumb-w/--thumb-h hooks; only the white plate (logos
+   are drawn for white backgrounds) and the fallback glyph are local. */
+
 .courier-label {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-2);
     min-width: 0;
 }
 
 .courier-label__logo {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    --thumb-w: 2.4rem;
+    --thumb-h: 1.5rem;
     flex: 0 0 auto;
-    width: 2.4rem;
-    height: 1.5rem;
     padding: 0.1rem;
     background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 5px;
+    border-radius: var(--radius-xs);
 }
-
-    .courier-label__logo img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-    }
 
     .courier-label__logo i {
         color: var(--text-muted);

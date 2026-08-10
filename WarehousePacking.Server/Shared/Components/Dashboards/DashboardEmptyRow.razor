@@ -1,0 +1,44 @@
+@*
+    The "no data yet" row every dashboard table needs: a spinner while the panel
+    is loading, otherwise an icon and a message.
+
+    Columns is required and must be the table's real column count. Hand-written
+    colspans had drifted out of step with the headers on five of the tables —
+    under-spanning is what pushed the sorting panel's placeholder off-centre,
+    because the cell only covered part of the row's width.
+*@
+
+<tr class="dashboard-empty-row">
+    <td colspan="@Columns" class="dashboard-empty-cell">
+        @* Both states live in the same fixed-height box. A panel flips between
+           them on every refresh, and the spinner is the taller of the two, so
+           without a shared height the whole table jumped each time. *@
+        <div class="dashboard-placeholder">
+            @if (IsLoading)
+            {
+                <AppSpinner Size="lg" Label="@LoadingLabel" Block="true" />
+            }
+            else
+            {
+                <div class="app-empty app-empty--inline">
+                    <i class="@Icon app-empty__icon" aria-hidden="true"></i>
+                    <p class="app-empty__text">@Message</p>
+                </div>
+            }
+        </div>
+    </td>
+</tr>
+
+@code {
+    /// <summary>Number of columns in the table — must match the header exactly.</summary>
+    [Parameter, EditorRequired] public int Columns { get; set; }
+
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter] public string Message { get; set; } = "Brak danych.";
+
+    /// <summary>Bootstrap icon that hints at what is missing. Defaults to an empty tray.</summary>
+    [Parameter] public string Icon { get; set; } = "bi bi-inbox";
+
+    [Parameter] public string LoadingLabel { get; set; } = "Ładowanie danych...";
+}

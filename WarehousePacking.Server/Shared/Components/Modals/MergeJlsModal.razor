@@ -1,4 +1,4 @@
-﻿@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs
 @using WarehousePacking.Contracts.Data.Enums
 @using WarehousePacking.Server.Services
 @inject ClientPrinterService ClientPrinterService
@@ -11,7 +11,7 @@
     <ChildContent>
         <p class="text-muted">Wybierz kuwety do połączenia z wybraną:</p>
 
-        <table class="app-table app-table--striped app-table--interactive merge-jls__table">
+        <table class="app-table app-table--interactive merge-jls__table">
             <thead>
                 <tr>
                     <th></th>
@@ -25,7 +25,7 @@
                 {
                     var isSelected = SelectedJlsNames.Contains((jl.Code, jl.Location));
                     var rowKey = jl.Code + "|" + jl.Location;
-                    <tr class="@(isSelected ? "is-highlight" : null)"
+                    <tr class="@(isSelected ? "is-selected" : null)"
                         @key="rowKey"
                         @onclick="() => ToggleSelection(jl.Code, jl.Location)">
                         <td>

@@ -29,7 +29,7 @@
         </div>
 
         <div class="app-scroll">
-            <table class="app-table app-table--striped app-table--interactive">
+            <table class="app-table app-table--interactive">
                 <thead>
                     <tr>
                         <th>Kod</th>
@@ -67,7 +67,7 @@
                         @foreach (var row in WithKeys(JlItems))
                         {
                             var item = row.Item;
-                            <tr class="app-row-in-right @((IsHighlighted(item) || IsPartiallyPacked(item)) ? "is-highlight" : null)"
+                            <tr class="app-row-in-right @((IsHighlighted(item) || IsPartiallyPacked(item)) ? "is-warning" : null)"
                                 @key="row.Key"
                                 @ondblclick="() => OnRowDoubleClick.InvokeAsync(item)">
                                 <td class="app-table__code">@item.ItemCode</td>
@@ -117,7 +117,7 @@
         }
 
         <div class="app-scroll">
-            <table class="app-table app-table--striped app-table--interactive">
+            <table class="app-table app-table--interactive">
                 <thead>
                     <tr>
                         <th>Kod</th>

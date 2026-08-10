@@ -1,0 +1,549 @@
+/* ==========================================================================
+   pages/dashboard.css — wallboard
+   --------------------------------------------------------------------------
+   The dashboard is one page (Pages/Dashboard.razor) split across a dozen panel
+   components (Shared/Components/Dashboards/*.razor), so its styles cannot live
+   in a single scoped .razor.css — every panel would need its own copy. They
+   live here instead, under the `dashboard-` prefix, and this file is the only
+   place that prefix appears.
+
+   The page is a wall-mounted screen that never scrolls as a whole: it fills
+   the viewport exactly and each panel scrolls (or auto-scrolls) internally.
+   That constraint is why so many rules are `min-height: 0` — it is what lets a
+   flex/grid child actually shrink instead of overflowing its parent.
+
+   Contents
+     1. Page shell & slider    4. Tables
+     2. Panel layout           5. Small pieces
+     3. KPI cards              6. Motion
+   ========================================================================== */
+
+/* ==========================================================================
+   1. Page shell & slider
+   ========================================================================== */
+
+/* Set on <body> by js/autoScroller.js while the dashboard is mounted, so the
+   whole document — not just the page component — is pinned to the viewport. */
+body.dashboard-mode,
+body.dashboard-mode .page,
+body.dashboard-mode main,
+body.dashboard-mode article.content {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+.dashboard-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 100dvh;
+    overflow: hidden;
+    padding: 0.25rem 0.50rem;
+    box-sizing: border-box;
+}
+
+/* Panel switcher: one pill per panel. */
+.dashboard-switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.dashboard-tab-button {
+    cursor: pointer;
+}
+
+/* Horizontal carousel of panels; one slide is visible at a time and the track
+   is translated to bring the next one in. */
+.dashboard-slider {
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+}
+
+.dashboard-slider-fill {
+    flex: 1;
+    min-height: 0;
+}
+
+.dashboard-track {
+    display: flex;
+    transition: transform 700ms ease-in-out;
+    height: 100%;
+}
+
+.dashboard-slide {
+    flex: 1;
+    padding: 0.15rem;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* ==========================================================================
+   2. Panel layout
+   --------------------------------------------------------------------------
+   `min-height: 0` everywhere: a flex/grid item defaults to min-height auto,
+   which refuses to shrink below its content and would push the panel past the
+   bottom of the screen instead of scrolling inside it.
+   ========================================================================== */
+
+.dashboard-packing-panel,
+.dashboard-main-row,
+.dashboard-scroll-fill {
+    min-height: 0;
+}
+
+.dashboard-scroll-fill {
+    flex: 1;
+}
+
+.dashboard-main-row > [class*="col-"] {
+    min-height: 0;
+}
+
+.dashboard-main-row .card {
+    min-height: 0;
+    flex: 1;
+}
+
+.dashboard-scroll-host {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Panels long enough to need it are scrolled by js/autoScroller.js. */
+.dashboard-auto-scroll {
+    overflow-y: auto !important;
+}
+
+/* ==========================================================================
+   3. KPI cards
+   ========================================================================== */
+
+.dashboard-kpi-card {
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 0.85rem;
+}
+
+.dashboard-kpi-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.06);
+    color: #495057;
+    flex-shrink: 0;
+}
+
+    .dashboard-kpi-icon i {
+        font-size: 1.35rem;
+    }
+
+/* Tone per metric. Deliberately Bootstrap's palette rather than the brand:
+   four KPIs side by side have to be told apart at a glance from across the
+   warehouse, which one brand colour cannot do. */
+.dashboard-kpi-primary .dashboard-kpi-icon {
+    background: rgba(13, 110, 253, 0.15);
+    color: #0d6efd;
+}
+
+.dashboard-kpi-info .dashboard-kpi-icon {
+    background: rgba(13, 202, 240, 0.2);
+    color: #0aa2c0;
+}
+
+.dashboard-kpi-warning .dashboard-kpi-icon {
+    background: rgba(255, 193, 7, 0.2);
+    color: #b58100;
+}
+
+.dashboard-kpi-success .dashboard-kpi-icon {
+    background: rgba(25, 135, 84, 0.2);
+    color: #198754;
+}
+
+/* Big numbers need room for descenders and for the roll-up animation. */
+.dashboard-kpi-card .display-6 {
+    line-height: 1.3;
+    padding-bottom: 0.14em;
+    overflow: visible;
+}
+
+.dashboard-kpi-card .dashboard-roll-wrap {
+    overflow: visible;
+    align-items: center;
+    padding-bottom: 0.06em;
+}
+
+/* ==========================================================================
+   3b. Panel card (DashboardCard)
+   --------------------------------------------------------------------------
+   One header treatment for every table on the wallboard, so panels read as a
+   set rather than as six separate screens.
+   ========================================================================== */
+
+.dashboard-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.dashboard-card__title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    font-weight: 600;
+}
+
+    .dashboard-card__title i {
+        flex: 0 0 auto;
+        color: var(--brand-ink);
+        font-size: 1.1em;
+    }
+
+.dashboard-card__title-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dashboard-card__meta {
+    flex: 0 0 auto;
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+}
+
+/* ==========================================================================
+   4. Tables
+   --------------------------------------------------------------------------
+   Values stay on one line by default, so a row keeps a predictable height and
+   the horizontal scroller in .table-responsive absorbs any overflow.
+
+   The exception is `.dashboard-wrap-col`: one column per table opts back in to
+   wrapping and claims whatever width the fixed columns leave. That is where
+   the long free-text lives — logistic-unit codes, and the operator lists,
+   which must show every name rather than truncate. Those rows do grow taller
+   when they wrap, and that is the intended trade: on a wallboard a hidden name
+   is a name nobody reads.
+   ========================================================================== */
+
+.dashboard-table thead th {
+    white-space: nowrap;
+}
+
+/* Rows carry courier logos and, in the wrapping columns, two lines of text —
+   centring keeps the two visually tied together. */
+.dashboard-table tbody td {
+    vertical-align: middle;
+}
+
+/* Divider row in a sectioned table (packing areas, picking warehouses).
+   It is a heading, not data: it must not take the zebra stripe, and it must
+   not be tinted by the row state its section carries. Clearing Bootstrap's
+   fill variables is what actually stops the stripe — the stripe is painted as
+   an inset box-shadow, not a background. */
+.dashboard-table tbody > tr.dashboard-table__section > * {
+    --bs-table-bg-type: initial;
+    --bs-table-bg-state: initial;
+    background-color: var(--surface-section);
+    font-weight: 700;
+    color: var(--text);
+}
+
+    /* A rule above every section but the first, so the groups read as blocks
+       rather than as a list with the odd bold row in it. */
+    .dashboard-table tbody > tr.dashboard-table__section:not(:first-child) > * {
+        border-top: 2px solid var(--border-strong);
+    }
+
+.dashboard-table .progress {
+    min-width: 70px;
+    height: 0.75rem;
+}
+
+.dashboard-table-auto {
+    width: 100%;
+    table-layout: auto;
+}
+
+    .dashboard-table-auto thead th {
+        vertical-align: middle;
+    }
+
+    .dashboard-table-auto thead th,
+    .dashboard-table-auto tbody td {
+        white-space: nowrap;
+    }
+
+    /* Opt back in to wrapping for one column, which then absorbs the width the
+       nowrap columns leave behind. */
+    .dashboard-table-auto thead th.dashboard-wrap-col,
+    .dashboard-table-auto tbody td.dashboard-wrap-col {
+        width: 100%;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+/* The "no data" row spans the full table, so its content is centred against
+   the whole width rather than against however many columns a hand-written
+   colspan happened to cover. */
+.dashboard-empty-cell {
+    text-align: center;
+    vertical-align: middle;
+    padding: var(--space-2) var(--space-3);
+}
+
+/* Reserves the same box for "loading" and for "nothing here", so a refresh
+   swapping one for the other doesn't resize the table under the operator's
+   eyes. Sized to the taller of the two — the large spinner plus its label. */
+.dashboard-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 9rem;
+}
+
+    /* A placeholder is not data — striping and row tinting would suggest it is.
+       Bootstrap paints via an inset box-shadow fed by --bs-table-bg-type, so
+       clearing that is what actually removes the stripe here. */
+    .dashboard-empty-row > td {
+        --bs-table-bg-type: initial;
+        --bs-table-bg-state: initial;
+        background: transparent !important;
+    }
+
+/* Several segments stacked in ONE table (packing areas). Fixed proportions so
+   the segments line up with each other and the share bar keeps a predictable
+   width — auto layout would size each segment to its own longest carrier name. */
+.dashboard-segment-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+    .dashboard-segment-table th:nth-child(1) { width: 30%; }
+    .dashboard-segment-table th:nth-child(2) { width: 12%; }
+    .dashboard-segment-table th:nth-child(3) { width: 16%; }
+    .dashboard-segment-table th:nth-child(4) { width: 14%; }
+    .dashboard-segment-table th:nth-child(5) { width: 28%; }
+
+/* Carrier logo shown inline beside its name. Bare image, no plate — the tile
+   treatment (.app-thumb) is for list views; here the logo sits in a text row.
+   Capped in both axes because the source files vary wildly in aspect ratio. */
+.dashboard-logo {
+    max-height: var(--dashboard-logo-h, 48px);
+    max-width: var(--dashboard-logo-w, 60px);
+    object-fit: contain;
+}
+
+/* Column header, where the logo shares the line with a count. */
+.dashboard-logo--sm {
+    --dashboard-logo-h: 32px;
+    --dashboard-logo-w: 48px;
+}
+
+/* Summary strip along the top of a panel. */
+.dashboard-logo--xs {
+    --dashboard-logo-h: 28px;
+    --dashboard-logo-w: 40px;
+}
+
+/* Long free text that must not widen its column. The caps are per-column
+   rather than shared: a JL code and a carrier name run to different lengths. */
+.dashboard-truncate-jl,
+.dashboard-truncate-courier {
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+
+.dashboard-truncate-jl {
+    max-width: 100px;
+}
+
+.dashboard-truncate-courier {
+    max-width: 110px;
+}
+
+/* Elapsed-time column: fixed width so the badge never shifts as digits roll. */
+.dashboard-elapsed-cell {
+    width: 112px;
+    min-width: 112px;
+}
+
+.dashboard-elapsed-badge {
+    min-width: 78px;
+    text-align: center;
+}
+
+/* ==========================================================================
+   5. Small pieces
+   ========================================================================== */
+
+/* Panel title: truncate horizontally without clipping descenders (the "g" in
+   "Picking" was losing its tail to overflow:hidden on a tight line box). */
+.dashboard-panel-title {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.25;
+    padding-bottom: 0.12em;
+}
+
+.dashboard-time-text {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.dashboard-share-wrap {
+    width: 100%;
+    justify-content: center;
+}
+
+    .dashboard-share-wrap .progress {
+        max-width: 220px;
+    }
+
+.dashboard-share-bar {
+    transition: width 420ms ease;
+}
+
+/* A reload icon fills the leading slot while idle and swaps to a spinner while
+   refreshing. Both share one fixed-size slot so the label never shifts. */
+.dashboard-refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.dashboard-refresh-btn__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    font-size: 1rem;
+    line-height: 1;
+    flex: 0 0 auto;
+}
+
+/* Idle reload icon spins on hover as an affordance; the spinner keeps spinning
+   on its own via Bootstrap. */
+@media (hover: hover) {
+    .dashboard-refresh-btn:hover:not(:disabled) .bi-arrow-clockwise {
+        transform: rotate(180deg);
+        transition: transform var(--dur-slow) var(--ease);
+    }
+}
+
+/* ==========================================================================
+   6. Motion
+   --------------------------------------------------------------------------
+   The rule that matters: a row animates ONLY when it joins or leaves the table.
+   A row whose numbers changed must not move — its changed digits animate on
+   their own (.dashboard-roll-value, driven by DashboardAnimatedValue).
+
+   There used to be a `.dashboard-slide.is-active tbody tr` stagger that gave
+   EVERY row in the active panel an entrance animation. It was meant to play
+   once when a slide came into view, but a CSS animation restarts whenever its
+   element is re-inserted — and the operator tables are sorted by "last
+   operation", so a refresh reorders them and the browser moves those rows in
+   the DOM. The result was the whole table flashing on every refresh. There is
+   deliberately no blanket row rule here now; the panel-level reveal below fades
+   the slide as one piece instead, which cannot churn individual rows.
+   ========================================================================== */
+
+/* Panel reveal: the slide coming into view fades up as a single element. */
+.dashboard-slide.is-active > * {
+    animation: app-fade-in var(--dur-slow) var(--ease) both;
+}
+
+@keyframes dashboard-row-rise {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes dashboard-row-fall {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-10px) scale(.985);
+    }
+}
+
+/* Live data changes. `will-change` is set only while a row is actually
+   animating, not on every row in the table. */
+.dashboard-row-enter {
+    animation: dashboard-row-rise 460ms var(--ease) both;
+    will-change: transform, opacity;
+}
+
+.dashboard-row-leave {
+    animation: dashboard-row-fall 300ms var(--ease-in) forwards;
+    will-change: transform, opacity;
+}
+
+/* Bootstrap paints its row fills as an inset box-shadow, so a row crossing an
+   elapsed-time threshold has to transition that too, not just background. */
+.dashboard-table tbody tr > * {
+    transition: background-color 320ms var(--ease), box-shadow 320ms var(--ease);
+}
+
+/* --- Rolling numbers ----------------------------------------------------
+   A value that just changed fades and rises into place. The old version
+   snapped in at full opacity, which on a wallboard updating every second read
+   as a twitch rather than a transition. */
+@keyframes dashboard-value-roll-up {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dashboard-roll-wrap {
+    display: inline-flex;
+    align-items: baseline;
+    overflow: hidden;
+    line-height: inherit;
+    padding-bottom: 0.08em;
+    white-space: pre;
+    max-width: 100%;
+}
+
+    .dashboard-roll-wrap span {
+        flex-shrink: 0;
+        display: inline-block;
+    }
+
+.dashboard-roll-value {
+    display: inline-block;
+    animation: dashboard-value-roll-up 320ms var(--ease);
+    animation-fill-mode: both;
+    will-change: transform, opacity;
+}

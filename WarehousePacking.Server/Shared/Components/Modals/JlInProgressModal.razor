@@ -1,4 +1,4 @@
-﻿@using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.DTOs
 @using WarehousePacking.Server.Helpers
 @using WarehousePacking.Server.Services
 @using WarehousePacking.Contracts.Data.Enums
@@ -30,7 +30,7 @@
         }
         else
         {
-            <table class="app-table app-table--striped">
+            <table class="app-table">
                 <thead>
                     <tr>
                         <th></th>
@@ -46,7 +46,7 @@
                     @foreach (var jl in JlList)
                     {
                         var key = BuildSelectionKey(jl.Name, jl.User);
-                        <tr class="@(SelectedJlKeys.Contains(key) ? "is-highlight" : null)" @key="key">
+                        <tr class="@(SelectedJlKeys.Contains(key) ? "is-selected" : null)" @key="key">
                             <td>
                                 <input type="checkbox"
                                        class="form-check-input"
@@ -105,7 +105,7 @@
                         <span class="app-card__title"><i class="bi bi-box-seam"></i>Do spakowania</span>
                     </div>
                     <div class="app-scroll jl-preview__scroll">
-                        <table class="app-table app-table--striped">
+                        <table class="app-table">
                             <thead>
                                 <tr>
                                     <th>Kod</th>
@@ -139,7 +139,7 @@
                         <span class="app-card__title"><i class="bi bi-bag-check"></i>Spakowane</span>
                     </div>
                     <div class="app-scroll jl-preview__scroll">
-                        <table class="app-table app-table--striped">
+                        <table class="app-table">
                             <thead>
                                 <tr>
                                     <th>Kod</th>

@@ -54,8 +54,8 @@
                                 <th class="app-table__fit">Kurier</th>
                                 <th class="app-table__fit">Waga</th>
                                 <th class="app-table__fit">Poza UE</th>
-                                <th class="app-table__fit packing-list__date-col">Data</th>
                                 <th class="app-table__truncate">Klient</th>
+                                <th class="app-table__fit packing-list__date-col">Data</th>
                             </tr>
                         </thead>
                         <tbody class="@(_animateRows ? "app-stagger" : null)">
@@ -107,10 +107,10 @@
                                             <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle">Nie</span>
                                         }
                                     </td>
-                                    <td class="app-table__fit packing-list__date-col">
-                                        <span class="text-muted">@item.DocumentDate.ToString("yyyy-MM-dd HH:mm")</span>
-                                    </td>
                                     <td class="text-muted app-table__truncate" title="@item.ClientSymbol">@item.ClientSymbol</td>
+                                    <td class="app-table__fit packing-list__date-col">
+                                        <span class="text-muted">@item.DocumentDate.ToString("dd.MM.yyyy")</span>
+                                    </td>
                                 </tr>
                             }
                         </tbody>
@@ -127,7 +127,7 @@
 
             <div class="mb-3">
                 <label for="kuwetaInput" class="form-label app-section-label">Zeskanuj Kuwetę</label>
-                <div class="app-scan scanner-input-group @(_scanShake ? "app-anim-shake" : null)">
+                <div class="app-scan @(_scanShake ? "app-anim-shake" : null)">
                     <span class="app-scan__icon" aria-hidden="true">
                         <i class="bi bi-upc-scan"></i>
                     </span>
@@ -201,13 +201,13 @@
                             <div class="summary-logo-section">
                                 @if (!string.IsNullOrWhiteSpace(logoUrl))
                                 {
-                                    <div class="summary-logo-wrapper">
-                                        <img src="@logoUrl" alt="@courierName" class="summary-logo-img" />
+                                    <div class="app-thumb summary-logo-tile">
+                                        <img src="@logoUrl" alt="@courierName" />
                                     </div>
                                 }
                                 else
                                 {
-                                    <div class="summary-icon-fallback text-primary bg-primary-subtle">
+                                    <div class="app-thumb summary-logo-tile text-primary bg-primary-subtle">
                                         <i class="bi bi-truck"></i>
                                     </div>
                                 }

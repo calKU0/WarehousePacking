@@ -22,13 +22,24 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=optional" rel="stylesheet">
 
-    @* Cascade order matters: vendor -> design tokens -> components -> page styles -> scoped.
-       Bootstrap must come first so our theme can override its component variables. *@
+    @* Cascade order matters — each layer is allowed to refine the ones above it:
+         vendor            Bootstrap, first so everything below can override it
+         theme             design tokens (custom properties only)
+         bootstrap-overrides  re-skins Bootstrap with those tokens
+         base              document/element defaults
+         components        .app-* UI primitives
+         animations        shared keyframes + motion, refines the primitives
+         pages/*           page-sized features
+         *.styles.css      Blazor scoped component styles (always last)
+       See css/theme.css for the full house rules. *@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="css/theme.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/bootstrap-overrides.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/base.css?v=@AssetVersion" />
     <link rel="stylesheet" href="css/components.css?v=@AssetVersion" />
-    <link rel="stylesheet" href="app.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/animations.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/pages/dashboard.css?v=@AssetVersion" />
     <link rel="stylesheet" href="WarehousePacking.Server.styles.css?v=@AssetVersion" />
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <script src="js/utils.js?v=@AssetVersion"></script>
@@ -63,7 +74,7 @@
     // Cache-busting stamp for our own static assets.
     //
     // Kiosk browsers and PWAs hold on to CSS aggressively: after a deploy they
-    // kept serving a stale app.css, which re-applied styles that had already
+    // kept serving stale stylesheets, which re-applied styles that had already
     // been deleted (old blue buttons and focus rings reappearing on top of the
     // new theme). Tying the query string to the build makes every deploy fetch
     // fresh files, while still allowing normal caching between deploys.
