@@ -164,59 +164,73 @@
         const int locationFontSize = 24;
         const int rowHeight = 74;
         const int headerFontSize = 40;
+        // Usable label height (6" @ 203 dpi) less a bottom margin. Anything past
+        // the end of the label is simply not printed, so long lists are split
+        // across several labels instead of being cut off.
+        const int labelHeight = 1180;
+        const int marginBottom = 24;
 
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine("^XA");
-        // Reset label home / shift: these persist on the printer across jobs until
-        // explicitly changed, so a previous (e.g. courier) label can otherwise leave
-        // a stale offset that makes our own margins look like they do nothing.
-        sb.AppendLine("^LH0,0");
-        sb.AppendLine("^LS0");
+        var rows = new List<JlData>();
+        if (baseJl is not null)
+            rows.Add(baseJl);
+        rows.AddRange(jls);
 
-        // Header
-        sb.AppendLine($"^CF0,{headerFontSize}");
-        sb.AppendLine($"^FO{marginX},{marginTop}^FDLista kuwet do polaczenia^FS");
-        sb.AppendLine($"^FO{marginX},{marginTop + 44}^GB{contentWidth},3,3^FS");
-
-        // Subheader: print time + item count
-        var totalCount = jls.Count + (baseJl is not null ? 1 : 0);
-        sb.AppendLine("^CF0,22");
-        sb.AppendLine($"^FO{marginX},{marginTop + 56}^FD{DateTime.Now:dd.MM.yyyy HH:mm}   Pozycji: {totalCount}^FS");
-
-        int y = marginTop + 94;
+        var firstRowY = marginTop + 94;
         var textX = marginX + boxSize + 14;
         // Reserve room on the right for the weight so a long code can't run into it.
         var codeWidth = contentWidth - boxSize - 14 - 140;
 
-        void AppendRow(string code, decimal weight, string location)
+        var rowsPerLabel = Math.Max(1, (labelHeight - marginBottom - firstRowY) / rowHeight);
+        var labelCount = Math.Max(1, (rows.Count + rowsPerLabel - 1) / rowsPerLabel);
+        var printedAt = DateTime.Now;
+
+        var sb = new System.Text.StringBuilder();
+
+        for (var page = 0; page < labelCount; page++)
         {
-            // checkbox always unchecked (outline only)
-            sb.AppendLine($"^FO{marginX},{y}^GB{boxSize},{boxSize},2^FS");
+            sb.AppendLine("^XA");
+            // Reset label home / shift: these persist on the printer across jobs until
+            // explicitly changed, so a previous (e.g. courier) label can otherwise leave
+            // a stale offset that makes our own margins look like they do nothing.
+            sb.AppendLine("^LH0,0");
+            sb.AppendLine("^LS0");
 
-            // Code (clipped to a single line so it never collides with the weight)
-            sb.AppendLine($"^CF0,{codeFontSize}");
-            sb.AppendLine($"^FO{textX},{y - 4}^FB{codeWidth},1,0,L,0^FD{code}^FS");
+            // Header
+            sb.AppendLine($"^CF0,{headerFontSize}");
+            sb.AppendLine($"^FO{marginX},{marginTop}^FDLista kuwet do polaczenia^FS");
+            sb.AppendLine($"^FO{marginX},{marginTop + 44}^GB{contentWidth},3,3^FS");
 
-            // Weight as a right-aligned column on the code line, within contentWidth
-            var weightText = $"{weight.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)} kg";
-            sb.AppendLine($"^FO{marginX},{y - 4}^FB{contentWidth},1,0,R,0^FD{weightText}^FS");
+            // Subheader: print time, item count and — when the list spans more than
+            // one label — which part of it this label carries.
+            var pageText = labelCount > 1 ? $"   Strona {page + 1}/{labelCount}" : string.Empty;
+            sb.AppendLine("^CF0,22");
+            sb.AppendLine($"^FO{marginX},{marginTop + 56}^FD{printedAt:dd.MM.yyyy HH:mm}   Pozycji: {rows.Count}{pageText}^FS");
 
-            // Location on the second line, kept inside contentWidth
-            sb.AppendLine($"^CF0,{locationFontSize}");
-            sb.AppendLine($"^FO{textX},{y + codeFontSize + 2}^FB{contentWidth - boxSize - 14},1,0,L,0^FDLokalizacja: {location}^FS");
+            int y = firstRowY;
 
-            y += rowHeight;
+            foreach (var jl in rows.Skip(page * rowsPerLabel).Take(rowsPerLabel))
+            {
+                // checkbox always unchecked (outline only)
+                sb.AppendLine($"^FO{marginX},{y}^GB{boxSize},{boxSize},2^FS");
+
+                // Code (clipped to a single line so it never collides with the weight)
+                sb.AppendLine($"^CF0,{codeFontSize}");
+                sb.AppendLine($"^FO{textX},{y - 4}^FB{codeWidth},1,0,L,0^FD{jl.Code}^FS");
+
+                // Weight as a right-aligned column on the code line, within contentWidth
+                var weightText = $"{jl.Weight.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)} kg";
+                sb.AppendLine($"^FO{marginX},{y - 4}^FB{contentWidth},1,0,R,0^FD{weightText}^FS");
+
+                // Location on the second line, kept inside contentWidth
+                sb.AppendLine($"^CF0,{locationFontSize}");
+                sb.AppendLine($"^FO{textX},{y + codeFontSize + 2}^FB{contentWidth - boxSize - 14},1,0,L,0^FDLokalizacja: {jl.Location}^FS");
+
+                y += rowHeight;
+            }
+
+            sb.AppendLine("^XZ");
         }
 
-        if (baseJl is not null)
-            AppendRow(baseJl.Code, baseJl.Weight, baseJl.Location);
-
-        foreach (var jl in jls)
-        {
-            AppendRow(jl.Code, jl.Weight, jl.Location);
-        }
-
-        sb.AppendLine("^XZ");
         return sb.ToString();
     }
 }

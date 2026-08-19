@@ -17,9 +17,18 @@
   </ItemGroup>
 
   <!-- Publish the built installer where the Blazor server serves it from, replacing the
-       manual KontrolaPakowania.rar download. -->
-  <Target Name="CopyMsiToServerDownloads" AfterTargets="Build">
+       manual KontrolaPakowania.rar download.
+
+       Release only, and only when the file actually changed. The destination is tracked
+       in git — it has to be, because the Server project does not build this installer, so
+       a clean checkout would otherwise serve a 404 — and a Debug MSI is byte-different
+       from a Release one. Copying after every build therefore left the working tree
+       permanently dirty and pulled a 27 MB binary into commits that had nothing to do
+       with the print service. Refreshing the download is now a deliberate act: build this
+       project in Release. -->
+  <Target Name="CopyMsiToServerDownloads" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
     <Copy SourceFiles="$(TargetPath)"
-          DestinationFolder="$(MSBuildThisFileDirectory)..\WarehousePacking.Server\wwwroot\downloads\" />
+          DestinationFolder="$(MSBuildThisFileDirectory)..\WarehousePacking.Server\wwwroot\downloads\"
+          SkipUnchangedFiles="true" />
   </Target>
 </Project>

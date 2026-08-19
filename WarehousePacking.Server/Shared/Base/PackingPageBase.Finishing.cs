@@ -34,7 +34,7 @@ namespace WarehousePacking.Server.Shared.Base
             {
                 if (!PackedItems.Any())
                 {
-                    Toast.Show("Błąd!", "Brak spakowanych towarów!");
+                    Toast.Show("Uwaga", "Brak spakowanych towarów!", ToastType.Warning);
                     return;
                 }
 
@@ -176,7 +176,7 @@ namespace WarehousePacking.Server.Shared.Base
                 }
                 else
                 {
-                    Toast.Show("Błąd!", "Nie udało się spakować towaru do WMS.", ToastType.Error, 3500);
+                    Toast.Show("Błąd!", "Nie udało się spakować towaru do WMS.", ToastType.Error);
                 }
             }
 
@@ -188,7 +188,7 @@ namespace WarehousePacking.Server.Shared.Base
 
                 if (!_closingWmsPackages.Add(closePackageCode))
                 {
-                    Toast.Show("Informacja", "Zamykanie paczki jest już w toku.", ToastType.Info, 3500);
+                    Toast.Show("Informacja", "Zamykanie paczki jest już w toku.", ToastType.Info);
                     return;
                 }
 
@@ -255,7 +255,7 @@ namespace WarehousePacking.Server.Shared.Base
 
             if (!JlItems.Any())
             {
-                Toast.Show("Błąd!", "Brak towarów do spakowania!");
+                Toast.Show("Uwaga", "Brak towarów do spakowania!", ToastType.Warning);
                 return;
             }
 
@@ -292,16 +292,51 @@ namespace WarehousePacking.Server.Shared.Base
                 // Shipment
                 var package = await ShipmentService.GetShipmentDataByBarcode(CurrentJl.InternalBarcode);
 
+                // This package already has a courier shipment, so its label has
+                // been generated and printed. Whatever failed after that — the
+                // WMS close, the scan — is not fixed by making a second one, and
+                // asking for one does real damage: a second waybill at the
+                // courier, a second ERP shipment document, and a label that no
+                // longer carries the pobranie, because the COD went onto the
+                // first shipment. That second label is the one an operator
+                // sticks on the box, so the customer is never charged.
+                //
+                // Hand the existing shipment back instead: the label on the
+                // package is still the right one, and scanning it lets the close
+                // be retried. A genuinely unusable label is a job for the
+                // shipping module, where the old shipment is deleted first.
+                if (package is not null && package.WysNumber != 0)
+                {
+                    Toast.Show(
+                        "Przesyłka już istnieje",
+                        $"Ta paczka ma już wygenerowaną przesyłkę: <b>{package.TrackingNumber}</b>.<br/><br/>"
+                        + "<b>Zeskanuj etykietę naklejoną na paczce.</b><br/>"
+                        + "Jeśli etykieta jest nieczytelna — usuń przesyłkę w module wysyłki paczek i nadaj ją ponownie.",
+                        ToastType.Warning);
+
+                    ShipmentModal.Show(
+                        CurrentJl.InternalBarcode,
+                        PrintDataType.ZPL,
+                        Settings.PrinterLabel,
+                        package.HasInvoice,
+                        true,
+                        null,
+                        package.TrackingNumber,
+                        null);
+
+                    return;
+                }
+
                 if (package is not null && package.TaxFree)
                 {
-                    Toast.Show("Tax Free", "Paczka zawiera dokument Tax Free.<br/><br/><b>Nadaj numer wewnętrzny!</b>", ToastType.Info);
+                    Toast.Show("Tax Free", "Paczka zawiera dokument Tax Free.<br/><br/><b>Nadaj numer wewnętrzny!</b>", ToastType.Warning);
                     await OpenPackage();
                     return;
                 }
 
                 if (package is not null && !CurrentJl.IsCompleted && package.ShipmentServices.COD)
                 {
-                    Toast.Show("Nie gotowa", "Paczka nie jest jeszcze gotowa do wysyłki.<br/><br/><b>Nadaj numer wewnętrzny!</b>", ToastType.Info);
+                    Toast.Show("Nie gotowa", "Paczka nie jest jeszcze gotowa do wysyłki.<br/><br/><b>Nadaj numer wewnętrzny!</b>", ToastType.Warning);
                     await OpenPackage();
                     return;
                 }
@@ -314,7 +349,7 @@ namespace WarehousePacking.Server.Shared.Base
                     {
                         var labelContent = response.LabelBase64;
                         await ClientPrinterService.PrintAsync(Settings.PrinterLabel, response.LabelType.ToString(), labelContent);
-                        ShipmentModal.Show(CurrentJl.InternalBarcode, response.LabelType, Settings.PrinterLabel, package.HasInvoice, true, null, response.TrackingNumber, response.LabelBase64);
+                        ShipmentModal.Show(CurrentJl.InternalBarcode, response.LabelType, Settings.PrinterLabel, package.HasInvoice, true, null, response.TrackingNumber, labelContent);
                         if (package.HasInvoice)
                         {
                             await ClientPrinterService.PrintCrystalAsync(Settings.PrinterInvoice, package.Recipient.Country != "PL" ? "InvoiceEN" : "InvoicePL", new Dictionary<string, string> { { "DocumentId", package.InvoiceId.ToString() } });
@@ -406,9 +441,21 @@ namespace WarehousePacking.Server.Shared.Base
             }
             catch (Exception ex)
             {
-                Toast.Show("Błąd!", $"Błąd przy próbie zwalniania jl w WMS. Spróbuj ponowanie: {ex.Message}");
+                // Saying "try again" alone is what sends an operator looking for
+                // a new label when the retry keeps failing — and a new label is
+                // the one thing that must not happen here, since the package is
+                // already packed in WMS and already carries a correct label.
+                Toast.Show(
+                    "Błąd!",
+                    $"Nie udało się zwolnić kuwety w WMS: {ex.Message}<br/><br/>"
+                    + "<b>Nie generuj nowej etykiety</b> — ta naklejona na paczce jest poprawna.<br/>"
+                    + "Potwierdź ponownie, a jeśli błąd się powtarza — zgłoś paczkę do zamknięcia ręcznego.");
+
+                // Keeping the dialog as it stands is what the retry needs: showing
+                // it again would overwrite the courier label and tracking number it
+                // is holding, leaving "Wydrukuj ponownie" with nothing but the
+                // internal barcode label to fall back on.
                 ShipmentModal.KeepOpenAfterOk();
-                ShipmentModal.Show(CurrentJl.InternalBarcode, PrintDataType.ZPL, Settings.PrinterLabel, false, true, data.ScannedCode, data.TrackingNumber, string.Empty);
             }
             finally
             {
@@ -523,7 +570,7 @@ namespace WarehousePacking.Server.Shared.Base
                 bool valid = await AuthService.ValidatePasswordAsync(password);
                 if (!valid)
                 {
-                    Toast.Show("Błąd!", "Błędne hasło");
+                    Toast.Show("Uwaga", "Błędne hasło", ToastType.Warning);
                     return;
                 }
 

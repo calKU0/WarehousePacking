@@ -32,7 +32,7 @@ namespace WarehousePacking.Server.Shared.Base
             if (afterPacking <= CourierConfiguration.MaxPackageWeight)
                 return false;
 
-            Toast.Show("Błąd!", $"Przekroczona waga, dopuszczalna: {CourierConfiguration.MaxPackageWeight}");
+            Toast.Show("Uwaga", $"Przekroczona waga, dopuszczalna: {CourierConfiguration.MaxPackageWeight}", ToastType.Warning);
             return true;
         }
 
@@ -110,13 +110,13 @@ namespace WarehousePacking.Server.Shared.Base
 
             if (SelectedPackedItem.PackedWMS)
             {
-                Toast.Show("Błąd!", "Nie można usunąć pozycji, która została już wysłana do WMS.", ToastType.Error, 3500);
+                Toast.Show("Nie można usunąć", "Nie można usunąć pozycji, która została już wysłana do WMS.", ToastType.Warning);
                 return;
             }
 
             if (!string.Equals(SelectedPackedItem.PackingUser, UserSession.Username, StringComparison.OrdinalIgnoreCase))
             {
-                Toast.Show("Brak uprawnień", "Możesz usunąć tylko pozycje spakowane przez siebie.", ToastType.Error, 3500);
+                Toast.Show("Brak uprawnień", "Możesz usunąć tylko pozycje spakowane przez siebie.", ToastType.Warning);
                 return;
             }
 
@@ -185,7 +185,7 @@ namespace WarehousePacking.Server.Shared.Base
                         }
                         else
                         {
-                            Toast.Show("Brak towaru", $"Brak towaru o kodzie {code}", ToastType.Info, 3000);
+                            Toast.Show("Brak towaru", $"Brak towaru o kodzie {code}", ToastType.Warning);
                             _ = ScanInputComponent.Shake();
                         }
                     }

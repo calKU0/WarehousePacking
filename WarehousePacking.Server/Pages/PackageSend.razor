@@ -343,7 +343,7 @@
 
             if (response == null)
             {
-                Toast.Show("Brak paczki!", $"Nie znalaziono paczki o podanym kodzie kreskowym w systemie");
+                Toast.Show("Brak paczki!", $"Nie znalaziono paczki o podanym kodzie kreskowym w systemie", ToastType.Warning);
                 await ClearData();
                 return;
             }
@@ -404,7 +404,7 @@
                 var isReady = await ShipmentService.IsPackageReadyToShip(Barcode);
                 if (!isReady)
                 {
-                    Toast.Show("Błąd!", "Paczka nie jest gotowa do wysyłki. Upewnij się, że wszystkie dane są poprawne i paczka została zamknięta.");
+                    Toast.Show("Nie gotowa", "Paczka nie jest gotowa do wysyłki. Upewnij się, że wszystkie dane są poprawne i paczka została zamknięta.", ToastType.Warning);
                     return;
                 }
             }       
@@ -445,7 +445,7 @@
         }
         catch (Exception ex)
         {
-            Toast.Show("Błąd!", $"Błąd przy próbie wysłania paczki: {ex.Message}", ToastType.Error, 10000);
+            Toast.Show("Błąd!", $"Błąd przy próbie wysłania paczki: {ex.Message}", ToastType.Error);
             await ClearData();
         }
         finally
@@ -459,14 +459,14 @@
     {
         if (!TryParseDocumentBarcode(Barcode, out var documentId, out var documentType))
         {
-            Toast.Show("Błąd!", "Nieprawidłowy format kodu dokumentu.");
+            Toast.Show("Uwaga", "Nieprawidłowy format kodu dokumentu.", ToastType.Warning);
             return;
         }
 
         var documentInfo = await PackingService.GetDocumentInfo(documentId, documentType);
         if (documentInfo == null || documentInfo.Elements == null || documentInfo.Elements.Count == 0)
         {
-            Toast.Show("Błąd!", "Nie znaleziono elementów dla tego dokumentu. Upewnij się, że dokument istnieje.");
+            Toast.Show("Nie znaleziono", "Nie znaleziono elementów dla tego dokumentu. Upewnij się, że dokument istnieje.", ToastType.Warning);
             return;
         }
 
@@ -514,8 +514,48 @@
         }
         catch (Exception ex)
         {
-            Package.Courier = previousCourier;
+            // The rejection is not the last word: a manager may know the rule
+            // does not apply to this shipment, so the change is offered against
+            // the manager password rather than dropped outright.
+            Package.Courier = await IsCourierChangeApprovedAsync(ex.Message)
+                ? courier
+                : previousCourier;
+        }
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    /// <summary>
+    /// Shows why the change was refused and asks for the manager password to
+    /// force it through anyway.
+    /// </summary>
+    private async Task<bool> IsCourierChangeApprovedAsync(string reason)
+    {
+        try
+        {
+            var password = await PasswordModal.ShowAsync(
+                "Zmiana kuriera",
+                "Czy wciąż chcesz zmienić kuriera? Wprowadź hasło, aby potwierdzić.",
+                reason);
+
+            if (password == null)
+                return false;
+
+            if (!await AuthService.ValidatePasswordAsync(password))
+            {
+                Toast.Show("Uwaga", "Błędne hasło", ToastType.Warning);
+                return false;
+            }
+
+            Toast.Show("Sukces!", "Kurier został zmieniony.", ToastType.Success);
+            return true;
+        }
+        catch (Exception ex)
+        {
             Toast.Show("Błąd!", $"Błąd przy próbie zmiany kuriera: {ex.Message}");
+            return false;
         }
     }
 
@@ -665,14 +705,14 @@
             bool valid = await AuthService.ValidatePasswordAsync(password);
             if (!valid)
             {
-                Toast.Show("Błąd!", "Błędne hasło");
+                Toast.Show("Uwaga", "Błędne hasło", ToastType.Warning);
                 return;
             }
 
             var shipmentsToClose = await ShipmentService.GetRoutePackages(courier);
             if (shipmentsToClose.Count == 0)
             {
-                Toast.Show("Infromacja", $"Nie wysłano dziś żadnej przesyłki. Musi istnieć conajmniej jedna wysyłka aby zamknąć trasę.", ToastType.Info);
+                Toast.Show("Uwaga", $"Nie wysłano dziś żadnej przesyłki. Musi istnieć conajmniej jedna wysyłka aby zamknąć trasę.", ToastType.Warning);
                 return;
             }
 

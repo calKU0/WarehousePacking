@@ -270,9 +270,36 @@ namespace WarehousePacking.Infrastructure.Services
             };
 
             // --- 5️ Call the WMS API ---
-            var response = await _wmsApi.PackStock(requestWms);
+            var response = await CallWmsWithTimeoutRetryAsync(
+                "packStock",
+                () => _wmsApi.PackStock(requestWms));
+
             _logger.LogInformation("WMS pack stock finished with status {Status}", response?.Status);
             return response;
+        }
+
+        /// <summary>
+        /// Runs a WMS call and, when it times out, gives it exactly one more go.
+        /// A call that timed out may well have been applied on the WMS side; the
+        /// retry then comes back as "Nieprawidłowy status JL", which the caller
+        /// reads as already done (see <see cref="PackWMSResponse.IsAlreadyApplied"/>).
+        /// Without the retry that answer only arrives once the operator presses
+        /// the button again — which is how a single hung connection used to leave
+        /// a packing station stuck.
+        /// </summary>
+        private async Task<PackWMSResponse> CallWmsWithTimeoutRetryAsync(
+            string operation,
+            Func<Task<PackWMSResponse>> call)
+        {
+            try
+            {
+                return await call();
+            }
+            catch (Exception ex) when (ex is TaskCanceledException or TimeoutException)
+            {
+                _logger.LogWarning(ex, "WMS {Operation} timed out, retrying once", operation);
+                return await call();
+            }
         }
 
         public async Task<PackWMSResponse> CloseWmsPackage(WmsCloseJlRequest request)
@@ -300,7 +327,10 @@ namespace WarehousePacking.Infrastructure.Services
                 }
             };
 
-            var response = await _wmsApi.CloseJl(wmsRequest);
+            var response = await CallWmsWithTimeoutRetryAsync(
+                "closeLu",
+                () => _wmsApi.CloseJl(wmsRequest));
+
             _logger.LogInformation("Close WMS package result for {PackageNumber}: {Status}", request.PackageNumber, response?.Status);
             return response;
         }

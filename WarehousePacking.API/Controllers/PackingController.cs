@@ -467,7 +467,21 @@ namespace WarehousePacking.API.Controllers
             try
             {
                 var packResult = await _packingService.PackWmsStock(request);
-                if (packResult.Status != "1")
+
+                // The WMS says the JL is no longer "ready to pack" — it already
+                // took this pack, we just lost the answer (a timed-out call is
+                // the usual reason). Reporting a failure here only sends the
+                // operator into a retry loop that can never succeed, so it is
+                // treated as done, exactly as close-wms-jl does.
+                if (packResult.IsAlreadyApplied)
+                {
+                    _logger.LogWarning(
+                        "PackWmsStock for package {PackageCode} reported by WMS as already packed, treating as success: {Desc}",
+                        first?.ScannedCode, packResult.Desc);
+                    return Ok(true);
+                }
+
+                if (!packResult.IsSuccess)
                 {
                     _logger.LogWarning("PackWmsStock failed for package {PackageCode}: {Desc}", first?.ScannedCode, packResult.Desc);
                     return BadRequest(packResult.Desc);
@@ -492,12 +506,21 @@ namespace WarehousePacking.API.Controllers
             {
                 var closeResult = await _packingService.CloseWmsPackage(request);
 
-                if (closeResult.Status != "1" && !closeResult.Desc.Contains("Nieprawidłowy status JL:"))
+                if (closeResult.IsAlreadyApplied)
+                {
+                    _logger.LogWarning(
+                        "CloseWmsPackage for package {PackageCode} reported by WMS as already closed, treating as success: {Desc}",
+                        request.PackageNumber, closeResult.Desc);
+                    return Ok(true);
+                }
+
+                if (!closeResult.IsSuccess)
                 {
                     _logger.LogWarning("CloseWmsPackage business failure for package {PackageCode}: {Desc}", request.PackageNumber, closeResult.Desc);
 
                     return BadRequest(closeResult.Desc);
                 }
+
                 _logger.LogInformation("CloseWmsPackage succeeded for package {PackageCode}", request.PackageNumber);
                 return Ok(true);
             }

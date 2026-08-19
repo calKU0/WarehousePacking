@@ -48,7 +48,8 @@ namespace WarehousePacking.Infrastructure.Repositories
                     : null,
                 Date = request.Date,
                 ZoneId = request.ZoneId,
-                DestinationZoneId = request.DestinationZoneId
+                DestinationZoneId = request.DestinationZoneId,
+                Courier = request.Courier.HasValue ? request.Courier.Value.GetDescription() : null
             };
 
             var result = await _context.QueryAsync<WarehouseOperation>(procedure, parameters);
@@ -108,7 +109,7 @@ namespace WarehousePacking.Infrastructure.Repositories
 
             var rows = await _context.QueryAsync<LusRow>(procedure, new
             {
-                Statuses = request.Status is { Count: > 0 }
+                Status = request.Status is { Count: > 0 }
                     ? string.Join(",", request.Status.Select(x => x.GetDescription()))
                     : null,
 

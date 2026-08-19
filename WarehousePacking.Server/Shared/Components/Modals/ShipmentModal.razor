@@ -150,11 +150,20 @@
         if (!string.IsNullOrEmpty(LabelBase64))
         {
             await ClientPrinterService.PrintAsync(Printer, LabelType.ToString(), LabelBase64);
+            return;
         }
-        else
+
+        // A courier shipment exists, so the internal barcode label is the wrong
+        // thing to put on this package — printing it silently is how an operator
+        // ends up with an internal label after asking for a courier one.
+        if (!string.IsNullOrEmpty(TrackingNumber))
         {
-            await ClientPrinterService.PrintCrystalAsync(Printer, "Label", new Dictionary<string, string> { { "Kod Kreskowy", InternalBarcode } });
+            ScanErrorMessage = "Brak etykiety kurierskiej do ponownego wydruku. Wydrukuj ją z modułu wysyłki paczek.";
+            StateHasChanged();
+            return;
         }
+
+        await ClientPrinterService.PrintCrystalAsync(Printer, "Label", new Dictionary<string, string> { { "Kod Kreskowy", InternalBarcode } });
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
@@ -185,8 +194,8 @@
             await OnOk.InvokeAsync((ScannedCode, string.IsNullOrEmpty(TrackingNumber) ? ScannedCode : TrackingNumber));
         }
 
-        ScannedCode = string.Empty;
-
+        // Staying open means the confirm failed and will be retried, so the code
+        // the operator already scanned is kept rather than asked for again.
         if (StayOpenAfterOk)
         {
             StayOpenAfterOk = false;
@@ -194,6 +203,7 @@
             return;
         }
 
+        ScannedCode = string.Empty;
         Hide();
     }
 

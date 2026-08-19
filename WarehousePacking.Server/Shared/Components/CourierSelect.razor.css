@@ -29,6 +29,9 @@
     padding: 0.35rem;
     list-style: none;
     overflow-y: auto;
+    /* Reaching either end of the list must not hand the wheel to the page
+       underneath and scroll it out from under the open menu. */
+    overscroll-behavior: contain;
     background: var(--surface-raised);
     border: 1px solid var(--border);
     border-radius: var(--radius);

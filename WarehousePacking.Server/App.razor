@@ -12,18 +12,15 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="favicon.png" />
 
-    @* Single UI typeface — Inter. Falls back to Segoe UI/system if it can't
-       load (e.g. an offline station).
-       display=optional (not swap) on purpose: `swap` re-flows every piece of
-       text the moment the webfont arrives, which is the one-off "jump" seen on
-       a cold cache. `optional` never swaps mid-page, so layout is stable; the
-       font is used from the cache on every subsequent load. *@
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=optional" rel="stylesheet">
+    @* Single UI typeface — Inter, served from wwwroot as one variable file (see
+       css/fonts.css). Preloaded because it is on the critical path for every
+       screen; crossorigin is required even same-origin, fonts are fetched in
+       CORS mode and the preload is ignored without it. *@
+    <link rel="preload" href="fonts/InterVariable.woff2?v=4.1.1" as="font" type="font/woff2" crossorigin>
 
     @* Cascade order matters — each layer is allowed to refine the ones above it:
          vendor            Bootstrap, first so everything below can override it
+         fonts             @font-face only — the faces the tokens below name
          theme             design tokens (custom properties only)
          bootstrap-overrides  re-skins Bootstrap with those tokens
          base              document/element defaults
@@ -34,6 +31,7 @@
        See css/theme.css for the full house rules. *@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/fonts.css?v=@AssetVersion" />
     <link rel="stylesheet" href="css/theme.css?v=@AssetVersion" />
     <link rel="stylesheet" href="css/bootstrap-overrides.css?v=@AssetVersion" />
     <link rel="stylesheet" href="css/base.css?v=@AssetVersion" />

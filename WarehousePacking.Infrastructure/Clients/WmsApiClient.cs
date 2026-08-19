@@ -130,7 +130,7 @@ namespace WarehousePacking.Infrastructure.Clients
             {
                 // Serialize the request to JSON for logging
                 var requestJson = JsonSerializer.Serialize(request, _jsonOptions);
-                await File.AppendAllTextAsync(logFile,
+                await LogAsync(logFile,
                     $"[{DateTime.UtcNow:O}] Sending Request to {url}\n{requestJson}\n\n",
                     cancellationToken);
 
@@ -140,7 +140,7 @@ namespace WarehousePacking.Infrastructure.Clients
 
                 // Log the raw response
                 await LogAsync(logFile,
-                    $"[{DateTime.UtcNow:O}] Sending Request to {url}\n{requestJson}\n\n",
+                    $"[{DateTime.UtcNow:O}] Received Response ({(int)response.StatusCode})\n{responseBody}\n\n",
                     cancellationToken);
 
                 // Throw if not success

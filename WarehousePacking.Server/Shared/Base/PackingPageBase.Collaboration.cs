@@ -63,15 +63,23 @@ namespace WarehousePacking.Server.Shared.Base
                 await UpdateRealizationsPackageId();
             }
 
+            var isOwnAction = string.Equals(e.TriggeredBy, UserSession.Username, StringComparison.OrdinalIgnoreCase);
+
             if (e.EventType == PackingSessionEventType.SessionClosed)
             {
                 await InvokeAsync(() =>
                 {
-                    Toast.Show("Informacja", e.Message, ToastType.Info, 3500);
+                    if (!isOwnAction)
+                        Toast.Show("Informacja", e.Message, ToastType.Info);
+
                     Navigation.NavigateTo("/kontrola-pakowania");
                 });
                 return;
             }
+
+            // Whether anyone else is involved — checked both before and after the
+            // snapshot, so the operator still hears about the one who just left.
+            var isShared = ActiveOperators.Count > 1;
 
             var snapshot = CollaborationService.GetSnapshot(_collaborationPackageId);
             if (snapshot != null)
@@ -79,12 +87,18 @@ namespace WarehousePacking.Server.Shared.Base
                 await InvokeAsync(() =>
                 {
                     ApplySnapshot(snapshot);
-                    if (e.EventType is PackingSessionEventType.OperatorJoined
+                    isShared = isShared || ActiveOperators.Count > 1;
+
+                    // Only worth a toast when it is news: somebody else's doing,
+                    // in a session that really is shared. Packing alone, every
+                    // one of these is the operator's own click coming back.
+                    if (!isOwnAction && isShared
+                        && e.EventType is PackingSessionEventType.OperatorJoined
                         or PackingSessionEventType.OperatorLeft
                         or PackingSessionEventType.MainOperatorChanged
                         or PackingSessionEventType.PackageSwitched)
                     {
-                        Toast.Show("Współdzielenie", e.Message, ToastType.Info, 3500);
+                        Toast.Show("Współdzielenie", e.Message, ToastType.Info);
                     }
                     StateHasChanged();
                 });
@@ -107,7 +121,7 @@ namespace WarehousePacking.Server.Shared.Base
             if (IsMainOperator)
                 return true;
 
-            Toast.Show("Brak uprawnień", $"Tylko główny operator może wykonać: {actionName}.", ToastType.Error, 3500);
+            Toast.Show("Brak uprawnień", $"Tylko główny operator może wykonać: {actionName}.", ToastType.Warning);
             return false;
         }
 

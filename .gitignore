@@ -240,3 +240,6 @@ local.settings.json
 .github
 closejl.txt
 pack.txt
+.claude
+# Added by ggshield
+.cache_ggshield

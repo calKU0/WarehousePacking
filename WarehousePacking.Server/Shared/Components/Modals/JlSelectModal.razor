@@ -1,3 +1,4 @@
+@using WarehousePacking.Contracts.Data.Enums
 @inject IJSRuntime JSRuntime
 @inherits ModalBase<string>
 
@@ -90,7 +91,7 @@
 
         if (string.IsNullOrWhiteSpace(match.JlCode))
         {
-            Toast.Show("Błąd!", "Nie znaleziono kuwety o podanym kodzie.");
+            Toast.Show("Nie znaleziono", "Nie znaleziono kuwety o podanym kodzie.", ToastType.Warning);
             ScanValue = string.Empty;
             return;
         }

@@ -87,7 +87,24 @@ namespace WarehousePacking.API.Controllers
         [HttpPost("create-shipment")]
         public async Task<IActionResult> CreateShipment([FromBody] PackageData package)
         {
-            _logger.LogInformation("Request: CreateShipment for package {PackageCode}, courier {Courier}, representative {Representative}", package.PackageName, package.Courier, package.Representative);
+            // COD is logged because a pobranie that goes missing between two
+            // labels for the same package is otherwise impossible to trace back:
+            // the courier's label is the only place it shows up.
+            _logger.LogInformation(
+                "Request: CreateShipment for package {PackageCode}, courier {Courier}, representative {Representative}, COD {Cod} {CodAmount}",
+                package.PackageName, package.Courier, package.Representative,
+                package.ShipmentServices.COD, package.ShipmentServices.CODAmount);
+
+            // Not blocked here — the shipping module legitimately re-sends after
+            // deleting the old shipment — but it is always worth a line: a second
+            // waybill for one package means two labels in the warehouse, and the
+            // later one no longer carries the pobranie.
+            if (package.WysNumber != 0)
+            {
+                _logger.LogWarning(
+                    "CreateShipment for package {PackageCode} that already reports shipment WYS {WysNumber} — a second waybill is being created",
+                    package.PackageName, package.WysNumber);
+            }
 
             try
             {

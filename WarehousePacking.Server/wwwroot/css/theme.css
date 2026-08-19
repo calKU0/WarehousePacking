@@ -170,9 +170,14 @@
 
     /* --- Typography ----------------------------------------------------- */
     /* Exactly two typefaces app-wide, for consistency:
-         --font-sans : Inter (loaded in App.razor) for all UI text
+         --font-sans : Inter (self-hosted, see css/fonts.css) for all UI text
          --font-mono : a clean monospace for scanned codes / barcodes
-       Both degrade to native fonts if the web font can't load (offline). */
+       Both degrade to native fonts if the web font can't load.
+
+       Every family named here — and any added later — must carry the full Polish
+       alphabet (ą ć ę ł ń ó ś ź ż and capitals). The UI is Polish, so a face that
+       lacks them leaves the browser sourcing single letters from somewhere else
+       mid-word. See css/fonts.css for how that used to happen. */
     --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
     --font-mono: 'Cascadia Mono', Consolas, ui-monospace, SFMono-Regular, monospace;
     --fs-xs: .75rem;

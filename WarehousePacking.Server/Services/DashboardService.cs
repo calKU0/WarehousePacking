@@ -123,6 +123,9 @@ namespace WarehousePacking.Server.Services
             if (request.DestinationZoneId.HasValue)
                 queryParams["DestinationZoneId"] = request.DestinationZoneId.Value.ToString();
 
+            if (request.Courier.HasValue)
+                queryParams["Courier"] = request.Courier.Value.ToString();
+
             return await GetAsync<List<WarehouseOperation>>(
                 "api/dashboards/warehouse-operations",
                 queryParams
@@ -131,7 +134,17 @@ namespace WarehousePacking.Server.Services
 
         public async Task<List<WarehouseLu>> GetLus(GetLusRequest request)
         {
-            return await GetAsync<List<WarehouseLu>>($"api/dashboards/lus?Status={request.Status}&PreviousOperationId={request.PreviousOperationId}");
+            var query = new List<KeyValuePair<string, string?>>();
+
+            if (request.Status is not null)
+                query.AddRange(request.Status.Select(s =>
+                    new KeyValuePair<string, string?>("Status", s.ToString())));
+
+            if (request.PreviousOperationId.HasValue)
+                query.Add(new("PreviousOperationId", request.PreviousOperationId.ToString()));
+
+            var url = QueryHelpers.AddQueryString("api/dashboards/lus", query);
+            return await GetAsync<List<WarehouseLu>>(url);
         }
 
         public async Task<List<PersonalCollection>> GetPersonalCollections()

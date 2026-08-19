@@ -14,7 +14,12 @@ window.courierSelect = {
         if (!menu || menu.__csInit) return;
         menu.__csInit = true;
 
-        const reposition = () => {
+        // Scrolling *inside* the menu does not move the trigger, so there is
+        // nothing to re-place — and doing it anyway would fight the operator:
+        // place() has to lift the height cap to measure, which drops the menu's
+        // own scroll position back to the top mid-gesture.
+        const reposition = (e) => {
+            if (e && e.target === menu) return;
             if (menu.matches(':popover-open')) window.courierSelect.place(trigger, menu);
         };
 
@@ -34,6 +39,10 @@ window.courierSelect = {
         menu.style.width = r.width + 'px';
         menu.style.left = r.left + 'px';
 
+        // Lifting the cap makes the menu briefly un-scrollable, which zeroes
+        // scrollTop; put the operator back where they were afterwards.
+        const scrollTop = menu.scrollTop;
+
         // Natural height with the cap lifted, so we can decide up vs. down.
         menu.style.maxHeight = 'none';
         const natural = menu.scrollHeight;
@@ -49,5 +58,7 @@ window.courierSelect = {
             menu.style.maxHeight = h + 'px';
             menu.style.top = (r.top - h - margin) + 'px';
         }
+
+        menu.scrollTop = scrollTop;
     }
 };

@@ -191,7 +191,7 @@ else
         try
         {
             await WorkstationService.SaveSettingsAsync(WorkStationSettings);
-            Toast.Show("Sukces!", "Ustawienia zapisane!", ToastType.Success, 2000);
+            Toast.Show("Sukces!", "Ustawienia zapisane!", ToastType.Success);
 
             if (IsFirstSave)
             {
@@ -218,7 +218,8 @@ else
         </ol>";
 
 
-        // Show as toast, set a longer duration if needed
-        Toast.Show("Instrukcja instalacji", message, ToastType.Info);
+        // Blocking, not a corner toast: these are numbered steps with links to
+        // click. A notification that fades on its own cannot be followed.
+        Toast.ShowBlocking("Instrukcja instalacji", message, ToastType.Info);
     }
 }

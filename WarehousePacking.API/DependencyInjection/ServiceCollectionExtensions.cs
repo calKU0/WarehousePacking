@@ -70,7 +70,13 @@ namespace WarehousePacking.API.DependencyInjection
                 client.BaseAddress = new Uri(settings.BaseUrl);
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 client.DefaultRequestHeaders.TryAddWithoutValidation("token-mer", settings.Token);
-                client.Timeout = TimeSpan.FromSeconds(200);
+                // Deliberately short: a hung WMS connection used to keep the
+                // operator waiting minutes at the packing station before the
+                // error even reached the screen. One minute is far longer than
+                // any healthy call (they finish in well under a second) and
+                // short enough that a stuck one is reported while the operator
+                // is still standing at the package.
+                client.Timeout = TimeSpan.FromSeconds(60);
             })
             // Registered before the retry policy so each individual attempt is
             // timed, not just the final outcome.

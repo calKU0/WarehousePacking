@@ -61,14 +61,25 @@
 </AppModal>
 
 @code {
-    /// <summary>How long a notification stays up when the caller does not say.</summary>
-    private const int DefaultMs = 4000;
-
-    /// <summary>Errors linger: they are the ones worth reading twice.</summary>
-    private const int ErrorMs = 7000;
+    // How long a notification stays up, by severity. Anything the operator has
+    // to act on — an error, or a refusal they need to work around — gets the
+    // full eight seconds, because they are looking at the package and not at
+    // the screen when it appears. A "saved" confirmation does not need to
+    // linger. Call sites do not set this: the severity does, so the same kind
+    // of message is always on screen for the same time.
+    private const int ErrorMs = 8000;
+    private const int WarningMs = 8000;
+    private const int DefaultMs = 4000; // info and success
 
     /// <summary>Matches the exit animation in Toast.razor.css.</summary>
     private const int LeaveMs = 240;
+
+    private static int DurationFor(ToastType type) => type switch
+    {
+        ToastType.Error => ErrorMs,
+        ToastType.Warning => WarningMs,
+        _ => DefaultMs
+    };
 
     private sealed record ToastItem(long Id, string Title, string Message, ToastType Type, int DurationMs);
 
@@ -86,12 +97,12 @@
     private AckItem? _ack;
 
     /// <summary>
-    /// Shows a notification. Signature kept from the blocking toast so the call
-    /// sites did not have to change.
+    /// Shows a notification. How long it stays up follows from the severity —
+    /// see <see cref="DurationFor"/>.
     /// </summary>
-    public void Show(string title, string message, ToastType type = ToastType.Error, int? autoHideMs = null)
+    public void Show(string title, string message, ToastType type = ToastType.Error)
     {
-        var duration = autoHideMs ?? (type == ToastType.Error ? ErrorMs : DefaultMs);
+        var duration = DurationFor(type);
         var item = new ToastItem(_nextId++, title, message, type, duration);
 
         _toasts.Add(item);
@@ -188,6 +199,7 @@
     {
         ToastType.Success => "success",
         ToastType.Info => "info",
+        ToastType.Warning => "warning",
         _ => "error"
     };
 
@@ -195,7 +207,8 @@
     {
         ToastType.Success => "bi bi-check-circle-fill",
         ToastType.Info => "bi bi-info-circle-fill",
-        _ => "bi bi-exclamation-triangle-fill"
+        ToastType.Warning => "bi bi-exclamation-triangle-fill",
+        _ => "bi bi-exclamation-octagon-fill"
     };
 
     public void Dispose() => _disposed = true;

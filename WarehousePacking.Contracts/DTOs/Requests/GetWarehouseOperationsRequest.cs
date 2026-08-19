@@ -9,5 +9,6 @@ namespace WarehousePacking.Contracts.DTOs.Requests
         public DateTime? Date { get; set; }
         public int? ZoneId { get; set; }
         public int? DestinationZoneId { get; set; }
+        public Courier? Courier { get; set; }
     }
 }

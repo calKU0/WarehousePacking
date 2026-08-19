@@ -70,8 +70,100 @@
     }
 }
 
+/* Errors and warnings are the notifications an operator must not walk past,
+   and at a packing bench they are read from a metre away with a package in
+   both hands. So neither is a white card with a coloured edge like the rest:
+   both are a solid slab in a bigger type that pulses a halo twice as it lands.
+   Red says something failed, amber says the system will not let you do that —
+   two different things, both worth stopping for. */
+.toast-item--error,
+.toast-item--warning {
+    padding: var(--space-4);
+    border-left-width: 6px;
+    border-left-style: solid;
+}
+
+    .toast-item--error .toast-item__title,
+    .toast-item--warning .toast-item__title {
+        font-size: var(--fs-lg);
+        letter-spacing: .01em;
+    }
+
+    .toast-item--error .toast-item__body,
+    .toast-item--warning .toast-item__body {
+        font-size: var(--fs-base);
+    }
+
+    .toast-item--error .toast-item__icon,
+    .toast-item--warning .toast-item__icon {
+        font-size: var(--fs-xl);
+    }
+
+    .toast-item--error .toast-item__life,
+    .toast-item--warning .toast-item__life {
+        opacity: .75;
+    }
+
 .toast-item--error {
-    --toast-accent: var(--danger);
+    --toast-accent: #fff;
+    --toast-halo: 198, 40, 40;
+    border-left-color: var(--danger-deep);
+    background: var(--danger);
+    color: #fff;
+    box-shadow: 0 10px 30px rgba(198, 40, 40, .45), var(--shadow-lg);
+    animation: toast-slide-in var(--dur-slow) var(--ease-spring) both,
+               toast-alarm 1s var(--ease) 2;
+}
+
+.toast-item--error .toast-item__body {
+    color: rgba(255, 255, 255, .93);
+}
+
+.toast-item--error .toast-item__close {
+    color: rgba(255, 255, 255, .8);
+}
+
+    .toast-item--error .toast-item__close:hover {
+        background: rgba(255, 255, 255, .18);
+        color: #fff;
+    }
+
+/* Amber is only readable with dark text on it, so the warning inverts the
+   error's scheme rather than copying it. */
+.toast-item--warning {
+    --toast-accent: #3b2a02;
+    --toast-halo: 240, 169, 43;
+    border-left-color: var(--warning);
+    background: var(--warning-fill);
+    color: #241f10;
+    box-shadow: 0 10px 30px rgba(240, 169, 43, .45), var(--shadow-lg);
+    animation: toast-slide-in var(--dur-slow) var(--ease-spring) both,
+               toast-alarm 1s var(--ease) 2;
+}
+
+.toast-item--warning .toast-item__body {
+    color: rgba(36, 31, 16, .88);
+}
+
+.toast-item--warning .toast-item__close {
+    color: rgba(36, 31, 16, .7);
+}
+
+    .toast-item--warning .toast-item__close:hover {
+        background: rgba(0, 0, 0, .12);
+        color: #241f10;
+    }
+
+/* Two properties, two animations: the slide-in owns transform, the alarm owns
+   box-shadow, so neither clobbers the other. */
+@keyframes toast-alarm {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(var(--toast-halo), 0), var(--shadow-lg);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(var(--toast-halo), .35), var(--shadow-lg);
+    }
 }
 
 .toast-item--success {
@@ -174,6 +266,10 @@
 
 .toast-ack--error {
     --toast-accent: var(--danger);
+}
+
+.toast-ack--warning {
+    --toast-accent: var(--warning);
 }
 
 .toast-ack--success {

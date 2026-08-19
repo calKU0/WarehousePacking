@@ -19,6 +19,13 @@ namespace WarehousePacking.Server.Services
         public int? PreviousPackageId { get; init; }
         public PackingSessionEventType EventType { get; init; }
         public string Message { get; init; } = string.Empty;
+
+        /// <summary>
+        /// Operator whose action raised this. The service is a singleton, so
+        /// every circuit in the session is notified — including the one that
+        /// just acted, which must not be told about its own doing.
+        /// </summary>
+        public string TriggeredBy { get; init; } = string.Empty;
     }
 
     public sealed class PackingSessionSnapshot
@@ -87,6 +94,7 @@ namespace WarehousePacking.Server.Services
                 {
                     PackageId = packageId,
                     EventType = PackingSessionEventType.OperatorJoined,
+                    TriggeredBy = username,
                     Message = $"Operator {username} dołączył do pakowania."
                 });
             }
@@ -202,6 +210,7 @@ namespace WarehousePacking.Server.Services
                 PackageId = newPackageId,
                 PreviousPackageId = oldPackageId,
                 EventType = PackingSessionEventType.PackageSwitched,
+                TriggeredBy = username,
                 Message = "Rozpoczęto pakowanie kolejnej paczki."
             });
 
@@ -248,6 +257,7 @@ namespace WarehousePacking.Server.Services
                 {
                     PackageId = packageId,
                     EventType = PackingSessionEventType.SessionClosed,
+                    TriggeredBy = username,
                     Message = "Pakowanie tej paczki zostało zakończone."
                 });
                 return;
@@ -257,6 +267,7 @@ namespace WarehousePacking.Server.Services
             {
                 PackageId = packageId,
                 EventType = PackingSessionEventType.OperatorLeft,
+                TriggeredBy = username,
                 Message = $"Operator {username} opuścił pakowanie."
             });
 
@@ -266,6 +277,7 @@ namespace WarehousePacking.Server.Services
                 {
                     PackageId = packageId,
                     EventType = PackingSessionEventType.MainOperatorChanged,
+                    TriggeredBy = username,
                     Message = $"Nowy główny operator: {newMain}."
                 });
             }

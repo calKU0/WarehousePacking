@@ -1,0 +1,28 @@
+/* ==========================================================================
+   Fonts — self-hosted, first in the cascade so a face exists before any layer
+   asks for it.
+   --------------------------------------------------------------------------
+   Inter is served from our own wwwroot, not from Google Fonts, and as ONE
+   variable file carrying the whole character set.
+
+   That is the fix for Polish text, not just a hosting preference. The Google
+   API splits a family into one file per unicode range, so `ą ć ę ł ń ó ś ź ż`
+   arrive in a different file to the rest of the alphabet — and any load that
+   misses (offline station, slow first paint) leaves single letters rendered by
+   the fallback face in the middle of a word. One file, no unicode-range, means
+   there is nothing left to miss: either Inter is there for every character or
+   for none of them.
+
+   Replacing the file: keep the whole character set (fontTools' getBestCmap must
+   contain ą ć ę ł ń ó ś ź ż and their capitals) and bump the ?v= below.
+   Source: inter-ui 4.1.1, variable/InterVariable.woff2 (rsms/inter, SIL OFL).
+   ========================================================================== */
+
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    /* Variable weight axis: 400/500/600/700 all come out of this one file. */
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('../fonts/InterVariable.woff2?v=4.1.1') format('woff2');
+}

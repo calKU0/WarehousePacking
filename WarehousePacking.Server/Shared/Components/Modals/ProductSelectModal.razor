@@ -1,4 +1,5 @@
 @using WarehousePacking.Contracts.DTOs
+@using WarehousePacking.Contracts.Data.Enums
 @inject IJSRuntime JSRuntime
 
 @*
@@ -128,13 +129,13 @@
 
         if (!parsed)
         {
-            Toast.Show("Błąd!", "Podano błędną wartość w polu ilość. Spróbuj wprowadzić ilość ponownie.");
+            Toast.Show("Uwaga", "Podano błędną wartość w polu ilość. Spróbuj wprowadzić ilość ponownie.", ToastType.Warning);
             return;
         }
 
         if (qty > Product.JlQuantity)
         {
-            Toast.Show("Błąd!", "Nie możesz spakować ilości większej niż jest w kuwecie! Zmień ilość i spróbuj ponownie.");
+            Toast.Show("Uwaga", "Nie możesz spakować ilości większej niż jest w kuwecie! Zmień ilość i spróbuj ponownie.", ToastType.Warning);
             return;
         }
 

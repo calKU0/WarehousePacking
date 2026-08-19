@@ -407,7 +407,7 @@
 
         if (jl == null)
         {
-            Toast.Show("Nie znaleziono", $"Nie znaleziono kuwet o kodzie '{Kuweta}'");
+            Toast.Show("Nie znaleziono", $"Nie znaleziono kuwet o kodzie '{Kuweta}'", ToastType.Warning);
             Kuweta = string.Empty;
             _ = ShakeScanAsync();
             return;
@@ -427,7 +427,7 @@
 
             if (refreshedJl == null)
             {
-                Toast.Show("Nie znaleziono", "Kuweta nie jest już dostępna na liście.", ToastType.Info);
+                Toast.Show("Nie znaleziono", "Kuweta nie jest już dostępna na liście.", ToastType.Warning);
                 return;
             }
 
@@ -442,7 +442,7 @@
                 bool valid = await AuthService.ValidatePasswordAsync(password);
                 if (!valid)
                 {
-                    Toast.Show("Błąd!", "Błędne hasło");
+                    Toast.Show("Uwaga", "Błędne hasło", ToastType.Warning);
                     return;
                 }
             }
@@ -452,7 +452,7 @@
             {
                 if (jl.Courier == Courier.MIX)
                 {
-                    Toast.Show("Pakowanie pojedyncze", "Ta kuweta jest już pakowana w trybie pojedynczym i nie można do niej dołączyć.", ToastType.Info);
+                    Toast.Show("Pakowanie pojedyncze", "Ta kuweta jest już pakowana w trybie pojedynczym i nie można do niej dołączyć.", ToastType.Warning);
                     return;
                 }
 
@@ -464,7 +464,7 @@
 
                 if (active is null)
                 {
-                    Toast.Show("Pakowana", "Kuweta jest oznaczona jako pakowana, ale nie znaleziono aktywnej paczki.", ToastType.Error);
+                    Toast.Show("Pakowana", "Kuweta jest oznaczona jako pakowana, ale nie znaleziono aktywnej paczki.", ToastType.Warning);
                     return;
                 }
 
@@ -475,7 +475,7 @@
                 bool valid = await AuthService.ValidatePasswordAsync(password);
                 if (!valid)
                 {
-                    Toast.Show("Błąd!", "Błędne hasło");
+                    Toast.Show("Uwaga", "Błędne hasło", ToastType.Warning);
                     return;
                 }
 
@@ -584,7 +584,7 @@
         bool valid = await AuthService.ValidatePasswordAsync(password);
         if (!valid)
         {
-            Toast.Show("Błąd!", "Błędne hasło");
+            Toast.Show("Uwaga", "Błędne hasło", ToastType.Warning);
             return;
         }
         ManagerModal.OpenModal();

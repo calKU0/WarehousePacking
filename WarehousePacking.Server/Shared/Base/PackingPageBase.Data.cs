@@ -33,7 +33,7 @@ namespace WarehousePacking.Server.Shared.Base
                 bool inProgress = await PackingService.IsJlInProgress(Jl);
                 if (inProgress)
                 {
-                    Toast.Show("Błąd!", "Kuweta jest już pakowana na innym stanowisku.");
+                    Toast.Show("Kuweta zajęta", "Kuweta jest już pakowana na innym stanowisku.", ToastType.Warning);
                     await Task.Delay(3000);
                     Navigation.NavigateTo("/kontrola-pakowania");
                     return true;
@@ -224,7 +224,7 @@ namespace WarehousePacking.Server.Shared.Base
                 bool valid = await AuthService.ValidatePasswordAsync(password);
                 if (!valid)
                 {
-                    Toast.Show("Błąd!", "Błędne hasło");
+                    Toast.Show("Uwaga", "Błędne hasło", ToastType.Warning);
                     foreach (var jl in MergeJls)
                     {
                         await PackingService.RemoveJlRealization(jl.jlName, UserSession.Username, true);

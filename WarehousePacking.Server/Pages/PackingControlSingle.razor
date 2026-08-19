@@ -194,7 +194,7 @@
         if (!blockedByOtherUser)
             return true;
 
-        Toast.Show("Błąd!", "Ta kuweta jest już pakowana w trybie pojedynczym przez innego operatora.", ToastType.Error, 3500);
+        Toast.Show("Kuweta zajęta", "Ta kuweta jest już pakowana w trybie pojedynczym przez innego operatora.", ToastType.Warning);
         await Task.Delay(1500);
         Navigation.NavigateTo("/kontrola-pakowania");
         return false;
@@ -244,7 +244,7 @@
 
         if (SelectedPackedItem.PackedWMS)
         {
-            Toast.Show("Błąd!", "Nie można usunąć pozycji, która została już wysłana do WMS.", ToastType.Error, 3500);
+            Toast.Show("Nie można usunąć", "Nie można usunąć pozycji, która została już wysłana do WMS.", ToastType.Warning);
             return;
         }
 

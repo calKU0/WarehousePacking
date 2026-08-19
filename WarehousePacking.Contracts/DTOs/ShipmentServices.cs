@@ -13,22 +13,31 @@ namespace WarehousePacking.Contracts.DTOs
         public bool Dropshipping { get; set; }
         public bool Saturday { get; set; }
         private bool cod;
+        private decimal codAmount;
 
+        /// <summary>
+        /// Whether there is money to collect on delivery. On the shipping screen
+        /// this is the "Pobranie" checkbox, with <see cref="CODAmount"/> as its
+        /// amount field — two controls over one fact, so they are kept in step.
+        /// </summary>
         public bool COD
         {
             get => cod;
-            set
-            {
-                cod = value;
-                if (!cod) CODAmount = 0;
-            }
+            set => cod = value;
         }
 
-        private decimal codAmount;
-
+        /// <summary>
+        /// The amount to collect. Reads as 0 while <see cref="COD"/> is off, so
+        /// nothing downstream — courier mappers, the ERP shipment document — can
+        /// charge a pobranie the flag says is not there. Switching the flag off
+        /// deliberately does NOT erase what was typed: it used to, and an
+        /// operator who toggled the checkbox got a silently blanked amount that
+        /// re-ticking never brought back, so the next label went out with no
+        /// pobranie at all.
+        /// </summary>
         public decimal CODAmount
         {
-            get => codAmount;
+            get => cod ? codAmount : 0;
             set
             {
                 codAmount = value;

@@ -46,7 +46,7 @@ namespace WarehousePacking.Infrastructure.Repositories
             var manualSend = packageInfo.ManualSend ? "TAK" : "NIE";
 
             var result = await _context.QuerySingleOrDefaultAsync<int>(procedure, new { POD = pod, ROD = rod, EXW = exw, S10 = s10, S12 = s12, Saturday = saturday, COD = cod, HasInvoice = hasInvoice, ManualEdit = manualEdit, ManualSend = manualSend, shipmentInfo.ExternalId, documentId }, CommandType.StoredProcedure, Connection.ERPConnection);
-            return result == 8;
+            return result > 0;
         }
 
         public async Task<PackageData?> GetShipmentDataByBarcode(string barcode)

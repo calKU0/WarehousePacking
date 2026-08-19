@@ -131,12 +131,12 @@
                             {
                                 @foreach (var rowState in RecentOperationRows)
                                 {
-                                    <tr class="@rowState.AnimationClass" @key="rowState.Key">
+                                    <tr class="@($"{ElapsedClassHelper.GetRowClass(rowState.Data.Date, ColorConfig.OperatorLastActivityRedThresholdMinutes, ColorConfig.OperatorLastActivityYellowThresholdMinutes)} {rowState.AnimationClass}".Trim())" @key="rowState.Key">
                                         <td>@rowState.Data.Operator</td>
                                         <td class="dashboard-elapsed-cell">
                                             <DashboardElapsedBadge Since="rowState.Data.Date"
-                                                                   RedThresholdMinutes="4"
-                                                                   YellowThresholdMinutes="2" />
+                                                                   RedThresholdMinutes="ColorConfig.OperatorLastActivityRedThresholdMinutes"
+                                                                   YellowThresholdMinutes="ColorConfig.OperatorLastActivityYellowThresholdMinutes" />
                                         </td>
                                     </tr>
                                 }

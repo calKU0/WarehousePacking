@@ -106,13 +106,13 @@
                                 {
                                     @foreach (var rowState in RecentOperationRows)
                                     {
-                                        <tr class="@($"{ElapsedClassHelper.GetRowClass(rowState.Data.Date, ElapsedRedMinutes, ElapsedYellowMinutes)} {rowState.AnimationClass}".Trim())" @key="rowState.Key">
+                                        <tr class="@($"{ElapsedClassHelper.GetRowClass(rowState.Data.Date, ColorConfig.OperatorLastActivityRedThresholdMinutes, ColorConfig.OperatorLastActivityYellowThresholdMinutes)} {rowState.AnimationClass}".Trim())" @key="rowState.Key">
                                             <td>@GetOperationDocument(rowState.Data)</td>
                                             <td>@GetOperationOperator(rowState.Data)</td>
                                             <td class="dashboard-elapsed-cell">
                                                 <DashboardElapsedBadge Since="rowState.Data.Date"
-                                                                       RedThresholdMinutes="ElapsedRedMinutes"
-                                                                       YellowThresholdMinutes="ElapsedYellowMinutes" />
+                                                                       RedThresholdMinutes="ColorConfig.OperatorLastActivityRedThresholdMinutes"
+                                                                       YellowThresholdMinutes="ColorConfig.OperatorLastActivityYellowThresholdMinutes" />
                                             </td>
                                         </tr>
                                     }
@@ -144,11 +144,6 @@
     [Parameter] public List<WarehouseOperation> RecentOperations { get; set; } = new();
     [Parameter] public DashboardColorConfiguration ColorConfig { get; set; } = new();
     [Parameter] public bool IsLoading { get; set; }
-
-    /// <summary>Receiving runs on a much longer clock than picking or packing —
-    /// a document sitting for twenty minutes is normal here.</summary>
-    private const int ElapsedRedMinutes = 45;
-    private const int ElapsedYellowMinutes = 20;
 
     // Rows animate only as they join or leave; see DashboardRowSync.
     private readonly DashboardRowSync<ReceivingDocumentSummary> _documentSync;

@@ -27,7 +27,7 @@ namespace WarehousePacking.Server.Shared.Base
             bool valid = await AuthService.ValidatePasswordAsync(password);
             if (!valid)
             {
-                Toast.Show("Błąd!", "Błędne hasło");
+                Toast.Show("Uwaga", "Błędne hasło", ToastType.Warning);
                 return;
             }
 

@@ -748,7 +748,8 @@
             var operations = DashboardService.GetWarehouseOperations(new GetWarehouseOperationsRequest
             {
                 Types = [WarehouseDocumentType.Task],
-                Date = DateTime.UtcNow.AddMinutes(-5)
+                Date = DateTime.UtcNow.AddMinutes(-5),
+                Courier = Courier.Personal_Collection
             });
 
             await Task.WhenAll(documents, operations);

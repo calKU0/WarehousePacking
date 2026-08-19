@@ -21,9 +21,14 @@
         </dl>
 
         <label class="form-label app-section-label" for="emailMessage">Wiadomość użytkownika</label>
+        @* Bound on input, not on change: change only fires on blur, and inside a
+           modal the caret never leaves the field — scanFocus cancels mousedown
+           elsewhere to keep it — so the message stayed empty and the send button
+           stayed disabled however much was typed. *@
         <textarea id="emailMessage"
                   class="form-control"
                   @bind="UserMessage"
+                  @bind:event="oninput"
                   rows="5"
                   placeholder="Wpisz swoją wiadomość..."
                   autofocus></textarea>
@@ -34,7 +39,7 @@
 
     <Footer>
         <button type="button" class="btn btn-secondary" @onclick="Hide">Zamknij</button>
-        <button type="button" class="btn btn-primary" @onclick="SendEmailAsync" disabled="@string.IsNullOrWhiteSpace(UserMessage)">
+        <button type="button" class="btn btn-primary" @onclick="SendEmailAsync" disabled="@(string.IsNullOrWhiteSpace(UserMessage))">
             <i class="bi bi-send me-1"></i>Wyślij
         </button>
     </Footer>
@@ -92,11 +97,11 @@
             </div>";
 
             var emailRequest = new SendEmailRequest
-                {
-                    To = RepresentativeEmail,
-                    Subject = subject,
-                    Body = body
-                };
+            {
+                To = RepresentativeEmail,
+                Subject = subject,
+                Body = body
+            };
             var result = await EmailService.SendEmailAsync(emailRequest);
             if (result.Success)
             {
