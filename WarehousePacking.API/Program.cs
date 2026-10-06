@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using Serilog;
 using WarehousePacking.API.DependencyInjection;
 using WarehousePacking.API.Logging;
@@ -67,7 +67,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// TEMP: dev runs over plain HTTP on loopback because the ASP.NET Core dev
+// certificate could not be trusted on this machine. Restore unconditionally
+// once `dotnet dev-certs https --trust` succeeds.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseClientIdentityLogging();
 // One summary line per request, with the server-side duration. This is the
 // first-party Serilog feature for it — cheaper and more consistent than timing

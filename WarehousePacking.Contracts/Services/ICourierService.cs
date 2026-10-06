@@ -1,14 +1,17 @@
-﻿using WarehousePacking.Contracts.DTOs;
+using WarehousePacking.Contracts.DTOs;
 using WarehousePacking.Contracts.DTOs.Requests;
 
 namespace WarehousePacking.Contracts.Services
 {
     public interface ICourierService
     {
+        /// <summary>Registers the shipment with the courier and returns its label. Never throws.</summary>
         Task<ShipmentResponse> SendPackageAsync(PackageData package);
 
-        Task<int> DeletePackageAsync(int packageId);
+        /// <summary>Withdraws the shipment from the courier. Throws when the courier refuses.</summary>
+        Task CancelShipmentAsync(MinPackageData shipment);
 
-        Task<CourierProtocolResponse> GenerateProtocol(IEnumerable<RoutePackages> shipments);
+        /// <summary>Builds the handover protocol for a closed route. Never throws.</summary>
+        Task<CourierProtocolResponse> GenerateProtocolAsync(IReadOnlyCollection<RoutePackages> packages);
     }
 }

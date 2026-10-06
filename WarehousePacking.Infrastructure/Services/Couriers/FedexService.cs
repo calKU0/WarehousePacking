@@ -1,75 +1,53 @@
-﻿using WarehousePacking.Contracts.Data.Enums;
+using Microsoft.Extensions.Logging;
+using WarehousePacking.Contracts.Data.Enums;
 using WarehousePacking.Contracts.DTOs;
-using WarehousePacking.Contracts.DTOs.Requests;
-using WarehousePacking.Contracts.Services;
+using WarehousePacking.Infrastructure.Services.Couriers.Common;
 using WarehousePacking.Infrastructure.Services.Couriers.Strategies;
 
 namespace WarehousePacking.Infrastructure.Services.Couriers
 {
-    public class FedexService : ICourierService
+    /// <summary>
+    /// FedEx runs two separate APIs: domestic shipments go through FedEx
+    /// Poland's SOAP service, everything else through the international REST one.
+    /// </summary>
+    public sealed class FedexService : CourierServiceBase
     {
-        private readonly ICourierService _soapStrategy;
-        private readonly ICourierService _restStrategy;
+        private readonly FedexSoapStrategy _domestic;
+        private readonly FedexRestStrategy _international;
 
-        public FedexService(FedexSoapStrategy soapStrategy, FedexRestStrategy restStrategy)
+        public FedexService(FedexSoapStrategy domestic, FedexRestStrategy international, ILogger<FedexService> logger)
+            : base(logger)
         {
-            _soapStrategy = soapStrategy;
-            _restStrategy = restStrategy;
+            _domestic = domestic;
+            _international = international;
         }
 
-        private ICourierService GetStrategy(PackageData package)
+        protected override Courier Courier => Courier.Fedex;
+
+        protected override string GetTrackingLink(string trackingNumber) =>
+            $"https://www.fedex.com/fedextrack/?trknbr={trackingNumber}";
+
+        protected override Task<CreatedShipment> CreateShipmentAsync(PackageData package) =>
+            StrategyFor(package.Recipient.Country).CreateShipmentAsync(package);
+
+        public override Task CancelShipmentAsync(MinPackageData shipment) =>
+            StrategyFor(shipment.DestCountry).CancelShipmentAsync(shipment);
+
+        /// <summary>
+        /// Only domestic shipments get a protocol — international ones are handed
+        /// over without one — and regular and dropshipping shipments each get their own.
+        /// </summary>
+        protected override async Task<IReadOnlyList<string>> GenerateProtocolDocumentsAsync(IReadOnlyCollection<RoutePackages> packages)
         {
-            return package.Recipient.Country == "PL" ? _soapStrategy : _restStrategy;
+            var documents = new List<string>();
+
+            foreach (var group in packages.Where(p => p.Country == "PL").GroupBy(p => p.Dropshipping).OrderBy(g => g.Key))
+                documents.Add(await _domestic.GenerateProtocolAsync(group, dropshipping: group.Key));
+
+            return documents;
         }
 
-        public Task<ShipmentResponse> SendPackageAsync(PackageData package)
-        {
-            return GetStrategy(package).SendPackageAsync(package);
-        }
-
-        public Task<int> DeletePackageAsync(int parcelId)
-        {
-            // No need to delete Fedex package
-            return Task.FromResult(1);
-        }
-
-        public async Task<CourierProtocolResponse> GenerateProtocol(IEnumerable<RoutePackages> shipments)
-        {
-            var courierProtocolResponse = new CourierProtocolResponse()
-            {
-                Courier = Courier.Fedex,
-                DataType = PrintDataType.PDF,
-            };
-
-            try
-            {
-                var countryShipments = shipments.Where(s => s.Country == "PL" && !s.Dropshipping);
-                var countryDropshippingShipments = shipments.Where(s => s.Country == "PL" && s.Dropshipping);
-                var internationalShipments = shipments.Where(s => s.Country != "PL");
-
-                if (countryShipments.Any())
-                {
-                    var countryProtocol = await _soapStrategy.GenerateProtocol(countryShipments);
-                    courierProtocolResponse.DataBase64.AddRange(countryProtocol.DataBase64);
-                }
-
-                if (countryDropshippingShipments.Any())
-                {
-                    var countryDropshippingProtocol = await _soapStrategy.GenerateProtocol(countryDropshippingShipments);
-                    courierProtocolResponse.DataBase64.AddRange(countryDropshippingProtocol.DataBase64);
-                }
-
-                //var internationalProtocol = _restStrategy.GenerateProtocol(internationalShipments);
-
-                courierProtocolResponse.Success = true;
-            }
-            catch (Exception ex)
-            {
-                courierProtocolResponse.Success = false;
-                courierProtocolResponse.ErrorMessage = $"Nie udało się wygenerować protokołu dla Fedex. {ex}";
-            }
-
-            return courierProtocolResponse;
-        }
+        private IFedexStrategy StrategyFor(string country) =>
+            country == "PL" ? _domestic : _international;
     }
 }

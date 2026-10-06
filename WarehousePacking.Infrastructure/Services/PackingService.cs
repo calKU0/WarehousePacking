@@ -1,26 +1,42 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Data;
+using System.Globalization;
 using WarehousePacking.Contracts.Clients;
 using WarehousePacking.Contracts.Data.Enums;
 using WarehousePacking.Contracts.DTOs;
 using WarehousePacking.Contracts.DTOs.Requests;
 using WarehousePacking.Contracts.Repositories;
 using WarehousePacking.Contracts.Services;
+using WarehousePacking.Contracts.Settings;
 using WarehousePacking.Infrastructure.Helpers;
 
 namespace WarehousePacking.Infrastructure.Services
 {
     public class PackingService : IPackingService
     {
+        // WMS vocabulary for the packing process.
+        private const string PackingProcess = "PCK";
+        private const string ClosedLuStatusId = "14";
+        private const string PalletLuType = "PALETA";
+        private const string ParcelLuType = "PACZKA";
+        private const decimal PalletWeightThresholdKg = 120;
+
         private readonly IPackingRepository _packingRepository;
         private readonly IWmsApiClient _wmsApi;
+        private readonly WmsApiSettings _wmsSettings;
         private readonly ILogger<PackingService> _logger;
 
-        public PackingService(IPackingRepository packingRepository, IWmsApiClient wmsApi, ILogger<PackingService> logger)
+        public PackingService(
+            IPackingRepository packingRepository,
+            IWmsApiClient wmsApi,
+            IOptions<WmsApiSettings> wmsSettings,
+            ILogger<PackingService> logger)
         {
             _packingRepository = packingRepository;
             _wmsApi = wmsApi;
+            _wmsSettings = wmsSettings.Value;
             _logger = logger;
         }
 
@@ -222,116 +238,85 @@ namespace WarehousePacking.Infrastructure.Services
 
         public async Task<PackWMSResponse> PackWmsStock(List<WmsPackStockRequest> request)
         {
-            if (request == null || !request.Any())
+            if (request == null || request.Count == 0)
                 return new PackWMSResponse { Status = "-1", Desc = "No items to process." };
 
             _logger.LogInformation("Packing stock in WMS for {DocumentsCount} documents", request.Count);
 
-            var allPackItems = new List<PackStockItems>();
+            // A destination given up front means the stock goes straight onto a
+            // pallet there; otherwise it is dropped at the operator's station.
+            var destination = request[0].DestinationCode;
+            var hasDestination = !string.IsNullOrEmpty(destination);
+            var luType = hasDestination ? PalletLuType : ResolveLuType(request);
 
-            string luDestType = string.Empty;
-            string locDestNr = request.First().DestinationCode;
-            if (request.First().Status == DocumentStatus.Bufor)
-            {
-                luDestType = "PALETA";
-            }
-            else
-            {
-                string type = request.First().Type.ToUpper();
-                luDestType = type == string.Empty ? (request.Sum(i => i.Weight) > 120 ? "PALETA" : "PACZKA") : type;
-            }
-
-            foreach (var jl in request)
-            {
-                foreach (var item in jl.Items)
-                {
-                    if (item.Packed)
-                        continue;
-
-                    allPackItems.Add(new PackStockItems
+            var items = request
+                .SelectMany(jl => jl.Items
+                    .Where(item => !item.Packed)
+                    .Select(item => new PackStockItems
                     {
                         LocSourceNr = jl.LocationCode,
-                        LocDestNr = string.IsNullOrEmpty(locDestNr) ? MapStationNumber(jl.StationNumber) : locDestNr,
+                        LocDestNr = hasDestination ? destination : MapStationNumber(jl.StationNumber),
                         LuSourceNr = jl.JlCode,
                         LuDestEan = string.IsNullOrEmpty(jl.ScannedCode) ? jl.TrackingNumber.Trim() : jl.ScannedCode.Trim(),
                         LuDestNr = jl.TrackingNumber.Trim(),
-                        LuDestTypeSymbol = string.IsNullOrEmpty(locDestNr) ? luDestType : "PALETA",
+                        LuDestTypeSymbol = luType,
                         ItemNr = item.ItemCode,
-                        ItemQty = item.Quantity.ToString().Replace(",", "."),
-                    });
-                }
-            }
+                        ItemQty = item.Quantity.ToString(CultureInfo.InvariantCulture)
+                    }))
+                .ToList();
 
-            var requestWms = new PackStockRequest
+            var response = await _wmsApi.PackStock(new PackStockRequest
             {
-                WhsSource = "6",
-                Proces = "PCK",
-                Items = allPackItems
-            };
+                WhsSource = _wmsSettings.WarehouseId,
+                Proces = PackingProcess,
+                Items = items
+            });
 
-            // --- 5️ Call the WMS API ---
-            var response = await CallWmsWithTimeoutRetryAsync(
-                "packStock",
-                () => _wmsApi.PackStock(requestWms));
-
-            _logger.LogInformation("WMS pack stock finished with status {Status}", response?.Status);
+            _logger.LogInformation("WMS pack stock finished with status {Status}", response.Status);
             return response;
         }
 
         /// <summary>
-        /// Runs a WMS call and, when it times out, gives it exactly one more go.
-        /// A call that timed out may well have been applied on the WMS side; the
-        /// retry then comes back as "Nieprawidłowy status JL", which the caller
-        /// reads as already done (see <see cref="PackWMSResponse.IsAlreadyApplied"/>).
-        /// Without the retry that answer only arrives once the operator presses
-        /// the button again — which is how a single hung connection used to leave
-        /// a packing station stuck.
+        /// Buffered stock always goes on a pallet. Otherwise the operator's choice
+        /// wins, and without one the weight decides.
         /// </summary>
-        private async Task<PackWMSResponse> CallWmsWithTimeoutRetryAsync(
-            string operation,
-            Func<Task<PackWMSResponse>> call)
+        private static string ResolveLuType(List<WmsPackStockRequest> request)
         {
-            try
-            {
-                return await call();
-            }
-            catch (Exception ex) when (ex is TaskCanceledException or TimeoutException)
-            {
-                _logger.LogWarning(ex, "WMS {Operation} timed out, retrying once", operation);
-                return await call();
-            }
+            var first = request[0];
+
+            if (first.Status == DocumentStatus.Bufor)
+                return PalletLuType;
+
+            if (!string.IsNullOrEmpty(first.Type))
+                return first.Type.ToUpper();
+
+            return request.Sum(jl => jl.Weight) > PalletWeightThresholdKg ? PalletLuType : ParcelLuType;
         }
 
         public async Task<PackWMSResponse> CloseWmsPackage(WmsCloseJlRequest request)
         {
             _logger.LogInformation("Closing WMS package {PackageNumber} for courier {Courier}", request.PackageNumber, request.Courier);
-            string packageDestination = string.Empty;
 
-            if (string.IsNullOrEmpty(request.PackageDestination))
-                packageDestination = await GetPackageDestination(request.Courier.GetDescription(), request.PackingLevel, request.PackingWarehouse);
-            else
-                packageDestination = request.PackageDestination;
+            var destination = string.IsNullOrEmpty(request.PackageDestination)
+                ? await GetPackageDestination(request.Courier, request.PackingLevel, request.PackingWarehouse)
+                : request.PackageDestination;
 
-            var wmsRequest = new CloseLuRequest
+            var response = await _wmsApi.CloseJl(new CloseLuRequest
             {
-                WhsSource = "6",
-                Proces = "PCK",
-                DestStatusLuId = "14",
+                WhsSource = _wmsSettings.WarehouseId,
+                Proces = PackingProcess,
+                DestStatusLuId = ClosedLuStatusId,
                 Items = new List<CloseLuItems>
                 {
-                    new CloseLuItems
+                    new()
                     {
                         LuNr = request.PackageNumber.Trim(),
-                        LocDestNr = packageDestination
+                        LocDestNr = destination
                     }
                 }
-            };
+            });
 
-            var response = await CallWmsWithTimeoutRetryAsync(
-                "closeLu",
-                () => _wmsApi.CloseJl(wmsRequest));
-
-            _logger.LogInformation("Close WMS package result for {PackageNumber}: {Status}", request.PackageNumber, response?.Status);
+            _logger.LogInformation("Close WMS package result for {PackageNumber}: {Status}", request.PackageNumber, response.Status);
             return response;
         }
 

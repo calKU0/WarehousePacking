@@ -127,6 +127,12 @@ namespace WarehousePacking.API.Controllers
                 {
                     _logger.LogError("CreateShipment failed for package {PackageCode}: {ErrorMessage}", package.PackageName, result.ErrorMessage);
 
+                    // A network or courier outage is not something the
+                    // representative can fix, so only rejected package data
+                    // (address, postal code...) is e-mailed to them.
+                    if (!result.IsInvalidPackageData)
+                        return StatusCode(StatusCodes.Status502BadGateway, $"{result.ErrorMessage}.</br>Spróbuj ponownie za chwilę.");
+
                     try
                     {
                         await _emailService.SendPackageFailureEmail(package, result.ErrorMessage);
@@ -182,17 +188,12 @@ namespace WarehousePacking.API.Controllers
 
             try
             {
-                int result = 1;
                 if (CourierHelper.AllowedCouriersForLabel.Contains(courier))
                 {
-                    var courierClient = _courierFactory.GetCourier(courier);
-                    result = await courierClient.DeletePackageAsync(wysNumber);
-                }
-
-                if (result < 0)
-                {
-                    _logger.LogError("Failed to delete package {WysNumber} from courier {Courier}", wysNumber, courier);
-                    return StatusCode(500, "Nie udało się usunąć paczki z systemu kuriera");
+                    // Throws when the courier refuses, which keeps the ERP
+                    // document in place for the shipment that still exists.
+                    var shipment = await _shipmentService.GetMinPackageData(wysNumber, wysType);
+                    await _courierFactory.GetCourier(courier).CancelShipmentAsync(shipment);
                 }
 
                 var deleteDocResult = await _shipmentService.DeleteErpShipmentDocument(wysNumber, wysType);
@@ -275,8 +276,7 @@ namespace WarehousePacking.API.Controllers
                 CourierProtocolResponse result = new();
                 if (CourierHelper.AllowedCouriersForLabel.Contains(courier))
                 {
-                    var courierFactory = _courierFactory.GetCourier(courier);
-                    result = await courierFactory.GenerateProtocol(shipments);
+                    result = await _courierFactory.GetCourier(courier).GenerateProtocolAsync(shipments.ToList());
 
                     if (result.Success && result.DataBase64.Any())
                     {

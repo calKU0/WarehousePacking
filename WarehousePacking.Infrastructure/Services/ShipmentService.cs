@@ -56,6 +56,11 @@ namespace WarehousePacking.Infrastructure.Services
             return result;
         }
 
+        public Task<MinPackageData> GetMinPackageData(int wysNumber, int wysType)
+        {
+            return _shipmentRepository.GetMinShipmentData(wysNumber, wysType);
+        }
+
         public async Task<IEnumerable<Recipient>?> SearchAddress(string code)
         {
             return await _shipmentRepository.SearchAddress(code);

@@ -12,6 +12,7 @@ namespace WarehousePacking.Contracts.DTOs
         public bool PZ { get; set; }
         public bool Dropshipping { get; set; }
         public bool Saturday { get; set; }
+        public bool ByPlane { get; set; }
         private bool cod;
         private decimal codAmount;
 
@@ -90,6 +91,7 @@ namespace WarehousePacking.Contracts.DTOs
                 ["12"] = (s, _) => s.D12 = true,
                 ["sobota"] = (s, _) => s.Saturday = true,
                 ["zwrotna"] = (s, _) => s.PZ = true,
+                ["flight"] = (s, _) => s.ByPlane = true,
                 ["dropshipping"] = (s, _) => s.Dropshipping = true,
                 ["cod"] = (s, _) => s.COD = true,
                 ["exw"] = (s, _) => s.EXW = true,

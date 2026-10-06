@@ -1,7 +1,7 @@
 ﻿using GlsServiceReference;
 using WarehousePacking.Contracts.DTOs;
 
-namespace WarehousePacking.API.Integrations.Couriers.Mapping
+namespace WarehousePacking.Infrastructure.Mapping
 {
     public class GlsParcelMapper : IParcelMapper<cConsign>
     {

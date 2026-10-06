@@ -1,117 +1,86 @@
-﻿using FedexServiceReference;
-using Microsoft.Extensions.Options;
 using System.ServiceModel;
-using WarehousePacking.API.Integrations.Couriers.Mapping;
-using WarehousePacking.Contracts.Data.Enums;
+using FedexServiceReference;
+using Microsoft.Extensions.Options;
 using WarehousePacking.Contracts.DTOs;
-using WarehousePacking.Contracts.DTOs.Requests;
-using WarehousePacking.Contracts.Services;
 using WarehousePacking.Contracts.Settings;
+using WarehousePacking.Infrastructure.Mapping;
+using WarehousePacking.Infrastructure.Services.Couriers.Common;
 
 namespace WarehousePacking.Infrastructure.Services.Couriers.Strategies
 {
-    public class FedexSoapStrategy : ICourierService
+    /// <summary>FedEx Poland SOAP API, used for domestic shipments.</summary>
+    public sealed class FedexSoapStrategy : IFedexStrategy
     {
+        private const string LabelFormat = "ZPL200";
+        private const string TrackingNumberSeparator = ";";
+
         private readonly IklServiceClient _client;
         private readonly IParcelMapper<listV2> _mapper;
-        private readonly FedexSoapSettings _soapSettings;
+        private readonly FedexSoapSettings _settings;
 
-        public FedexSoapStrategy(IklServiceClient client, IParcelMapper<listV2> mapper, IOptions<CourierSettings> courierSettings)
+        public FedexSoapStrategy(IklServiceClient client, IParcelMapper<listV2> mapper, IOptions<CourierSettings> options)
         {
             _client = client;
             _mapper = mapper;
-            _soapSettings = courierSettings.Value.Fedex.Soap;
+            _settings = options.Value.Fedex.Soap;
         }
 
-        public Task<int> DeletePackageAsync(int packageId)
+        public async Task<CreatedShipment> CreateShipmentAsync(PackageData package)
         {
-            throw new NotImplementedException();
-        }
+            var accessCode = AccessCode(package.ShipmentServices.Dropshipping);
 
-        public async Task<CourierProtocolResponse> GenerateProtocol(IEnumerable<RoutePackages> shipments)
-        {
-            var accessCode = shipments.First().Dropshipping ? _soapSettings.DropshippingAccessCode : _soapSettings.AccessCode;
-            byte[] bytes = _client.zapiszDokumentWydania(accessCode, string.Join(";", shipments.Select(x => x.TrackingNumber)), ";", _soapSettings.CourierId);
-
-            var result = new CourierProtocolResponse()
-            {
-                Courier = Courier.Fedex,
-                DataType = PrintDataType.PDF,
-                ErrorMessage = bytes == null || bytes.Length == 0 ? "FedEx API nie zwrócił protokołu." : string.Empty,
-                Success = bytes != null && bytes.Length > 0,
-                DataBase64 = new List<string>() { Convert.ToBase64String(bytes) },
-            };
-
-            return result;
-        }
-
-        public async Task<ShipmentResponse> SendPackageAsync(PackageData package)
-        {
-            if (package == null)
-                return ShipmentResponse.CreateFailure("Błąd: Brak danych paczki.");
-
-            listV2 fedexRequest;
+            listZapisanyV2? saved;
             try
             {
-                fedexRequest = _mapper.Map(package);
+                saved = (await _client.zapiszListV2Async(accessCode, _mapper.Map(package))).przesylkaZapisanaV2;
             }
-            catch (Exception ex)
+            catch (FaultException fault)
             {
-                return ShipmentResponse.CreateFailure($"Błąd mapowania paczki do formatu FedEx: {ex.Message}");
+                // FedEx answers bad shipment data with a fault on save.
+                throw CourierApiException.InvalidPackageData($"Błąd danych paczki FedEx: {SoapFaults.Describe(fault)}", fault);
             }
 
+            if (string.IsNullOrWhiteSpace(saved?.waybill))
+                throw new CourierApiException("FedEx API nie zwrócił numeru przesyłki.");
+
+            byte[]? label;
             try
             {
-                var accessCode = package.ShipmentServices.Dropshipping ? _soapSettings.DropshippingAccessCode : _soapSettings.AccessCode;
-
-                // Insert shipment
-                var result = _client.zapiszListV2(accessCode, fedexRequest);
-                if (result == null || string.IsNullOrWhiteSpace(result.waybill))
-                {
-                    return ShipmentResponse.CreateFailure("FedEx API nie zwrócił numeru przesyłki.");
-                }
-
-                // Download label
-                var labelBytes = _client.wydrukujEtykiete(accessCode, result.waybill, "ZPL200");
-                if (labelBytes == null || labelBytes.Length == 0)
-                {
-                    return ShipmentResponse.CreateFailure("FedEx API nie zwrócił etykiety.");
-                }
-
-                return ShipmentResponse.CreateSuccess(
-                    courier: Courier.Fedex,
-                    packageId: package.Id,
-                    trackingLink: $"https://www.fedex.com/fedextrack/?trknbr={result.waybill}",
-                    trackingNumber: result.waybill,
-                    labelBase64: Convert.ToBase64String(labelBytes),
-                    labelType: PrintDataType.ZPL,
-                    packageInfo: package,
-                    externalId: "0"
-                );
+                label = (await _client.wydrukujEtykieteAsync(accessCode, saved.waybill, LabelFormat)).etykietaBajty;
             }
-            catch (FaultException faultEx)
+            catch (FaultException fault)
             {
-                var msg = $"Błąd danych paczki FedEx: {faultEx.Message}";
-
-                if (faultEx.Code != null)
-                    msg += $" | Kod: {faultEx.Code.Name}";
-
-                if (faultEx.Reason != null && faultEx.Reason.GetMatchingTranslation().Text != faultEx.Message)
-                    msg += $" | Powód: {faultEx.Reason.GetMatchingTranslation().Text}";
-
-                if (faultEx.CreateMessageFault().HasDetail)
-                {
-                    using var reader = faultEx.CreateMessageFault().GetReaderAtDetailContents();
-                    string detailText = reader.ReadContentAsString();
-                    msg += $" | Szczegóły: {detailText}";
-                }
-
-                return ShipmentResponse.CreateFailure(msg);
+                throw new CourierApiException($"Błąd pobierania etykiety FedEx: {SoapFaults.Describe(fault)}", fault);
             }
-            catch (Exception ex)
-            {
-                return ShipmentResponse.CreateFailure($"Błąd FedEx SOAP API: {ex.Message}");
-            }
+
+            if (label is not { Length: > 0 })
+                throw new CourierApiException("FedEx API nie zwrócił etykiety.");
+
+            return new CreatedShipment(saved.waybill, Convert.ToBase64String(label));
         }
+
+        /// <summary>Domestic FedEx shipments are not withdrawn through the API.</summary>
+        public Task CancelShipmentAsync(MinPackageData shipment) => Task.CompletedTask;
+
+        /// <summary>
+        /// One handover document for the given shipments. Regular and
+        /// dropshipping shipments sit on different FedEx accounts, so they must
+        /// not be mixed in one call.
+        /// </summary>
+        public async Task<string> GenerateProtocolAsync(IEnumerable<RoutePackages> packages, bool dropshipping)
+        {
+            var trackingNumbers = string.Join(TrackingNumberSeparator, packages.Select(p => p.TrackingNumber));
+
+            var pdf = (await _client.zapiszDokumentWydaniaAsync(
+                AccessCode(dropshipping), trackingNumbers, TrackingNumberSeparator, _settings.CourierId)).dokumentWydaniaPdf;
+
+            if (pdf is not { Length: > 0 })
+                throw new CourierApiException("FedEx API nie zwrócił protokołu.");
+
+            return Convert.ToBase64String(pdf);
+        }
+
+        private string AccessCode(bool dropshipping) =>
+            dropshipping ? _settings.DropshippingAccessCode : _settings.AccessCode;
     }
 }

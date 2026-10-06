@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using WarehousePacking.Contracts.DTOs;
 using WarehousePacking.Contracts.Settings;
 
-namespace WarehousePacking.API.Integrations.Couriers.Mapping
+namespace WarehousePacking.Infrastructure.Mapping
 {
     public class FedexSoapParcelMapper : IParcelMapper<listV2>
     {

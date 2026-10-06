@@ -7,6 +7,13 @@ namespace WarehousePacking.Contracts.DTOs.Requests
         public bool Success { get; set; }
         public string ExternalId { get; set; } = string.Empty;
         public string ErrorMessage { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The courier refused the package's own data (address, postal code,
+        /// phone...), as opposed to a technical failure such as a timeout.
+        /// Only this kind is reported to the representative.
+        /// </summary>
+        public bool IsInvalidPackageData { get; set; }
         public string TrackingNumber { get; set; } = string.Empty;
         public string TrackingLink { get; set; } = string.Empty;
         public string LabelBase64 { get; set; } = string.Empty;
@@ -16,10 +23,11 @@ namespace WarehousePacking.Contracts.DTOs.Requests
         public Courier Courier { get; set; }
         public PackageData PackageInfo { get; set; } = new();
 
-        public static ShipmentResponse CreateFailure(string error) => new()
+        public static ShipmentResponse CreateFailure(string error, bool isInvalidPackageData = false) => new()
         {
             Success = false,
-            ErrorMessage = error
+            ErrorMessage = error,
+            IsInvalidPackageData = isInvalidPackageData
         };
 
         public static ShipmentResponse CreateSuccess(

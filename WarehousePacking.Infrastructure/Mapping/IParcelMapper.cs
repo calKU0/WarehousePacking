@@ -1,6 +1,6 @@
 ﻿using WarehousePacking.Contracts.DTOs;
 
-namespace WarehousePacking.API.Integrations.Couriers.Mapping
+namespace WarehousePacking.Infrastructure.Mapping
 {
     public interface IParcelMapper<TParcel>
     {

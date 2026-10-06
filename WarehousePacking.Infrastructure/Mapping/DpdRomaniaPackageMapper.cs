@@ -3,7 +3,7 @@ using WarehousePacking.Contracts.DTOs;
 using WarehousePacking.Contracts.DTOs.Couriers.DPD_Romania;
 using WarehousePacking.Contracts.Settings;
 
-namespace WarehousePacking.API.Integrations.Couriers.Mapping
+namespace WarehousePacking.Infrastructure.Mapping
 {
     public class DpdRomaniaPackageMapper : IParcelMapper<DpdRomaniaCreateShipmentRequest>
     {

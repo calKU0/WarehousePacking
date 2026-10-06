@@ -7,6 +7,7 @@ namespace WarehousePacking.Contracts.Services
     public interface IShipmentService
     {
         Task<PackageData?> GetShipmentDataByBarcode(string barcode);
+        Task<MinPackageData> GetMinPackageData(int wysNumber, int wysType);
 
         Task<IEnumerable<Recipient>?> SearchAddress(string code);
 

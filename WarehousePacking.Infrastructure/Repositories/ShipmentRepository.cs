@@ -44,8 +44,9 @@ namespace WarehousePacking.Infrastructure.Repositories
             var hasInvoice = packageInfo.HasInvoice ? "TAK" : "NIE";
             var manualEdit = packageInfo.ManualEdit ? "TAK" : "NIE";
             var manualSend = packageInfo.ManualSend ? "TAK" : "NIE";
+            var byPlane = packageInfo.ShipmentServices.ByPlane ? "TAK" : "NIE";
 
-            var result = await _context.QuerySingleOrDefaultAsync<int>(procedure, new { POD = pod, ROD = rod, EXW = exw, S10 = s10, S12 = s12, Saturday = saturday, COD = cod, HasInvoice = hasInvoice, ManualEdit = manualEdit, ManualSend = manualSend, shipmentInfo.ExternalId, documentId }, CommandType.StoredProcedure, Connection.ERPConnection);
+            var result = await _context.QuerySingleOrDefaultAsync<int>(procedure, new { POD = pod, ROD = rod, EXW = exw, S10 = s10, S12 = s12, Saturday = saturday, COD = cod, HasInvoice = hasInvoice, ManualEdit = manualEdit, ManualSend = manualSend, shipmentInfo.ExternalId, byPlane, documentId }, CommandType.StoredProcedure, Connection.ERPConnection);
             return result > 0;
         }
 
@@ -67,6 +68,13 @@ namespace WarehousePacking.Infrastructure.Repositories
                 commandType: CommandType.StoredProcedure,
                 connectionName: Connection.ERPConnection
             );
+        }
+
+        public async Task<MinPackageData> GetMinShipmentData(int wysNumber, int wysType)
+        {
+            const string procedure = "kp.GetMinPackageData";
+            var result = await _context.QuerySingleOrDefaultAsync<MinPackageData>(procedure, new { WysNumber = wysNumber, WysType = wysType }, CommandType.StoredProcedure, Connection.ERPConnection);
+            return result;
         }
 
         public async Task<IEnumerable<Recipient>?> SearchAddress(string code)

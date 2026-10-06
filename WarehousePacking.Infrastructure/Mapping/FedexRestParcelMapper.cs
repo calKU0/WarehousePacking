@@ -3,7 +3,7 @@ using WarehousePacking.Contracts.DTOs;
 using WarehousePacking.Contracts.DTOs.Couriers.Fedex;
 using WarehousePacking.Contracts.Settings;
 
-namespace WarehousePacking.API.Integrations.Couriers.Mapping
+namespace WarehousePacking.Infrastructure.Mapping
 {
     public class FedexRestParcelMapper : IParcelMapper<FedexShipmentRequest>
     {
@@ -24,7 +24,7 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
             var shipment = new FedexShipmentRequest
             {
                 LabelResponseOptions = "LABEL",
-                AccountNumber = new AccountNumber { Value = _settings.Account },
+                AccountNumber = new AccountNumber { Value = package.ShipmentServices.ByPlane ? _settings.PlaneAccount : _settings.Account },
                 RequestedShipment = MapRequestedShipment(package)
             };
 
@@ -36,8 +36,8 @@ namespace WarehousePacking.API.Integrations.Couriers.Mapping
             RequestedShipment shipment = new()
             {
                 ShipDatestamp = DateTime.Now.Date.ToString("yyyy-MM-dd"),
-                PickupType = "CONTACT_FEDEX_TO_SCHEDULE",
-                ServiceType = "INTERNATIONAL_ECONOMY",
+                PickupType = "USE_SCHEDULED_PICKUP",
+                ServiceType = package.ShipmentServices.ByPlane ? "FEDEX_INTERNATIONAL_PRIORITY" : "FEDEX_REGIONAL_ECONOMY",
                 PackagingType = "YOUR_PACKAGING",
                 TotalWeight = (double)package.Weight,
                 ShippingChargesPayment = new ShippingChargesPayment { PaymentType = "SENDER" },

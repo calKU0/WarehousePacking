@@ -1,185 +1,109 @@
-﻿using Microsoft.Extensions.Options;
-using System.Data;
 using System.Net;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Xml.Linq;
-using WarehousePacking.API.Integrations.Couriers.Mapping;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using WarehousePacking.Contracts.Data.Enums;
 using WarehousePacking.Contracts.DTOs;
 using WarehousePacking.Contracts.DTOs.Couriers.DPD;
-using WarehousePacking.Contracts.DTOs.Requests;
-using WarehousePacking.Contracts.Services;
 using WarehousePacking.Contracts.Settings;
+using WarehousePacking.Infrastructure.Mapping;
+using WarehousePacking.Infrastructure.Services.Couriers.Common;
 
 namespace WarehousePacking.Infrastructure.Services.Couriers
 {
-    public class DpdService : ICourierService
+    public sealed class DpdService : CourierServiceBase
     {
+        private const string GeneratePackagesNumbersPath = "public/shipment/v1/generatePackagesNumbers";
+        private const string GenerateLabelsPath = "public/shipment/v1/generateSpedLabels";
+        private const string GenerateProtocolPath = "public/shipment/v1/generateProtocol";
+
+        private const string StatusOk = "OK";
+        private const string DomesticSession = "DOMESTIC";
+        private const string InternationalSession = "INTERNATIONAL";
+
+        // The DPD gateway drops a request every now and then and is fine on the
+        // very next try, so shipment and label calls get a few quick retries.
+        private const int MaxAttempts = 7;
+        private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(100);
+
         private readonly HttpClient _httpClient;
         private readonly IParcelMapper<DpdCreatePackageRequest> _mapper;
         private readonly DpdSettings _settings;
-        private readonly SenderSettings _senderSettings;
+        private readonly SenderSettings _sender;
 
-        public DpdService(HttpClient httpClient, IParcelMapper<DpdCreatePackageRequest> mapper, IOptions<CourierSettings> options)
+        public DpdService(
+            HttpClient httpClient,
+            IParcelMapper<DpdCreatePackageRequest> mapper,
+            IOptions<CourierSettings> options,
+            ILogger<DpdService> logger)
+            : base(logger)
         {
-            _settings = options?.Value?.DPD ?? throw new ArgumentNullException(nameof(options));
-            _senderSettings = options?.Value?.Sender ?? throw new ArgumentNullException(nameof(options));
-
             _httpClient = httpClient;
             _mapper = mapper;
+            _settings = options.Value.DPD;
+            _sender = options.Value.Sender;
         }
 
-        public async Task<ShipmentResponse> SendPackageAsync(PackageData package)
+        protected override Courier Courier => Courier.DPD;
+
+        protected override string GetTrackingLink(string trackingNumber) =>
+            $"https://tracktrace.dpd.com.pl/parcelDetails?typ=1&p1={trackingNumber}";
+
+        protected override async Task<CreatedShipment> CreateShipmentAsync(PackageData package)
         {
-            if (package == null)
-                return ShipmentResponse.CreateFailure("Błąd: Nie znaleziono paczki");
+            var created = await GeneratePackageNumbersAsync(_mapper.Map(package));
 
-            var dpdRequest = _mapper.Map(package);
-
-            var createDpdResponse = await CreateDpdPackage(dpdRequest);
-            if (createDpdResponse == null)
-                return ShipmentResponse.CreateFailure("Pusta odpowiedź z tworzenia paczki DPD przez API.");
-            if (createDpdResponse.Status != "OK")
-            {
-                if (!string.IsNullOrEmpty(createDpdResponse.ErrorsXml))
-                    return ShipmentResponse.CreateFailure(BuildErrorMessageFromXml(createDpdResponse.ErrorsXml));
-
-                return ShipmentResponse.CreateFailure(BuildErrorMessage(createDpdResponse));
-            }
-
-            var waybill = createDpdResponse.Packages?
-                   .FirstOrDefault()?.Parcels?.FirstOrDefault()?.Waybill ?? string.Empty;
-
+            var parcels = created.Packages?.FirstOrDefault()?.Parcels ?? new List<DpdParcelResponse>();
+            var waybill = parcels.FirstOrDefault()?.Waybill;
             if (string.IsNullOrWhiteSpace(waybill))
-                return ShipmentResponse.CreateFailure("Nie zwrócono etykiety przez DPD API.");
+                throw new CourierApiException("Nie zwrócono etykiety przez DPD API.");
 
-            DpdCreateLabelResponse labelResponse = null;
-            for (int i = 0; i <= 7; i++)
-            {
-                try
-                {
-                    labelResponse = await CreateDpdLabel(createDpdResponse.SessionId, waybill, package.Recipient.Country, createDpdResponse.Packages);
-                    break;
-                }
-                catch (HttpRequestException)
-                {
-                    await Task.Delay(100);
-                }
-            }
+            var label = await GenerateLabelAsync(created.SessionId, waybill, package.Recipient.Country, parcels);
 
-            if (labelResponse == null)
-                return ShipmentResponse.CreateFailure("Pusta odpowiedź z tworzenia etykiety DPD przez API.");
-            if (labelResponse.Status != "OK")
-                return ShipmentResponse.CreateFailure(BuildErrorMessage(labelResponse));
-
-            return ShipmentResponse.CreateSuccess(
-                courier: Courier.DPD,
-                packageId: package.Id,
-                trackingNumber: waybill,
-                trackingLink: $"https://tracktrace.dpd.com.pl/parcelDetails?typ=1&p1={waybill}",
-                labelBase64: labelResponse.DocumentData,
-                labelType: PrintDataType.ZPL,
-                packageInfo: package,
-                externalId: "0"
-            );
+            return new CreatedShipment(waybill, label);
         }
 
-        private async Task<DpdCreatePackageResponse?> CreateDpdPackage(object dpdRequest)
+        /// <summary>Nothing to withdraw: DPD only bills shipments that are handed over.</summary>
+        public override Task CancelShipmentAsync(MinPackageData shipment) => Task.CompletedTask;
+
+        protected override async Task<IReadOnlyList<string>> GenerateProtocolDocumentsAsync(IReadOnlyCollection<RoutePackages> packages)
         {
-            var json = JsonSerializer.Serialize(dpdRequest, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-            });
+            if (packages.Count == 0)
+                throw new CourierApiException("Brak paczek do wygenerowania protokołu.");
 
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var documents = new List<string>();
 
-            const int maxAttempts = 7;
+            var domestic = packages.Where(p => p.Country == "PL").ToList();
+            if (domestic.Count > 0)
+                documents.Add(await GenerateProtocolAsync(domestic, DomesticSession));
 
-            for (int attempt = 1; attempt <= maxAttempts; attempt++)
-            {
-                try
-                {
-                    using var response = await _httpClient.PostAsync(
-                        "public/shipment/v1/generatePackagesNumbers",
-                        content);
+            var international = packages.Where(p => p.Country != "PL").ToList();
+            if (international.Count > 0)
+                documents.Add(await GenerateProtocolAsync(international, InternationalSession));
 
-                    var responseContent = await response.Content.ReadAsStringAsync();
-
-                    // Retry on HTTP-level failure
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        if (attempt < maxAttempts)
-                        {
-                            await Task.Delay(100);
-                            continue;
-                        }
-
-                        return new DpdCreatePackageResponse
-                        {
-                            Status = "ERROR",
-                            ErrorsXml = $"HTTP {(int)response.StatusCode}: {responseContent}",
-                            Packages = new List<DpdPackageResponse>()
-                        };
-                    }
-
-                    // XML error returned by API
-                    if (responseContent.TrimStart().StartsWith("<"))
-                    {
-                        return new DpdCreatePackageResponse
-                        {
-                            Status = "ERROR",
-                            ErrorsXml = responseContent,
-                            Packages = new List<DpdPackageResponse>()
-                        };
-                    }
-
-                    // Try JSON deserialize
-                    try
-                    {
-                        return JsonSerializer.Deserialize<DpdCreatePackageResponse>(
-                            responseContent,
-                            new JsonSerializerOptions
-                            {
-                                PropertyNameCaseInsensitive = true
-                            });
-                    }
-                    catch (JsonException)
-                    {
-                        return new DpdCreatePackageResponse
-                        {
-                            Status = "ERROR",
-                            ErrorsXml = responseContent,
-                            Packages = new List<DpdPackageResponse>()
-                        };
-                    }
-                }
-                catch (HttpRequestException ex)
-                {
-                    if (attempt < maxAttempts)
-                    {
-                        await Task.Delay(100);
-                        continue;
-                    }
-
-                    return new DpdCreatePackageResponse
-                    {
-                        Status = "ERROR",
-                        ErrorsXml = $"HttpRequestException: {ex.Message}",
-                        Packages = new List<DpdPackageResponse>()
-                    };
-                }
-            }
-
-            // Should never happen
-            return null;
+            return documents;
         }
 
-        private async Task<DpdCreateLabelResponse?> CreateDpdLabel(long? sessionId, string waybill, string country, List<DpdPackageResponse>? packages)
+        private async Task<DpdCreatePackageResponse> GeneratePackageNumbersAsync(DpdCreatePackageRequest request)
         {
-            var labelRequest = new DpdCreateLabelRequest
+            var body = await PostWithRetryAsync(GeneratePackagesNumbersPath, request);
+
+            // Validation errors come back as XML even on a 200.
+            if (body.TrimStart().StartsWith('<'))
+                throw CourierApiException.InvalidPackageData(DescribeXmlErrors(body));
+
+            var response = CourierJson.TryDeserialize<DpdCreatePackageResponse>(body)
+                ?? throw new CourierApiException("Pusta odpowiedź z tworzenia paczki DPD przez API.");
+
+            if (response.Status != StatusOk)
+                throw CourierApiException.InvalidPackageData(DescribeErrors(response));
+
+            return response;
+        }
+
+        private async Task<string> GenerateLabelAsync(long? sessionId, string waybill, string country, List<DpdParcelResponse> parcels)
+        {
+            var request = new DpdCreateLabelRequest
             {
                 Format = "LBL_PRINTER",
                 OutputDocFormat = "ZPL",
@@ -192,184 +116,34 @@ namespace WarehousePacking.Infrastructure.Services.Couriers
                     Session = new DpdCreateLabelRequest.Session
                     {
                         SessionId = sessionId,
-                        Type = country == "PL" ? "DOMESTIC" : "INTERNATIONAL",
+                        Type = country == "PL" ? DomesticSession : InternationalSession,
                         Packages = new List<DpdCreateLabelRequest.Package>
                         {
-                            new DpdCreateLabelRequest.Package
+                            new()
                             {
-                                Parcels = packages?.FirstOrDefault()?.Parcels?.Select(p => new DpdCreateLabelRequest.Parcel
-                                {
-                                    Waybill = p.Waybill
-                                }).ToList() ?? new List<DpdCreateLabelRequest.Parcel>()
+                                Parcels = parcels
+                                    .Select(p => new DpdCreateLabelRequest.Parcel { Waybill = p.Waybill })
+                                    .ToList()
                             }
                         }
                     }
                 }
             };
 
-            var json = JsonSerializer.Serialize(labelRequest, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var response = await _httpClient.SendAsync(
-            new HttpRequestMessage(HttpMethod.Post, "public/shipment/v1/generateSpedLabels")
-            {
-                Content = content
-            },
-            HttpCompletionOption.ResponseContentRead);
+            var body = await PostWithRetryAsync(GenerateLabelsPath, request);
 
-            var responseJson = await response.Content.ReadAsStringAsync();
-            if (!response.IsSuccessStatusCode)
-                return new DpdCreateLabelResponse { Status = "ERROR" };
+            var response = CourierJson.TryDeserialize<DpdCreateLabelResponse>(body)
+                ?? throw new CourierApiException("Pusta odpowiedź z tworzenia etykiety DPD przez API.");
 
-            try
-            {
-                return JsonSerializer.Deserialize<DpdCreateLabelResponse>(responseJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, });
-            }
-            catch (JsonException)
-            {
-                return new DpdCreateLabelResponse { Status = "ERROR" };
-            }
+            if (response.Status != StatusOk || string.IsNullOrEmpty(response.DocumentData))
+                throw new CourierApiException($"Nieznany błąd podczas tworzenia etykiety z DPD API (status: {response.Status}).");
+
+            return response.DocumentData;
         }
 
-        private string BuildErrorMessage(DpdCreatePackageResponse? response)
+        private async Task<string> GenerateProtocolAsync(IEnumerable<RoutePackages> packages, string sessionType)
         {
-            if (response == null) return "Nieznany błąd DPD";
-
-            var messages = new List<string>();
-
-            // Iterate over packages
-            if (response.Packages != null)
-            {
-                foreach (var pkg in response.Packages)
-                {
-                    // Package-level validation errors
-                    if (pkg.ValidationInfo != null && pkg.ValidationInfo.Any())
-                    {
-                        messages.AddRange(pkg.ValidationInfo.Select(v =>
-                            $"{v.Info} (Kod: {v.ErrorCode}"));
-                    }
-
-                    // Parcel-level validation errors
-                    if (pkg.Parcels != null)
-                    {
-                        foreach (var parcel in pkg.Parcels)
-                        {
-                            if (parcel.ValidationInfo != null && parcel.ValidationInfo.Any())
-                            {
-                                messages.AddRange(parcel.ValidationInfo.Select(v =>
-                                    $"{v.Info} (Kod: {v.ErrorCode}"));
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Fallback if no structured errors found
-            if (!messages.Any() && !string.IsNullOrWhiteSpace(response.ErrorsXml))
-            {
-                messages.Add(BuildErrorMessageFromXml(response.ErrorsXml));
-            }
-
-            return messages.Any() ? string.Join("; ", messages) : "Nieznany błąd z DPD API";
-        }
-
-        private string BuildErrorMessage(DpdCreateLabelResponse? response)
-        {
-            return "Nieznany błąd podczas tworzenia etykykiety z DPD API";
-        }
-
-        private string BuildErrorMessageFromXml(string xml)
-        {
-            try
-            {
-                var doc = XDocument.Parse(xml);
-                var messages = doc.Descendants("errors")
-                                  .Descendants("errors")
-                                  .Select(e => $"{e.Element("userMessage")?.Value} (Pole: {e.Element("field")?.Value})")
-                                  .ToList();
-                return string.Join("; ", messages);
-            }
-            catch
-            {
-                return xml; // fallback: raw XML
-            }
-        }
-
-        public Task<int> DeletePackageAsync(int packageId)
-        {
-            // No need to delete package in DPD
-            return Task.FromResult(1);
-        }
-
-        public async Task<CourierProtocolResponse> GenerateProtocol(IEnumerable<RoutePackages> packages)
-        {
-            if (packages == null || !packages.Any())
-            {
-                return new CourierProtocolResponse
-                {
-                    Success = false,
-                    ErrorMessage = "Brak paczek do wygenerowania protokołu.",
-                    Courier = Courier.DPD
-                };
-            }
-
-            var response = new CourierProtocolResponse
-            {
-                Success = true,
-                Courier = Courier.DPD,
-                DataType = PrintDataType.PDF
-            };
-
-            try
-            {
-                var domestic = packages.Where(p => p.Country == "PL").ToList();
-                var international = packages.Where(p => p.Country != "PL").ToList();
-
-                if (domestic.Any())
-                {
-                    var docs = await GenerateProtocolInternalAsync(domestic, "DOMESTIC");
-                    response.DataBase64.Add(docs);
-                }
-
-                if (international.Any())
-                {
-                    var docs = await GenerateProtocolInternalAsync(international, "INTERNATIONAL");
-                    response.DataBase64.Add(docs);
-                }
-
-                if (!response.DataBase64.Any())
-                {
-                    return new CourierProtocolResponse
-                    {
-                        Success = false,
-                        ErrorMessage = "Nie wygenerowano żadnego protokołu DPD.",
-                        Courier = Courier.DPD
-                    };
-                }
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                return new CourierProtocolResponse
-                {
-                    Success = false,
-                    ErrorMessage = ex.Message,
-                    Courier = Courier.DPD
-                };
-            }
-        }
-
-        private async Task<string> GenerateProtocolInternalAsync(IEnumerable<RoutePackages> packages, string sessionType)
-        {
-            var dpdPackages = packages.Select(p => new DpdGenerateProtocolRequest.Package
-            {
-                Parcels = new List<DpdGenerateProtocolRequest.Parcel> {
-                    new DpdGenerateProtocolRequest.Parcel {
-                        Waybill = p.TrackingNumber }
-                }
-            }).ToList();
-
-            var dpdRequest = new DpdGenerateProtocolRequest
+            var request = new DpdGenerateProtocolRequest
             {
                 OutputDocFormat = "PDF",
                 SearchParams = new DpdGenerateProtocolRequest.ProtocolSearchParams
@@ -378,59 +152,117 @@ namespace WarehousePacking.Infrastructure.Services.Couriers
                     Session = new DpdGenerateProtocolRequest.Session
                     {
                         Type = sessionType,
-                        Packages = dpdPackages
+                        Packages = packages
+                            .Select(p => new DpdGenerateProtocolRequest.Package
+                            {
+                                Parcels = new List<DpdGenerateProtocolRequest.Parcel> { new() { Waybill = p.TrackingNumber } }
+                            })
+                            .ToList()
                     },
                     PickupAddress = new DpdGenerateProtocolRequest.PickupAddress
                     {
                         Fid = Convert.ToInt32(_settings.MasterFID),
-                        Company = _senderSettings.Company,
-                        Name = _senderSettings.PersonName,
-                        Address = _senderSettings.Street,
-                        City = _senderSettings.City,
-                        CountryCode = _senderSettings.Country,
-                        PostalCode = _senderSettings.PostalCode,
-                        Phone = _senderSettings.Phone,
-                        Email = _senderSettings.Email
+                        Company = _sender.Company,
+                        Name = _sender.PersonName,
+                        Address = _sender.Street,
+                        City = _sender.City,
+                        CountryCode = _sender.Country,
+                        PostalCode = _sender.PostalCode,
+                        Phone = _sender.Phone,
+                        Email = _sender.Email
                     }
                 }
             };
 
-            var json = JsonSerializer.Serialize(dpdRequest, new JsonSerializerOptions
+            // HTTP/1.1 without "Expect: 100-continue": the protocol call hangs on
+            // the Windows Server 2019 host otherwise.
+            using var message = new HttpRequestMessage(HttpMethod.Post, GenerateProtocolPath)
             {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
+                Content = CourierJson.ToContent(request),
+                Version = HttpVersion.Version11
+            };
+            message.Headers.ExpectContinue = false;
 
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            using var response = await _httpClient.SendAsync(message);
+            var body = await response.Content.ReadAsStringAsync();
 
+            if (!response.IsSuccessStatusCode)
+                throw new CourierApiException($"DPD odrzuciło protokół {sessionType} (HTTP {(int)response.StatusCode}): {body}");
+
+            var protocol = CourierJson.TryDeserialize<DpdGenerateProtocolResponse>(body);
+            if (string.IsNullOrEmpty(protocol?.DocumentData))
+                throw new CourierApiException($"DPD zwróciło pusty protokół {sessionType}.");
+
+            return protocol.DocumentData;
+        }
+
+        /// <summary>
+        /// Posts the payload, retrying transport failures and error statuses, and
+        /// returns the body of the first successful response.
+        /// </summary>
+        private async Task<string> PostWithRetryAsync(string path, object payload)
+        {
+            for (var attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    using var response = await _httpClient.PostAsync(path, CourierJson.ToContent(payload));
+                    var body = await response.Content.ReadAsStringAsync();
+
+                    if (response.IsSuccessStatusCode)
+                        return body;
+
+                    if (attempt == MaxAttempts)
+                    {
+                        var message = $"DPD API HTTP {(int)response.StatusCode}: {DescribeXmlErrors(body)}";
+                        throw response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.UnprocessableEntity
+                            ? CourierApiException.InvalidPackageData(message)
+                            : new CourierApiException(message);
+                    }
+                }
+                catch (HttpRequestException ex) when (attempt < MaxAttempts)
+                {
+                    Logger.LogDebug(ex, "DPD {Path} attempt {Attempt} failed, retrying", path, attempt);
+                }
+
+                await Task.Delay(RetryDelay);
+            }
+        }
+
+        private static string DescribeErrors(DpdCreatePackageResponse response)
+        {
+            // DPD sends explicit nulls for empty lists, so every level is guarded.
+            var validation = (response.Packages ?? new List<DpdPackageResponse>())
+                .SelectMany(package => (package.ValidationInfo ?? new List<DpdValidationInfo>())
+                    .Concat((package.Parcels ?? new List<DpdParcelResponse>())
+                        .SelectMany(parcel => parcel.ValidationInfo ?? new List<DpdValidationInfo>())))
+                .Select(info => $"{info.Info} (Kod: {info.ErrorCode})")
+                .ToList();
+
+            if (validation.Count > 0)
+                return string.Join("; ", validation);
+
+            return string.IsNullOrWhiteSpace(response.ErrorsXml)
+                ? "Nieznany błąd z DPD API"
+                : DescribeXmlErrors(response.ErrorsXml);
+        }
+
+        /// <summary>Extracts the user messages from DPD's XML error body; falls back to the raw text.</summary>
+        private static string DescribeXmlErrors(string body)
+        {
             try
             {
-                _httpClient.DefaultRequestHeaders.ExpectContinue = false;
-                // Zastosuj to rozwiązanie kompleksowo:
-                var request = new HttpRequestMessage(HttpMethod.Post, "/public/shipment/v1/generateProtocol")
-                {
-                    Content = content,
-                    Version = HttpVersion.Version11 // Ważne dla Windows Server 2019
-                };
+                var messages = XDocument.Parse(body)
+                    .Descendants("errors")
+                    .Descendants("errors")
+                    .Select(e => $"{e.Element("userMessage")?.Value} (Pole: {e.Element("field")?.Value})")
+                    .ToList();
 
-                // Kluczowa zmiana: ResponseHeadersRead
-                using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-
-                if (!response.IsSuccessStatusCode) { /* obsługa błędu */ }
-
-                using var stream = await response.Content.ReadAsStreamAsync();
-                var dpdResponse = await JsonSerializer.DeserializeAsync<DpdGenerateProtocolResponse>(stream, new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                });
-
-                if (string.IsNullOrEmpty(dpdResponse?.DocumentData))
-                    throw new Exception($"DPD returned empty documentData for {sessionType}");
-
-                return dpdResponse.DocumentData;
+                return messages.Count > 0 ? string.Join("; ", messages) : body;
             }
-            catch (HttpRequestException httpEx)
+            catch
             {
-                throw;
+                return body;
             }
         }
     }

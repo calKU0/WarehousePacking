@@ -9,11 +9,13 @@ namespace WarehousePacking.Contracts.Repositories
         Task<bool> DeleteErpShipmentDocument(int wysNumber, int wysType);
         Task<bool> AddErpAttributes(int documentId, ShipmentResponse shipmentInfo);
         Task<PackageData?> GetShipmentDataByBarcode(string barcode);
+        Task<MinPackageData> GetMinShipmentData(int wysNumber, int wysType);
         Task<IEnumerable<Recipient>?> SearchAddress(string code);
         Task<IEnumerable<SearchInvoiceResult>?> SearchInvoice(string code);
         Task<RoutesStatus> GetRoutesStatus();
         Task<IEnumerable<RoutePackages>> GetRoutePackages(string courierName);
         Task<int> CloseRoute(string courierName);
         Task<bool> IsPackageReadyToShip(string barcode);
+
     }
 }
