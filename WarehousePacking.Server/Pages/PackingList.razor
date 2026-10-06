@@ -637,7 +637,7 @@
                             PackageDestination = result[1],
                             PackingLevel = Settings.PackingLevel,
                             PackingWarehouse = Settings.PackingWarehouse,
-                            Courier = Courier.Unknown
+                            Courier = "Nieznany"
                         };
                         var success = await PackingService.CloseWmsJl(closeWmsJlRequest);
                         if (success)

@@ -209,6 +209,12 @@
                                        disabled="@( !Package.ManualEdit )" />
                         <label class="form-check-label">Pobranie</label>
                     </div>
+                    <div class="form-check">
+                        <InputCheckbox @bind-Value="Package.ShipmentServices.ByPlane"
+                                       class="form-check-input"
+                                       disabled="@( !Package.ManualEdit )" />
+                        <label class="form-check-label">Lotnicza</label>
+                    </div>
                 </div>
             </div>
 
@@ -430,7 +436,12 @@
 
                 var labelContent = response.LabelBase64;
                 await ClientPrinterService.PrintAsync(WorkstationSettings.PrinterLabel, response.LabelType.ToString(), labelContent);
-                ShipmentModal.Show(Barcode, response.LabelType, WorkstationSettings.PrinterLabel, Package.HasInvoice, false, null, response.TrackingNumber, response.LabelBase64);
+                var planeLabel = PlaneLabelHelper.IsRequired(Package) ? PlaneLabelHelper.BuildBase64(Package) : null;
+                if (planeLabel is not null)
+                {
+                    await ClientPrinterService.PrintAsync(WorkstationSettings.PrinterLabel, PrintDataType.ZPL.ToString(), planeLabel);
+                }
+                ShipmentModal.Show(Barcode, response.LabelType, WorkstationSettings.PrinterLabel, Package.HasInvoice, false, null, response.TrackingNumber, response.LabelBase64, planeLabel);
                 if (Package.HasInvoice)
                 {
                     await ClientPrinterService.PrintCrystalAsync(WorkstationSettings.PrinterInvoice, Package.Recipient.Country != "PL" ? "InvoiceEN" : "InvoicePL", new Dictionary<string, string> { { "DocumentId", Package.InvoiceId.ToString() } });

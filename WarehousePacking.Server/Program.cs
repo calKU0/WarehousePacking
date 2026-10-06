@@ -1,4 +1,4 @@
-using Blazored.LocalStorage;
+﻿using Blazored.LocalStorage;
 using Microsoft.Extensions.Options;
 using WarehousePacking.Server;
 using WarehousePacking.Server.Services;
@@ -58,7 +58,11 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// TEMP: see the matching note in WarehousePacking.API/Program.cs.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseStaticFiles();
 app.MapStaticAssets();

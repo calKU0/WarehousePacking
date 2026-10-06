@@ -76,6 +76,7 @@
     private bool IsVisible { get; set; }
     private string TrackingNumber { get; set; } = string.Empty;
     private string LabelBase64 { get; set; } = string.Empty;
+    private string PlaneLabelBase64 { get; set; } = string.Empty;
     private string Printer { get; set; } = string.Empty;
     private PrintDataType LabelType { get; set; }
     private bool HasInvoice { get; set; }
@@ -108,12 +109,14 @@
         bool showScan = true,
         string? scannedCode = null,
         string? trackingNumber = null,
-        string? labelBase64 = null)
+        string? labelBase64 = null,
+        string? planeLabelBase64 = null)
     {
         try
         {
             TrackingNumber = trackingNumber ?? string.Empty;
             LabelBase64 = labelBase64 ?? string.Empty;
+            PlaneLabelBase64 = planeLabelBase64 ?? string.Empty;
             LabelType = labelType;
             Printer = printer;
             HasInvoice = hasInvoice;
@@ -150,6 +153,9 @@
         if (!string.IsNullOrEmpty(LabelBase64))
         {
             await ClientPrinterService.PrintAsync(Printer, LabelType.ToString(), LabelBase64);
+            // An air shipment's plane label goes out right behind its courier label.
+            if (!string.IsNullOrEmpty(PlaneLabelBase64))
+                await ClientPrinterService.PrintAsync(Printer, PrintDataType.ZPL.ToString(), PlaneLabelBase64);
             return;
         }
 
@@ -216,7 +222,7 @@
         if (string.IsNullOrWhiteSpace(ScannedCode))
             return false;
 
-        if (ScannedCode.Length > 29)
+        if (ScannedCode.Length > 35)
             return await RejectAsync("Za długi kod etykiety. Zeskanuj ponownie.");
 
         var containsTracking =

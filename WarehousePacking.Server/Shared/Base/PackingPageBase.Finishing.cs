@@ -1,15 +1,10 @@
-﻿using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.AspNetCore.Components.Web;
-using WarehousePacking.Contracts.Data.Enums;
+﻿using WarehousePacking.Contracts.Data.Enums;
 using WarehousePacking.Contracts.DTOs;
 using WarehousePacking.Contracts.DTOs.Requests;
 using WarehousePacking.Server.Helpers;
 using WarehousePacking.Server.Services;
-using WarehousePacking.Server.Settings;
 using WarehousePacking.Server.Shared.Components;
 using WarehousePacking.Server.Shared.Components.Modals;
-using WarehousePacking.Server.Shared.Components.Packing;
 
 namespace WarehousePacking.Server.Shared.Base
 {
@@ -197,7 +192,7 @@ namespace WarehousePacking.Server.Shared.Base
                     var closeJlRequest = new WmsCloseJlRequest
                     {
                         PackageNumber = closePackageCode,
-                        Courier = CurrentJl.Courier,
+                        Courier = CurrentJl.CourierName,
                         PackingLevel = Settings.PackingLevel,
                         PackingWarehouse = Settings.PackingWarehouse
                     };
@@ -349,7 +344,12 @@ namespace WarehousePacking.Server.Shared.Base
                     {
                         var labelContent = response.LabelBase64;
                         await ClientPrinterService.PrintAsync(Settings.PrinterLabel, response.LabelType.ToString(), labelContent);
-                        ShipmentModal.Show(CurrentJl.InternalBarcode, response.LabelType, Settings.PrinterLabel, package.HasInvoice, true, null, response.TrackingNumber, labelContent);
+                        var planeLabel = PlaneLabelHelper.IsRequired(package) ? PlaneLabelHelper.BuildBase64(package) : null;
+                        if (planeLabel is not null)
+                        {
+                            await ClientPrinterService.PrintAsync(Settings.PrinterLabel, PrintDataType.ZPL.ToString(), planeLabel);
+                        }
+                        ShipmentModal.Show(CurrentJl.InternalBarcode, response.LabelType, Settings.PrinterLabel, package.HasInvoice, true, null, response.TrackingNumber, labelContent, planeLabel);
                         if (package.HasInvoice)
                         {
                             await ClientPrinterService.PrintCrystalAsync(Settings.PrinterInvoice, package.Recipient.Country != "PL" ? "InvoiceEN" : "InvoicePL", new Dictionary<string, string> { { "DocumentId", package.InvoiceId.ToString() } });
