@@ -50,10 +50,10 @@ namespace WarehousePacking.Infrastructure.Mapping
                 senderId = senderId,
                 contactDetails = new daneKontaktowe
                 {
-                    email = _senderSettings.Email,
-                    phoneNo = _senderSettings.Phone,
-                    surname = _senderSettings.PersonName,
-                    name = _senderSettings.Company
+                    email = package.ClientId == 60579 && package.ShipmentServices.Dropshipping ? package.ClientEmail : _senderSettings.Email,
+                    phoneNo = package.ClientId == 60579 && package.ShipmentServices.Dropshipping ? package.ClientPhone : _senderSettings.Phone,
+                    surname = package.ClientId == 60579 && package.ShipmentServices.Dropshipping ? package.ClientSurname : _senderSettings.PersonName,
+                    name = package.ClientId == 60579 && package.ShipmentServices.Dropshipping ? package.ClientName : _senderSettings.Company
                 }
             };
         }

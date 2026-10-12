@@ -57,7 +57,12 @@ namespace WarehousePacking.Infrastructure.Mapping
                             {
                                 CustomerReferenceType = "INVOICE_NUMBER",
                                 Value = package.InvoiceName.ToString()
-                            }
+                            },
+                            new CustomerReference
+                            {
+                                CustomerReferenceType = "CUSTOMER_REFERENCE",
+                                Value = package.References.ToString()
+                            },
                         }
                     }
                 },

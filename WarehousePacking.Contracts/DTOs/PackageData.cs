@@ -33,6 +33,11 @@ namespace WarehousePacking.Contracts.DTOs
         public bool ManualSend { get; set; }
         public bool ManualEdit { get; set; }
         public string TrackingNumber { get; set; } = string.Empty;
+        public int ClientId { get; set; }
+        public string ClientName { get; set; } = string.Empty;
+        public string ClientEmail { get; set; } = string.Empty;
+        public string ClientPhone { get; set; } = string.Empty;
+        public string ClientSurname { get; set; } = string.Empty;
         public Recipient Recipient { get; set; } = new Recipient();
         public ShipmentServices ShipmentServices { get; set; } = new ShipmentServices();
     }
