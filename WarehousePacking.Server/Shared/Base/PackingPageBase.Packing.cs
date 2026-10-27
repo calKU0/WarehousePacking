@@ -190,13 +190,12 @@ namespace WarehousePacking.Server.Shared.Base
                             if (item != null)
                             {
                                 var package = packageCodes.FirstOrDefault(p => IsSameItem(item, p));
-                                var packageMessage = package != null ? BuildPackageScanMessage(package, item.JlQuantity) : null;
-                                if (packageMessage != null)
+                                if (package != null)
                                 {
                                     // Clear the scan before the operator reads the
                                     // message, so a re-scan does not land on it.
                                     await ScanInputComponent.ClearAsync();
-                                    await Toast.ShowBlockingAsync("Kod opakowania", packageMessage, ToastType.Warning);
+                                    await Toast.ShowBlockingAsync("Kod opakowania", BuildPackageScanMessage(package, item.JlQuantity), ToastType.Warning);
                                 }
 
                                 OpenProductModal(item);
@@ -244,23 +243,21 @@ namespace WarehousePacking.Server.Shared.Base
         /// <summary>
         /// "1 opak. = 10 szt." against what is still left to pack, split into full
         /// packages and the partial one the operator has to make up by hand.
-        /// Null when the quantity is whole packages - then there is nothing to check.
         /// </summary>
-        private static string? BuildPackageScanMessage(ItemPackageCode package, decimal required)
+        private static string BuildPackageScanMessage(ItemPackageCode package, decimal required)
         {
             var unit = string.IsNullOrWhiteSpace(package.BaseUnit) ? "szt." : package.BaseUnit;
             var perPackage = package.QuantityPerPackage;
             var fullPackages = (int)decimal.Floor(required / perPackage);
             var partial = required - fullPackages * perPackage;
 
-            if (partial == 0)
-                return null;
-
             string Qty(decimal value) => $"{value.ToString("0.###", CultureInfo.InvariantCulture)} {unit}";
 
             string requirement;
             if (fullPackages == 0)
                 requirement = $"Wymagane niepełne opakowanie {Qty(partial)}";
+            else if (partial == 0)
+                requirement = $"Wymagane: {fullPackages} {PackagesWord(fullPackages)} x {Qty(perPackage)}\nRazem: {Qty(required)}";
             else
                 requirement = $"Wymagane: {fullPackages} {PackagesWord(fullPackages)} x {Qty(perPackage)} + niepełne opakowanie {Qty(partial)}\nRazem: {Qty(required)}";
 
