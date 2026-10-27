@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using System.Globalization;
+using System.Net;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Components.Web;
 using WarehousePacking.Contracts.Data.Enums;
@@ -157,7 +159,12 @@ namespace WarehousePacking.Server.Shared.Base
 
                     if (!string.IsNullOrWhiteSpace(code) && JlItems != null)
                     {
-                        var matches = JlItems.Where(x => MatchesScanCode(x, code)).ToList();
+                        // The WMS only knows piece barcodes, so a package barcode is
+                        // resolved through the ERP and matched back to the kuweta.
+                        var packageCodes = await FindPackageCodesAsync(code);
+                        var matches = JlItems
+                            .Where(x => MatchesScanCode(x, code) || packageCodes.Any(p => IsSameItem(x, p)))
+                            .ToList();
 
                         if (matches.Any())
                         {
@@ -181,7 +188,19 @@ namespace WarehousePacking.Server.Shared.Base
                             }
 
                             if (item != null)
+                            {
+                                var package = packageCodes.FirstOrDefault(p => IsSameItem(item, p));
+                                var packageMessage = package != null ? BuildPackageScanMessage(package, item.JlQuantity) : null;
+                                if (packageMessage != null)
+                                {
+                                    // Clear the scan before the operator reads the
+                                    // message, so a re-scan does not land on it.
+                                    await ScanInputComponent.ClearAsync();
+                                    await Toast.ShowBlockingAsync("Kod opakowania", packageMessage, ToastType.Warning);
+                                }
+
                                 OpenProductModal(item);
+                            }
                         }
                         else
                         {
@@ -200,6 +219,64 @@ namespace WarehousePacking.Server.Shared.Base
                     await InvokeAsync(StateHasChanged);
                 }
             }
+        }
+
+        /// <summary>
+        /// ERP package barcodes matching the scan. A failed lookup must never stop
+        /// packing, so it falls back to plain WMS matching.
+        /// </summary>
+        private async Task<List<ItemPackageCode>> FindPackageCodesAsync(string code)
+        {
+            try
+            {
+                return await PackingService.GetItemPackageCodes(code);
+            }
+            catch
+            {
+                return new();
+            }
+        }
+
+        private static bool IsSameItem(JlItemDto item, ItemPackageCode package) =>
+            (item.ItemErpId != 0 && item.ItemErpId == package.ItemErpId) ||
+            string.Equals(item.ItemCode, package.ItemCode, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// "1 opak. = 10 szt." against what is still left to pack, split into full
+        /// packages and the partial one the operator has to make up by hand.
+        /// Null when the quantity is whole packages - then there is nothing to check.
+        /// </summary>
+        private static string? BuildPackageScanMessage(ItemPackageCode package, decimal required)
+        {
+            var unit = string.IsNullOrWhiteSpace(package.BaseUnit) ? "szt." : package.BaseUnit;
+            var perPackage = package.QuantityPerPackage;
+            var fullPackages = (int)decimal.Floor(required / perPackage);
+            var partial = required - fullPackages * perPackage;
+
+            if (partial == 0)
+                return null;
+
+            string Qty(decimal value) => $"{value.ToString("0.###", CultureInfo.InvariantCulture)} {unit}";
+
+            string requirement;
+            if (fullPackages == 0)
+                requirement = $"Wymagane niepełne opakowanie {Qty(partial)}";
+            else
+                requirement = $"Wymagane: {fullPackages} {PackagesWord(fullPackages)} x {Qty(perPackage)} + niepełne opakowanie {Qty(partial)}\nRazem: {Qty(required)}";
+
+            var message = $"Zeskanowano kod opakowania: 1 {package.PackageUnit} = {Qty(perPackage)}\n" +
+                          $"Sprawdź zawartość opakowania.\n{requirement}";
+
+            // The blocking card renders its body as markup.
+            return WebUtility.HtmlEncode(message);
+        }
+
+        private static string PackagesWord(int count)
+        {
+            if (count == 1) return "opakowanie";
+            var lastTwo = count % 100;
+            var last = count % 10;
+            return last is >= 2 and <= 4 && lastTwo is < 12 or > 14 ? "opakowania" : "opakowań";
         }
 
         protected virtual bool MatchesScanCode(JlItemDto item, string code)

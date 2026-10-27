@@ -275,5 +275,29 @@ namespace WarehousePacking.Infrastructure.Repositories
             var result = await _context.QuerySingleOrDefaultAsync<int>(procedure, new { code }, CommandType.StoredProcedure, Connection.ERPConnection);
             return result > 0;
         }
+
+        public async Task<IEnumerable<ItemPackageCode>> GetItemPackageCodesAsync(string code)
+        {
+            // A barcode in CDN.TwrKody tagged with an auxiliary unit (opak., opak_zb...)
+            // marks a bulk package; CDN.TwrJm holds how many base units it contains
+            // (1 aux unit = PrzeliczL / PrzeliczM base units). Only conversions above
+            // one count as a package - "1 szt. = 0.001 kg" is not something to warn about.
+            const string sql = @"
+                SELECT DISTINCT
+                    k.TwK_Kod  AS Code,
+                    t.Twr_GIDNumer AS ItemErpId,
+                    t.Twr_Kod  AS ItemCode,
+                    t.Twr_Jm   AS BaseUnit,
+                    j.TwJ_JmZ  AS PackageUnit,
+                    CAST(j.TwJ_PrzeliczL AS decimal(18, 4)) / j.TwJ_PrzeliczM AS QuantityPerPackage
+                FROM CDN.TwrKody k
+                JOIN CDN.TwrKarty t ON t.Twr_GIDNumer = k.TwK_TwrNumer
+                JOIN CDN.TwrJm j ON j.TwJ_TwrNumer = k.TwK_TwrNumer AND j.TwJ_JmZ = k.TwK_Jm
+                WHERE k.TwK_Kod = @code
+                  AND j.TwJ_PrzeliczM > 0
+                  AND j.TwJ_PrzeliczL > j.TwJ_PrzeliczM";
+
+            return await _context.QueryAsync<ItemPackageCode>(sql, new { code }, CommandType.Text, Connection.ERPConnection);
+        }
     }
 }

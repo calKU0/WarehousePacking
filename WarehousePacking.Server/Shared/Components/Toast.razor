@@ -90,7 +90,10 @@
     private bool _visible;
     private bool _disposed;
 
-    private sealed record AckItem(string Title, string Message, ToastType Type);
+    private sealed record AckItem(string Title, string Message, ToastType Type)
+    {
+        public TaskCompletionSource Confirmed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
 
     /// <summary>Blocking acknowledgements waiting to be confirmed, shown one at a time.</summary>
     private readonly Queue<AckItem> _acks = new();
@@ -118,16 +121,27 @@
     /// Calls queue, so two in a row are shown one after the other.
     /// </summary>
     public void ShowBlocking(string title, string message, ToastType type = ToastType.Info)
+        => _ = ShowBlockingAsync(title, message, type);
+
+    /// <summary>
+    /// <see cref="ShowBlocking"/> for callers that must wait until the operator
+    /// has pressed "Potwierdź" before moving on.
+    /// </summary>
+    public Task ShowBlockingAsync(string title, string message, ToastType type = ToastType.Info)
     {
-        _acks.Enqueue(new AckItem(title, message, type));
+        var item = new AckItem(title, message, type);
+        _acks.Enqueue(item);
         _ack ??= _acks.Dequeue();
         StateHasChanged();
+        return item.Confirmed.Task;
     }
 
     private void ConfirmAck()
     {
+        var confirmed = _ack;
         _ack = _acks.Count > 0 ? _acks.Dequeue() : null;
         StateHasChanged();
+        confirmed?.Confirmed.TrySetResult();
     }
 
     /// <summary>Clears everything on screen at once.</summary>

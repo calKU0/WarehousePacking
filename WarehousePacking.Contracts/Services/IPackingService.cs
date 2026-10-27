@@ -67,5 +67,7 @@ namespace WarehousePacking.Contracts.Services
 
         Task<bool> BufferPackage(string barcode);
         Task<bool> RemoveJlFromPackingList(string code);
+
+        Task<IEnumerable<ItemPackageCode>> GetItemPackageCodesAsync(string code);
     }
 }

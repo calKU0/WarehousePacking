@@ -36,5 +36,6 @@ namespace WarehousePacking.Contracts.Repositories
         Task<DocumentInfo?> GetDocumentInfoAsync(int documentId, int documentType);
         Task<bool> IsJlReadyToPack(int clientErpId, int destinationZoneId);
         Task<bool> RemoveJlFromPackingList(string code);
+        Task<IEnumerable<ItemPackageCode>> GetItemPackageCodesAsync(string code);
     }
 }

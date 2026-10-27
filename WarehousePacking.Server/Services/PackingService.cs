@@ -614,6 +614,11 @@ namespace WarehousePacking.Server.Services
             throw new Exception(generic);
         }
 
+        public async Task<List<ItemPackageCode>> GetItemPackageCodes(string code)
+        {
+            return await GetAsync<List<ItemPackageCode>>("api/packing/item-package-codes", new() { ["code"] = code }) ?? new();
+        }
+
         private async Task<T?> GetAsync<T>(string endpoint, Dictionary<string, string?>? queryParams = null)
         {
             var url = queryParams?.Count > 0

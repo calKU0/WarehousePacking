@@ -370,6 +370,11 @@ namespace WarehousePacking.Infrastructure.Services
             return await _packingRepository.GetDocumentInfoAsync(documentId, documentType);
         }
 
+        public async Task<IEnumerable<ItemPackageCode>> GetItemPackageCodesAsync(string code)
+        {
+            return await _packingRepository.GetItemPackageCodesAsync(code);
+        }
+
         public async Task<bool> RemoveJlFromPackingList(string code)
         {
             return await _packingRepository.RemoveJlFromPackingList(code);

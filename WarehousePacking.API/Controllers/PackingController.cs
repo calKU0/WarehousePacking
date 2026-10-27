@@ -640,6 +640,23 @@ namespace WarehousePacking.API.Controllers
             }
         }
 
+        [HttpGet("item-package-codes")]
+        public async Task<IActionResult> GetItemPackageCodes([FromQuery] string code)
+        {
+            _logger.LogInformation("Request: GetItemPackageCodes for code {Code}", code);
+            try
+            {
+                var packages = await _packingService.GetItemPackageCodesAsync(code);
+                _logger.LogInformation("GetItemPackageCodes succeeded for code {Code} with {Count} matches", code, packages.Count());
+                return Ok(packages);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetItemPackageCodes for code {Code}", code);
+                return HandleException(ex);
+            }
+        }
+
         private IActionResult HandleException(Exception ex)
         {
             if (ex is ArgumentException)
