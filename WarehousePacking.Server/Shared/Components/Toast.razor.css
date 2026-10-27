@@ -315,6 +315,31 @@
     overflow-wrap: anywhere;
 }
 
+/* Package-barcode message (built in PackingPageBase.Packing.cs). It arrives
+   as markup, so the rules reach in with ::deep. */
+.toast-ack__body ::deep .pkg-msg {
+    font-size: var(--fs-xl);
+    line-height: 1.35;
+    color: var(--text);
+    white-space: normal;
+}
+
+.toast-ack__body ::deep .pkg-msg__package {
+    color: var(--success);
+}
+
+.toast-ack__body ::deep .pkg-msg__required {
+    color: var(--warning);
+}
+
+.toast-ack__body ::deep .pkg-msg__total {
+    font-weight: 700;
+}
+
+.toast-ack__body ::deep .pkg-msg__total span {
+    color: var(--danger);
+}
+
 .toast-ack__confirm {
     margin-top: var(--space-2);
     min-width: 14rem;

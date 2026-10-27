@@ -253,19 +253,27 @@ namespace WarehousePacking.Server.Shared.Base
 
             string Qty(decimal value) => $"{value.ToString("0.###", CultureInfo.InvariantCulture)} {unit}";
 
-            string requirement;
-            if (fullPackages == 0)
-                requirement = $"Wymagane niepełne opakowanie {Qty(partial)}";
-            else if (partial == 0)
-                requirement = $"Wymagane: {fullPackages} {PackagesWord(fullPackages)} x {Qty(perPackage)}\nRazem: {Qty(required)}";
-            else
-                requirement = $"Wymagane: {fullPackages} {PackagesWord(fullPackages)} x {Qty(perPackage)} + niepełne opakowanie {Qty(partial)}\nRazem: {Qty(required)}";
+            // The blocking card renders its body as markup; the pkg-msg classes
+            // live in Toast.razor.css.
+            static string Line(string cssClass, string text) =>
+                $"<div class=\"pkg-msg__{cssClass}\">{WebUtility.HtmlEncode(text)}</div>";
 
-            var message = $"Zeskanowano kod opakowania: 1 {package.PackageUnit} = {Qty(perPackage)}\n" +
-                          $"Sprawdź zawartość opakowania.\n{requirement}";
+            var lines = new List<string>
+            {
+                Line("text", "Zeskanowano opakowanie"),
+                Line("package", $"1 {package.PackageUnit} = {Qty(perPackage)}"),
+                Line("text", "Sprawdź zawartość"),
+                Line("required", "Wymagane:")
+            };
 
-            // The blocking card renders its body as markup.
-            return WebUtility.HtmlEncode(message);
+            if (fullPackages > 0)
+                lines.Add(Line("required", $"{fullPackages} {PackagesWord(fullPackages)} x {Qty(perPackage)}"));
+            if (partial > 0)
+                lines.Add(Line("required", $"{(fullPackages > 0 ? "+ " : string.Empty)}niepełne opakowanie {Qty(partial)}"));
+
+            lines.Add($"<div class=\"pkg-msg__total\">Razem: <span>{WebUtility.HtmlEncode(Qty(required))}</span></div>");
+
+            return $"<div class=\"pkg-msg\">{string.Concat(lines)}</div>";
         }
 
         private static string PackagesWord(int count)
