@@ -13,7 +13,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
     {
         Title = "WarehousePacking API",
         Version = "v1",
@@ -29,8 +29,8 @@ builder.Services.AddSwaggerGen(options =>
     // Swashbuckle reflect into its internals — that reflection drags in
     // TimeZoneInfo's Win32 interop structs, whose nested fixed-buffer types
     // collide on the default (short-name) schemaId.
-    options.MapType<TimeSpan>(() => new Microsoft.OpenApi.Models.OpenApiSchema { Type = "string", Format = "time-span" });
-    options.MapType<TimeSpan?>(() => new Microsoft.OpenApi.Models.OpenApiSchema { Type = "string", Format = "time-span", Nullable = true });
+    options.MapType<TimeSpan>(() => new Microsoft.OpenApi.OpenApiSchema { Type = Microsoft.OpenApi.JsonSchemaType.String, Format = "time-span" });
+    options.MapType<TimeSpan?>(() => new Microsoft.OpenApi.OpenApiSchema { Type = Microsoft.OpenApi.JsonSchemaType.String | Microsoft.OpenApi.JsonSchemaType.Null, Format = "time-span" });
 
     // Disambiguate schemaIds by full name so nested/interop types can never
     // collide (belt-and-braces for the same class of error).
